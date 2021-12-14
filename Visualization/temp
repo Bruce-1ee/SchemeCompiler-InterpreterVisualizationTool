@@ -1,0 +1,89 @@
+function envProcess(orgEnv){  //输入原始信息
+    var str = orgEnv.split("");
+    var Pcounter = 0;
+    var temp = "";
+    var env = [];
+    var frame = [];
+    var vara = [];
+    var val = [];
+    var inpro = false;
+    var flag = 1; //1: vara  2:val
+    var d = 0; //降低的状态
+    var f = 0; //降低状态收到一个左括号
+    for(var i = 0; i < str.length; i++){
+        console.log("str" + i + ":" +str[i]);
+        console.log("temp:" + temp);
+        console.log("vara:" + vara);
+        console.log("frame:" + frame);
+        console.log(" ");
+        if(str[i] == "(" && d == 0) {Pcounter++; continue;}
+        if(str[i] == "(" && d == 1) {f = 1;}
+
+        if(inpro == true && str[i] == " " || str[i] == ")") {
+            if(flag == 1) {
+                vara.push(temp);
+            }else{
+                val.push(temp);
+            }
+            temp = "";
+            inpro = false;
+        }
+
+        if(str[i] == ")" && inpro == false && Pcounter == 2 && d == 0) {
+            
+            Pcounter--; 
+            for(var j = 0 ; j<vara.length ; j++){
+                frame.push(vara[j] + ":" + val[j]);
+            }
+            env.push(frame);
+            vara = [];
+            val = [];
+            frame = []; 
+            continue;
+        }
+        if(str[i] == ")" && inpro == false && Pcounter == 2 && d == 1) {
+            val.push(temp);
+            temp = "";
+            f = 0;
+            inpro = false;
+        }
+
+        if(str[i] == ")" && inpro == false && Pcounter == 2 && d == 1 && f == 0) {
+            Pcounter--; 
+            for(var j = 0 ; j<vara.length ; j++){
+                frame.push(vara[j] + ":" + val[j]);
+            }
+            env.push(frame);
+            vara = [];
+            val = [];
+            frame = []; 
+            continue;
+        }
+
+        if(str[i] == ")" && inpro == false && Pcounter == 3) {
+            d = 1;
+            Pcounter--; 
+            continue;
+        }
+
+        if(str[i] == " " && inpro == false){
+            continue;
+        }
+
+
+
+        if(Pcounter == 3){
+            flag = 1;
+        }
+        if(Pcounter == 2){
+            flag = 2;
+        }
+        inpro = true;
+        temp += str[i];
+
+    }
+    return env;
+}
+
+var t = "(  ((a b) 1 2) ((+ - =) (primitive . #<procedure:+>) (primitive . #<procedure:->) (primitive . #<procedure:=>)) )";
+var ret = envProcess(t);

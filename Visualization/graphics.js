@@ -30,7 +30,12 @@ class Point{
         this.in();
 
     }
-
+    drawCircle(rad){
+        var r = rad;
+        ctx.beginPath();
+        ctx.arc(this.x , this.y , r , 0 , 2*Math.PI);
+        ctx.stroke();
+    }
     draw2circle(){      //这个函数绘制了一个中心涂黑的点对
         var r = RADIUS;     
         this.y = this.y + 0.5 * RADIUS;   //输入的坐标为两个圆相切的地方
@@ -281,11 +286,17 @@ class Point{
 function clearCanvas()
 {  
     var c=document.getElementById("Canvas");  
-    var cxt=c.getContext("2d");  
+    var ctx=c.getContext("2d");  
     c.height=c.height;  
 } 
 
+function changeColor(num){
 
+    ctx.strokeStyle = rgb[num];
+   // loop = (loop + 1) % rgb.length;
+
+}
+    
 
 
 

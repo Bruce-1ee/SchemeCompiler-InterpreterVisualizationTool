@@ -1,31 +1,41 @@
 var RIGHT = 0;              //定义了线段或者箭头的方向，其中的数字是角度角度
-var UP = 90;                //但并未进行三角函数的计算，使用的是angelchange()函数
+var UP = 90;                //
 var LEFT = 180;
 var DOWN = 270;
 
 var RADIUS = 15;            //圆的半径
 
-var LENGTH = 1920;
+var LENGTH = 1920;          //画面大小
 var WIDTH= 1080;
 
-var Margin = 10;
+var Margin = 10;            //缩进
 
-var ArrowLength = 30;
+var ArrowLength = 30;       //箭头长度
 
-var usedX = 0;      //使用的画面大小
+var usedX = 0;      //已经使用的画面大小
 var usedY = 0;
 
 var inirectlength = 600;    //全局环境矩形的长和宽
 var inirectwidth = 100;
 
-var inil = 170;
+var inil = 170;             //起始点坐标
 var iniw = 30;
 
-var counter = 1; //框架计数器
+var counter = 1; //环境用框架计数器，用来生成E1 E2 等标签
+
+var stackFrameCounter = 0; //栈图像用计数器，用来确认当然框架层数来绘制颜色缩进等信息；
+var stackFramePoint = new Array();
+stackFramePoint.push(0);
+stackFramePoint.push(5);
+stackFramePoint.push(9);
 
 var font = "Monaco";
 var fontsize = 20;
 var fontwidth = 0.6*fontsize;
+
+//颜色用变量
+var rgb = ["#FF0000","#0000FF","#00FFFF","#00FF00","#FFFF00","#FF00FF","#0000FF"];
+var loop = 0;
 
 
 var c=document.getElementById("Canvas");   //画布
@@ -40,7 +50,7 @@ function stackInfo(frameCreationFlag,instruction,stackPointer,stack,flagStack){
     this.instruction = instruction;
     this.stackPointer = stackPointer;
     this.stack = stack;
-    this.flagStack = flagStack;
+
 }
 
 

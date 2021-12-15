@@ -57,10 +57,10 @@ function makeglobalenv(point){
  *            strarr: [ “a:1”,“b:2” ]
  * @param {*} body 函数体内容 ， 数组表示
  *            body: [ "(if" , "(< a b)" , "a" , "b)" ]
- * @param {*} counter 环境计数器
+ * @param {*} subframe 子函数，0：假的 1：真的
  * @returns 
  */
-function makeframe(point,strarr,body){
+function makeframe(point,strarr,body,subframe){ 
     var x = point.x;
     var y = point.y;
     //寻找最大的边长
@@ -78,8 +78,18 @@ function makeframe(point,strarr,body){
     //画外边框，留出一倍边距，绘制完毕之后回到初始绘制点
     point.de(1);
     point.drawrectangle(length*fontwidth + 2.5*Margin, width*(fontsize+3) + 2.5*Margin);
+    point.x += length*fontwidth + 1.5 * Margin;
+    point.y += Margin;
+
+    //绘制对映标识点
+    changeColor(counter-1);
+    ctx.lineWidth = 2;
+    point.drawCircle(3);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "#000000"
     point.x = x;
     point.y = y;
+    
     //写入内部文字
     if(strarr != null){
         for(var i = 0; i < strarr.length; i++){
@@ -112,8 +122,16 @@ function makeframe(point,strarr,body){
     
     //画指向环境的线
     point.x = x + (length*fontwidth) + 1.5*Margin;
-    point.drawLine(50,RIGHT);
-    point.drawArrow(UP,usedY - iniw - 3 * fontsize - Margin + width/2);
+    point.drawLine(100,RIGHT);
+    if(subframe){
+        point.drawLine(usedY-iniw - 3 * fontsize - 9* Margin , UP);
+        point.drawArrow(LEFT,90);
+    }else{
+        point.drawArrow(UP,usedY - iniw - 3 * fontsize - Margin - width/2);
+    }
+
+    
+    
 
     usedY +=  width*(fontsize+3) + 6.5*Margin + bodylength * fontsize;
 
@@ -125,15 +143,53 @@ function makeframe(point,strarr,body){
 }
 
 function makeStack(point,stackinfo){
-    var length = 15 * fontwidth;
+    var x,y; 
+
+    var length = 15 * fontwidth; //长度为15个字符的宽度
     var width = fontsize;
-    for(var i = 0; i<=stackinfo[2]; i++){
+
+    for(var i = 0; i<=stackinfo[2]; i++){//stackinfo[2]：栈顶指针
+        //画矩形和内部文字
         point.de(1);
         point.drawrectangle(length+2*Margin, width+2*Margin);
         point.in(1);
         point.drawText(stackinfo[3][i],0,0,0)
+        point.x += length + 1.2 *Margin;
+        point.drawText(String(i) ,0,0,0);
+        point.x -= length + 1.2 *Margin;
         point.y -= width+2*Margin;
     }
+    //画框架指示器
+
+    point.y += width+2*Margin;
+    if(stackinfo[0] == 1){
+        stackFramePoint.push(stackinfo[2]);
+    }
+    
+    for(var i = 0; i<stackFramePoint.length ; i++){
+        x = point.x;
+        y = point.y;
+        point.y += (stackinfo[2] - stackFramePoint[i]) * (width+2*Margin) + Margin + width;
+        point.x -= 1.5 * Margin;
+        //point.drawLine(10*(1+stackFrameCounter++),LEFT);
+        changeColor(i);
+        point.drawLine(10*(stackFramePoint.length-i),LEFT);
+        point.drawLine(100,UP);
+        ctx.strokeStyle = "#000000"
+        point.x = x;
+        point.y = y;
+    }
+
+    if(stackinfo[0] == 2){
+        point.y = point.y - Margin;
+        point.x = point.x - 1.5 * Margin;
+        changeColor(stackFramePoint.length - 1);
+        point.drawLine(10,LEFT);
+        point.drawLine(100,DOWN);
+        ctx.strokeStyle = "#000000"
+        stackFramePoint.pop();
+    }
+
     
 
 }

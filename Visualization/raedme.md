@@ -3,9 +3,8 @@
     stack：
         [frameCreationFlag:int, // 1:开始生成新框架 2:结束框架生成 3:otherwise
          instruction:string, //当前指令
-         stackPointer:int, //指向栈顶元素 
+         stackPointer:int, //指向栈顶元素 ,从1开始
          stack:string, //栈
-         flagStack:int //用来存储框架开始时的指针，结束时弹出一个元素
           ]
 
 

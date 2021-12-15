@@ -1,8 +1,10 @@
-var teststr = ["(((square ) (function)))","(((square ) (function)))"];
+var teststr = ["((lambda (c) ","(+ b c)) (+ a b))"];
 var teststrarr = ["a:1","b:2"];
-var testbody = [ "(if" , "(< a b)" , "a" , "b)" ];
+var testbody = [ "((lambda (c) ","(+ b c)) (+ a b))" ];
+var testbody2 = ["(+ b c)"] ;
+var teststrarr2 = ["c:3"];
 
-var teststackinfo = [0,"argument",4,stackProcess("#(() (halt) 2 1 0 0 0"),null];
+var teststackinfo = [2,"finish",12,stackProcess("#(() (halt) 2 1 () 4 (return 3) 3 4 8 (return 2) 3 2 0)")];
 
 function test(){
     var p1 = new Point(inil,iniw); 
@@ -10,15 +12,18 @@ function test(){
 
     makeglobalenv(p1);
     freshpoint(p1);
-    makeframe(p1,teststrarr,testbody);
+    makeframe(p1,teststrarr,testbody,0);
     freshpoint(p1);
-    makeframe(p1,teststrarr,testbody);
+    makeframe(p1,teststrarr2,testbody2,1);
     freshpoint(p1);
+
     makeStack(p2,teststackinfo);
 
 
 
+
+
    
-    
+
 
 }

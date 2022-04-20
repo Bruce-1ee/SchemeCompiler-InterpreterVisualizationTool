@@ -151,5 +151,4 @@
 
 ;(meta  '( (lambda (a b) (+ a b)) 1 2))
 ;(meta '(define f (lambda(a) a)))
-;(meta '( (lambda (a b) ((lambda (c) (+ b c)) (+ a b))) 1 2))
-(meta '(lambda () 1))
+(meta '( (lambda (a b) ((lambda (c) (+ b c)) (+ a b))) 1 2))

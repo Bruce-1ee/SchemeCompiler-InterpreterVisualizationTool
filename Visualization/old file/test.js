@@ -1,6 +1,6 @@
 var teststr = ["((lambda (c) ","(+ b c)) (+ a b))"];
 var teststrarr = ["a:1","b:2"];
-var testbody = [ "((lambda (c) ","(+ b c)) (+ a b))" ];
+var testbody = [ "((lambda (c) ","(+ b c))" , "(+ a b))" ];
 var testbody2 = ["(+ b c)"] ;
 var teststrarr2 = ["c:3"];
 

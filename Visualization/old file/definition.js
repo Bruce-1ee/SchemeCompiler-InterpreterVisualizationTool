@@ -45,7 +45,7 @@ ctx.font = fontsize + "px " + font;
 //var fontsize = parseInt(ctx.font.slice(0,2));
 
 
-function stackInfo(frameCreationFlag,instruction,stackPointer,stack,flagStack){
+function stackInfo(frameCreationFlag,instruction,stackPointer,stack){
     this.frameCreationFlag = frameCreationFlag;
     this.instruction = instruction;
     this.stackPointer = stackPointer;

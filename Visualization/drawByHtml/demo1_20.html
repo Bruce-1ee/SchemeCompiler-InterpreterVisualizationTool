@@ -1,0 +1,268 @@
+<style>
+    /* 栈最外侧的样式 */
+    .stackLayout {
+        position: absolute;
+        top: 50px;
+        left: 500px;
+        margin-left: 10%;
+        background-color: rgb(102, 101, 101);
+        padding: 10px;
+    }
+
+    /* 栈编号的样式 （左侧） */
+    .stackNum {
+        min-width: 30px;
+        /* height: 50px; */
+        float: left;
+        text-align: center;
+        /* line-height: 50px; */
+        /* 这里等于行高，水平垂直居中*/
+    }
+
+    /* 栈内容的样式 （右侧）*/
+    .stackInfo {
+        float: left;
+        font-family: Consolas, monospace;
+        font-size: 25px;
+        display: block;
+        float: left;
+        /* position:relative; */
+        /* top: 50px;
+        left: 50px; */
+        /* min-width: 100px;
+        height: 50px; */
+        background-color: bisque;
+        border-top: 1px black solid;
+        border-left: 1px black solid;
+        border-right: 1px black solid;
+        border-bottom: 1px black solid;
+        text-align: center;
+        line-height: 50px;
+        /* 这里等于行高，水平垂直居中*/
+    }
+
+    .selectedstackInfo {
+        float: left;
+        font-family: Consolas, monospace;
+        font-size: 25px;
+        display: block;
+        float: left;
+        background-color: rgb(255, 206, 146);
+        border-top: 1px black solid;
+        border-left: 1px black solid;
+        border-right: 1px black solid;
+        border-bottom: 1px black solid;
+        text-align: center;
+        line-height: 50px;
+        /* 这里等于行高，水平垂直居中*/
+    }
+
+
+    /* 整个frame的背景 */
+    .stackFrameBackground {
+
+        background: rgb(131, 131, 131);
+        padding-left: 10px;
+        /* border: 10px blue solid; */
+        /* overflow: hidden; */
+    }
+
+    .stackFrameBackground::after {
+
+        content: '';
+        display: block;
+        clear: both;
+    }
+
+    .selectedstackFrameBackground {
+        padding-left: 10px;
+        border: solid 3px black;
+        background: rgb(116, 189, 0);
+    }
+
+    .selectedstackFrameBackground::after {
+        content: '';
+        display: block;
+        clear: both;
+    }
+
+    .environmentGraphBackground {
+        position: absolute;
+        top: 50px;
+        background-color: lightblue;
+        min-width: 400px;
+        min-height: 400px;
+        padding: 10px;
+        display: inline-block;
+    }
+
+    .environmentFrame {
+        position: relative;
+        width: 40px;
+        height: 30px;
+        background-color: lightcoral;
+        padding: 30px;
+        margin-left: 80px;
+        margin-top: 30px;
+    }
+
+    .selectedenvironmentFrame {
+        position: relative;
+        border: 2px solid black;
+        width: 40px;
+        height: 30px;
+        background-color: lightcoral;
+        padding: 30px;
+        margin-left: 80px;
+        margin-top: 30px;
+    }
+
+    .var {
+        color: black;
+    }
+
+    .selectedvar {
+        background: rgb(113, 255, 144);
+        /* color: coral; */
+    }
+</style>
+
+<!-- <link rel="stylesheet" href="style.css"> -->
+<div id="environmentGraphBackground" class="environmentGraphBackground"></div>
+<div id="stackLayout" class="stackLayout">
+    <!-- <div class="stackNum"> stack1</div>
+    <div id="stack" class="stack"> (return 1)</div> -->
+</div>
+
+<script type="text/javascript">
+
+
+    function isSyn(name) {
+        var list = ["frame", "frame1"];
+        return list.includes(name)
+    }
+
+    var backtar = [];
+    var i = 0;
+    var framenum = 1;
+    var varnum = 1;
+
+
+    function setSelectCSS(obj) {
+        var cla = obj.className;
+    }
+
+    document.onmouseover = function (e) {
+        var e = e ? e : window.event;
+        var tar = e.srcElement || e.target;
+        if (tar.getAttribute("syn") == "1") {
+            var tarName = tar.getAttribute("name");
+            // var tarClass = tar.className;
+            var allObj = document.getElementsByName(tarName);
+            var tarClass;
+            for (var o of allObj) {
+                tarClass = o.className;
+                o.className = "selected" + tarClass;
+                console.log(o.className);
+
+            }
+            backtar.push(tar);
+        }
+    }
+    document.onmouseout = function (e) {
+        if (backtar.length != 0) {
+            var tar = backtar.shift();
+            var tarName = tar.getAttribute("name");
+            var allObj = document.getElementsByName(tarName);
+            var tarClass;
+            for (var o of allObj) {
+                tarClass = o.className.slice(8, o.className.length);
+                // var backClass = o.className.slice(8, tar.className.length);
+                o.className = tarClass;
+            }
+        }
+    }
+
+
+
+
+
+    function fn() {
+        var wholestack = document.getElementById("stackLayout");
+        var wholeenv = document.getElementById("environmentGraphBackground");
+
+
+        var newstackFrame = document.createElement("div");
+
+        function createStack(j) {
+
+            var newstackNum = document.createElement("div");
+            var newstackInfo = document.createElement("div");
+            var newstackNode = document.createElement("div");
+
+            newstackNum.id = "stackNum_" + i;
+            newstackNum.className = "stackNum";
+            newstackNum.appendChild(document.createTextNode(i));
+
+            if (j == 2) {
+                newstackInfo.id = "stackInfo_" + i;
+                newstackInfo.className = "stackInfo";
+                newstackInfo.appendChild(document.createTextNode(" var " + "_ " + varnum));
+                newstackInfo.setAttribute("name", "var " + varnum);
+                newstackInfo.setAttribute("syn", "1");
+            } else {
+                newstackInfo.id = "stackInfo_" + i;
+                newstackInfo.className = "stackInfo";
+                newstackInfo.appendChild(document.createTextNode(" frame " + framenum));
+            }
+
+            newstackNode.id = "stack_" + (i++);
+            newstackNode.setAttribute("name", newstackNode.id);
+            newstackNode.appendChild(newstackNum);
+            newstackNode.appendChild(newstackInfo);
+
+            newstackFrame.className = "stackFrameBackground"
+            newstackFrame.setAttribute("name", "frame " + framenum);
+            newstackFrame.setAttribute("syn", "1");
+
+            newstackFrame.appendChild(newstackNode);
+        }
+
+        function createEnvironmentGraph() {
+            var newenv = document.createElement("div");
+            var newvar = document.createElement("div");
+
+            newvar.className = "var";
+            newvar.setAttribute("name", "var " + varnum);
+            newvar.appendChild(document.createTextNode("var_" + varnum));
+            newvar.setAttribute("syn", "1");
+
+            newenv.className = "environmentFrame";
+            newenv.setAttribute("name", "frame " + framenum);
+            newenv.setAttribute("syn", "1");
+
+            newenv.appendChild(newvar);
+            wholeenv.appendChild(newenv);
+
+        }
+
+
+        for (var j = 0; j < 4; j++) {
+            createStack(j);
+        }
+        createEnvironmentGraph();
+        varnum++;
+        framenum++;
+
+
+
+        wholestack.appendChild(newstackFrame);
+
+    }
+
+
+
+
+
+</script>
+<button onclick="fn()"> click </button>

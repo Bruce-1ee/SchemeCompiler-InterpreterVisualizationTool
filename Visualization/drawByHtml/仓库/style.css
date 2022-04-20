@@ -1,0 +1,38 @@
+
+.StackFrame{
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    margin-left: 10%;
+    background-color: rgb(207, 207, 207);
+    padding: 10px;
+    /* width: 200px;
+    height: 200px; */
+}
+
+.stackNum{
+    min-width: 100px;
+    height: 50px;
+    float: left;
+    text-align:center;
+    line-height : 50px; /* 这里等于行高，水平垂直居中*/
+}
+
+.stack{
+    float:left;
+    font-family: Consolas,monospace;
+    font-size: 25px;
+    display: block;
+    /* position:relative; */
+    /* top: 50px;
+    left: 50px; */
+    /* min-width: 100px;
+    height: 50px; */
+    background-color: bisque;
+    border-top: 1px black solid;
+    border-left: 1px black solid;
+    border-right: 1px black solid;
+    border-bottom: 1px black solid;
+    text-align:center;
+    line-height : 50px; /* 这里等于行高，水平垂直居中*/
+}

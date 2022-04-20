@@ -1,0 +1,128 @@
+<!-- 
+
+    全局变量backtar:
+        在over中存放之前变更过的物体
+        在out中恢复物体
+        方式异步出现问题，这里使用了一个队列
+
+    document.onmouseover
+        鼠标放置在物体上时触发
+
+        放置在物体上之后，判断其属性syn是否为1
+            1 ： 同步元素
+            0 ： 非同步元素、
+
+            同步元素的情况：
+                寻找其name相同的所有元素( getElementsByName )
+                然后将其class设置为selectedFrame
+            非同步元素的情况
+                无动作
+
+    document.onmouseout
+        鼠标移开时触发
+
+        判断当前队列中有没有元素
+            有：代表之前有过一次高亮显示
+                从队列头部拿去元素，并进行非高亮的CSS样式应用
+                普通CSS样式名： Frame
+                高亮CSS样式名：selectedFrame
+                使用了字符串拼接 selected + Frame
+            无：代表当前划过的元素不是可高亮的元素
+                无操作
+
+ -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Demo</title>
+</head>
+<script>
+    var backtar = [];
+
+    function isSyn(name) {
+        var list = ["frame", "frame1"];
+        return list.includes(name)
+    }
+
+
+    document.onmouseover = function (e) {
+        //console.log("进入over");
+        var e = e ? e : window.event;
+        var tar = e.srcElement || e.target;
+        // if (isSyn(tar.getAttribute("name"))) {
+        if (tar.getAttribute("syn") == "1") {
+            var tarName = tar.getAttribute("name");
+            var tarClass = tar.className;
+            var allObj = document.getElementsByName(tarName);
+            console.log(allObj);
+            for (var o of allObj) {
+                o.className = "selected" + tarClass;
+            }
+
+            backtar.push(tar);
+        }
+        //console.log("结束over");
+    }
+    document.onmouseout = function (e) {
+        //console.log("进入out");
+        if (backtar.length != 0) {
+            var tar = backtar.shift();
+            var tarName = tar.getAttribute("name");
+            var allObj = document.getElementsByName(tarName);
+            var backClass = tar.className.slice(8, tar.className.length);
+            for (var o of allObj) {
+                o.className = backClass
+            }
+        }
+        // console.log("结束out");
+        //console.log("out" + tar);
+    }
+</script>
+<style>
+    .Frame {
+        width: 100px;
+        height: 100px;
+        background: darkgreen;
+        margin: 10px;
+    }
+
+    .selectedFrame {
+        width: 100px;
+        height: 100px;
+        background: lightblue;
+        margin: 10px;
+    }
+
+    .Box {
+        width: 50px;
+        height: 50px;
+        background: darkgreen;
+        margin: 10px;
+    }
+
+    .selectedBox {
+        width: 50px;
+        height: 50px;
+        background: lightblue;
+        margin: 10px;
+    }
+</style>
+
+<body>
+
+    <div id="stackFrame" syn="1" name="frame" class="Frame">
+        a
+        <div id="stackFrame2" syn="1" name="frame1" class="Box">b</div>
+
+    </div>
+
+    <div id="callFrame" syn="1" name="frame" class="Frame">c</div>
+    <div id="stackFrame2" syn="1" name="frame1" class="Box">d</div>
+
+</body>
+
+</html>

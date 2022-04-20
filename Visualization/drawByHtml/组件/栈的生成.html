@@ -1,0 +1,84 @@
+<!-- 
+    stack的结构：
+        - StackFrame
+            - stack    ->是用来包装stackNum和stackInfo的，没有实际用处。
+                - stackNum
+                - stackInfo
+    定义了三个元素的样式（没有stack的样式，因为不是可见元素）。
+    stackFrame是基位置，所以需要再html中事先写好（也可以用js后期加入）。
+    fn()中生成了三个元素，并赋予初始值，然后进行如上结构的连接
+    目前没有解决的问题，各栈元素的宽度未统一。
+ -->
+
+<style>
+    .stackFrame {
+        position: absolute;
+        top: 50px;
+        left: 50px;
+        margin-left: 10%;
+        background-color: rgb(207, 207, 207);
+        padding: 10px;
+    }
+
+    .stackNum {
+        min-width: 100px;
+        height: 50px;
+        float: left;
+        text-align: center;
+        line-height: 50px;
+        /* 这里等于行高，水平垂直居中*/
+    }
+
+    .stackInfo {
+        float: left;
+        font-family: Consolas, monospace;
+        font-size: 25px;
+        display: block;
+        /* position:relative; */
+        /* top: 50px;
+        left: 50px; */
+        /* min-width: 100px;
+        height: 50px; */
+        background-color: bisque;
+        border-top: 1px black solid;
+        border-left: 1px black solid;
+        border-right: 1px black solid;
+        border-bottom: 1px black solid;
+        text-align: center;
+        line-height: 50px;
+        /* 这里等于行高，水平垂直居中*/
+    }
+</style>
+
+<!-- <link rel="stylesheet" href="style.css"> -->
+<div id="stackFrame" class="stackFrame">
+    <!-- <div class="stackNum"> stack1</div>
+    <div id="stack" class="stack"> (return 1)</div> -->
+</div>
+
+<script type="text/javascript">
+    var i = 0;
+
+    function fn() {
+        var wholestack = document.getElementById("stackFrame");
+        var newstackNode = document.createElement("div");
+        var newstackNum = document.createElement("div");
+        var newstack = document.createElement("div");
+
+        newstackNum.id = "stackNum_" + i;
+        newstackNum.className = "stackNum";
+        newstackNum.appendChild(document.createTextNode("stack" + i));
+
+        newstack.id = "stackInfo_" + i;
+        newstack.className = "stackInfo";
+        newstack.appendChild(document.createTextNode("(halt)"));
+
+        newstackNode.id = "stack_" + (i++);
+        newstackNode.appendChild(newstackNum);
+        newstackNode.appendChild(newstack);
+
+        wholestack.appendChild(newstackNode);
+
+    }
+</script>
+<button onclick="fn()"> click </button>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>BiwaScheme example</title>
+</head>
+
+<body>
+  <div id="bs-console">
+  </div>
+  <script type="text/javascript" src="biwascheme.js"></script>
+  <script type="text/javascript" src="def.js"></script>
+  <script type="text/javascript" src="term.js"></script>
+  <script type="text/javascript">
+
+    evl(meta);
+
+
+  </script>
+
+
+
+  <script type="text/javascript">
+    var txt = "";
+    $(document).ready(function () {
+      $("button").click(function () {
+        txt = getContent();
+        biwa.evaluate(getContent(), display);
+
+
+      });
+    });
+  </script>
+
+
+  <textarea name="content" id="content" rows="40" cols="100"> (eval '(if 1 2 3))
+
+  </textarea>
+
+  <script>
+    //取值
+    function getContent() {
+      var content = document.getElementById("content").value;
+      return content;
+    }
+  </script>
+
+
+  <p> <button>button</button> </p>
+  <input type="button" value="next" onclick="javascript:next(); ">
+
+
+</body>
+
+</html>

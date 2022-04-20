@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        body {
+            background-color: darkgray;
+        }
+
+        #diagramContainer {
+            padding: 20px;
+            width: 80%;
+            height: 400px;
+            border: 1px solid gray;
+        }
+
+        .item {
+            position: absolute;
+            height: 80px;
+            width: 80px;
+            border: 1px solid blue;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="diagramContainer">
+        <div id="item_left" class="item"></div>
+        <div id="item_right" class="item" style="left:300px; top:300px;"></div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/jsplumb@2.8.0/dist/js/jsplumb.min.js"></script>
+
+    <script>
+        var lightGray = "#cccccc"
+        var pinkish = "#F15149";
+        jsPlumb.Defaults.Endpoint = ["Dot", { radius: 1 }];
+        //jsPlumb.Defaults.Endpoint = ["Rectangle", {width:3, height:3}];
+        jsPlumb.Defaults.EndpointStyle = { fillStyle: lightGray };
+        jsPlumb.Defaults.Anchors = ["RightMiddle", "LeftMiddle"];
+        jsPlumb.Defaults.Connector = ["Bezier", { curviness: 15 }]; /* too much 'curviness' causes lines to run together */
+        jsPlumb.Defaults.PaintStyle = { lineWidth: 1, strokeStyle: lightGray };
+
+        // experiment with arrows ...
+        jsPlumb.Defaults.Overlays = [["Arrow", { length: 14, width: 10, foldback: 0.55, location: 1 }]]
+
+        jsPlumb.Defaults.EndpointHoverStyle = { fillStyle: pinkish };
+        jsPlumb.Defaults.HoverPaintStyle = { lineWidth: 2, strokeStyle: pinkish };
+        /* global jsPlumb */
+        jsPlumb.ready(function () {
+            jsPlumb.connect({
+                source: 'item_left',
+                target: 'item_right',
+                paintStyle: { stroke: 'lightgray', strokeWidth: 3 }
+            })
+
+            jsPlumb.draggable('item_left')
+            jsPlumb.draggable('item_right')
+        })
+    </script>
+</body>
+
+</html>

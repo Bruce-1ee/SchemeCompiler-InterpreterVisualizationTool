@@ -149,7 +149,7 @@
 (define VM
   (lambda (a x e s)
 ;    (display x) (newline)
-;    (display stack) (newline)
+    (display stack) (newline)
 ;    (display s) (newline)
 ;    (display a) (newline)
     
@@ -157,34 +157,28 @@
       [(halt)  a]
       [(empty) 'ok]
       [(refer) ;(n m x) (cadr x) (caddr x) (cadddr x)
-     ;  (display 'E: )(display e) (newline)
        (VM (index (find-link (cadr x) e) (caddr x)) (cadddr x) e s)]
 
-      [(def) ;var (cadr x) val (caddr x)
-       ; {def f {close {refer 0 0 {return 2}} {halt}}}
+      [(def) ;var (cadr x) val (caddr x)  ; {def f {close {refer 0 0 {return 2}} {halt}}}
        (let ((ret (if (eq? 'close (car (caddr x)))
                       (cons 'function (caddr x))
                       (VM a (caddr x) e s))))
          (set! GE (cons (cons (cadr x) ret ) GE)))]
 
       [(refer-free) ;var (cadr x) next (caddr x)
-      ; (display (find-free (cadr x))) (newline)
-       (VM (find-free (cadr x)) (caddr x) e s)]
-      
+       (VM (find-free (cadr x)) (caddr x) e s)]     
       [(constant) ;(obj x) (cadr x) (caddr x)
-       (VM (cadr x) (caddr x) e s)]
-      
+       (VM (cadr x) (caddr x) e s)]  
       [(close) ;body : (cadr x) x : (caddr x) define
        (VM (closure (cadr x) e) (caddr x) e s)]
-      
       [(test) ;(then else) (cadr x) (caddr x)
        (VM a (if a (cadr x) (caddr x)) e s)]
-
       [(frame) ;ret  (cadr x)  x next (caddr x)
        (display 'create_frame:) (display s)(newline)
-  (newline)
-       ;(display stack) (newline)
-       (VM a (caddr x) e (push (cadr x) (push e s)))]
+       (let ((stackpointer (push (cadr x) (push e s))))
+         (display stack) (newline)
+         (newline)
+         (VM a (caddr x) e stackpointer ))]
       
       [(argument) ;(x) (cadr x)
        (display 'argument:)(display a) (newline)
@@ -196,7 +190,7 @@
 
       
       [(apply) ;body (car a) link (cadr a)
-       
+       (display a) (newline)
        (cond
          [(eq? 'primitive (car a))
           (display 'frame_finished:) (display (- s 1)) (newline)
@@ -216,6 +210,7 @@
           ;    (VM a (cadr a) e s)
           ;    (VM a (cadr (cadr a)) e (push e s)))]
          [else
+          (display "else:::::")(display (cadr a)) (newline)
           (VM a (car a) s (push (cadr a) s))]
          )]
       
@@ -326,12 +321,14 @@
 ;(test '(define g (f 1)))
 
 
-(define test1 (run '(define f (lambda(n)
-                  (if (= n 1)
-                      1
-                      (+ (f (- n 1)) n))))))
+;(define test1 (run '(define f (lambda(n)
+;                  (if (= n 1)
+;                      1
+;                      (+ (f (- n 1)) n))))))
+;
+;(run '( (lambda (a b) ((lambda (c) (+ b c)) (+ a b))) 1 2))
 
-(run '( (lambda (a b) (+ a b)) 1 2))
+;(run '((lambda(a) a) 1))
 
 
 

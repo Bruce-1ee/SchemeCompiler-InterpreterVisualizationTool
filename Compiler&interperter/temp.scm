@@ -1,4 +1,3 @@
-
 (define true #t)
 (define false #f)
 (define (error str . exp)
@@ -23,11 +22,11 @@
 
 
 
-(define (send-stack)
-  (js-call (js-eval "getStack") stack))
+(define (VM-update stack s)
+  (js-call (js-eval "updateStack") stack s))
 
 (define (eval-update name expr)
-  (js-call (js-eval "updateEvalInfo") name expr))
+    (js-call (js-eval "updateEvalInfo") name expr))
 
 (define exec-k #f)
 (define vm-k #f)
@@ -258,7 +257,7 @@
     (case (car x)
       [(halt)
        (begin 
-         (display "result: ")
+         (VM-info-output a x e s)
          a)]
       [(empty) 'ok]
       [(refer) ;(n m x) (cadr x) (caddr x) (cadddr x)
@@ -346,6 +345,7 @@
 
 (define (VM-else a x e s)
   (error "Unknow instruction -- VM"))
+
 (define (VM-else-with-breakpoint a x e s)
   (cond
        ((eq? (car x) 'act-constant) (VM-info-output a x e s))
@@ -359,96 +359,23 @@
        ((eq? (car x) 'act-function-call) (VM-info-output a x e s))
        ((eq? (car x) 'act-body) (VM-info-output a x e s))
        (else (error "Unknow instruction -- VM"))))
+
 (define (VM-info-output a x e s)
-  (display (car x)) (display " -- VM") (newline)
+  ;(display (car x)) (display " -- VM") (newline)
+  (VM-update stack s)
   (make-breakpoint-vm)
   (VM a (cadr x) e s))
 
-;==========define-act-macro==========
+;==========entery==========
 
+(define run
+  (lambda (x)
+    (VM '() (compile x '() '(halt)) '()  0)))
 
+(define (sc x)
+  (compile x '() '(halt)))
 
-
-
-
-(define-macro define-act-eval
-  (lambda (fun inst)
-    `(let* ((org-fun ,fun))
-       (set! ,fun
-             (lambda (arg . restarg)
-               ;(eval-output ,inst)
-               (eval-update ,inst arg)
-               ;(make-breakpoint-eval)
-               (apply org-fun (cons arg restarg)))))))
-
-(define-macro define-act-compile
-  (lambda (fun inst)
-    `(let* ((org-fun ,fun))
-       (set! ,fun
-             (lambda (arg . restarg)
-               (list ,inst
-                     (apply org-fun (cons arg restarg))))))))
-       
-                 
-;==========run define-act==========
-
-; (define-act-compile compile-self-evaluating 'act-constant)
-; (define-act-compile compile-quoted 'act-constant)
-; (define-act-compile compile-variable-local 'act-refer)
-; (define-act-compile compile-varable-global 'act-refer)
-; (define-act-compile compile-if-then 'act-then)
-; (define-act-compile compile-if-else 'act-else)
-; (define-act-compile compile-if-test 'act-if)
-; (define-act-compile compile-lambda 'act-lambda)
-; (define-act-compile compile-application-frame 'act-function-call)
-; (define-act-compile compile-application-argument 'act-argument)
-; (define-act-compile compile-application-name 'act-body)
-; 
-; (define-act-eval eval-self-evaluating "eval-self-evaluating")
-; (define-act-eval eval-quotation "eval-quotation")
-; (define-act-eval eval-variable "eval-variable")
-; (define-act-eval eval-assignment "eval-assignment")
-; (define-act-eval eval-definition "eval-definition")
-; (define-act-eval eval-if "eval-if")
-; (define-act-eval eval-if-test "eval-if-test")
-; (define-act-eval eval-if-then "eval-if-then")
-; (define-act-eval eval-if-else "eval-if-else")
-; (define-act-eval eval-lambda "eval-lambda")
-; (define-act-eval eval-application "eval-application")
-; (define-act-eval eval-application-arg "eval-application-arg")
-; (define-act-eval eval-application-body "eval-application-body")
-
-
-
-(define-act-compile compile-self-evaluating 'act-constant)
-(define-act-compile compile-quoted 'act-constant)
-(define-act-compile compile-variable-local 'act-refer)
-(define-act-compile compile-varable-global 'act-refer)
-(define-act-compile compile-if-then 'act-then)
-(define-act-compile compile-if-else 'act-else)
-(define-act-compile compile-if-test 'act-if)
-(define-act-compile compile-lambda 'act-lambda)
-(define-act-compile compile-application-frame 'act-function-call)
-(define-act-compile compile-application-argument 'act-argument)
-(define-act-compile compile-application-name 'act-body)
-
-(define-act-eval eval-self-evaluating "eval-self-evaluating")
-(define-act-eval eval-quotation "eval-quotation")
-(define-act-eval eval-variable "eval-variable")
-(define-act-eval eval-assignment "eval-assignment")
-(define-act-eval eval-definition "eval-definition")
-(define-act-eval eval-if "eval-if")
-(define-act-eval eval-if-test "eval-if-test")
-(define-act-eval eval-if-then "eval-if-then")
-(define-act-eval eval-if-else "eval-if-else")
-(define-act-eval eval-lambda "eval-lambda")
-(define-act-eval eval-application "eval-application")
-(define-act-eval eval-application-arg "eval-application-arg")
-(define-act-eval eval-application-body "eval-application-body")
-
-(set! VM-else
-          (lambda (a x e s)
-            (VM-else-with-breakpoint a x e s)))
+(define (eval exp) (exec exp GE))
 
 ;==========控制程序==========
 
@@ -458,17 +385,17 @@
 (define (make-breakpoint-eval)
   (call/cc (lambda (breakpoint)
              (set! exec-k breakpoint)
-             (resume-meta))))
+             (resume-meta 'ok))))
 
 (define (make-breakpoint-vm)
   (call/cc (lambda (breakpoint)
              (set! vm-k breakpoint)
-             (resume-meta))))
+             (resume-meta 'ok))))
 
 (define (pause c)
     (call/cc (lambda (k)
              (set! resume-meta k)
-             (c))))
+             (c 'ok))))
 
 (define (meta exp)
   (define (small-step)
@@ -516,161 +443,67 @@
    (lambda (quit)
      (call/cc (lambda (k) (set! resume-meta k))))))    
 (debuger)
-;===============================
 
 
 
+;==========define-act-macro==========
 
-
-
-
-;===============out-of-time===============
-
-
-(define-macro define-act
-  (lambda (fun)
+(define-macro define-act-eval
+  (lambda (fun inst)
     `(let* ((org-fun ,fun))
-       (if (content? ,fun e-list)
-           (set! ,fun
-                 (lambda (arg . restarg)
-                   (output-eval ,fun)
-                   (make-breakpoint-eval)
-                   (apply org-fun (cons arg restarg))))
-           (set! ,fun
-                 (lambda (arg . restarg)
-                   (list (gettag-compile ,fun)
-                         (apply org-fun (cons arg restarg)))))))))
+       (set! ,fun
+             (lambda (arg . restarg)
+               ;(eval-output ,inst)
+               (eval-update ,inst arg)
+               (make-breakpoint-eval)
+               (apply org-fun (cons arg restarg)))))))
 
-(define (output-eval fun)
-  (cond
-    ((eq? fun eval-self-evaluating) (display "eval-self-evaluating") (newline))
-    ((eq? fun eval-quotation) (display "eval-quotation") (newline))
-    ((eq? fun eval-variable) (display "eval-variable") (newline))
-    ((eq? fun eval-assignment) (display "eval-assignment") (newline))
-    ((eq? fun eval-definition) (display "eval-definition") (newline))
-    ((eq? fun eval-if) (display "eval-if") (newline) 'ok)
-    ((eq? fun eval-if-test) (display "eval-if-test") (newline))
-    ((eq? fun eval-if-then) (display "eval-if-then") (newline))
-    ((eq? fun eval-if-else) (display "eval-if-else") (newline))
-    ((eq? fun eval-lambda) (display "eval-lambda") (newline ))
-    ((eq? fun eval-application) (display "eval-application") (newline))
-    ((eq? fun eval-application-arg) (display "eval-application-arg") (newline))
-    ((eq? fun eval-application-body) (display "eval-application-body") (newline))))
+(define-macro define-act-compile
+  (lambda (fun inst)
+    `(let* ((org-fun ,fun))
+       (set! ,fun
+             (lambda (arg . restarg)
+               (list ,inst
+                     (apply org-fun (cons arg restarg))))))))
 
-(define (gettag-compile fun)
-  (cond
-    ((eq? fun compile-self-evaluating) 'act-constant)
-    ((eq? fun compile-quoted) 'act-constant )   
-    ((eq? fun compile-variable-local) 'act-refer)
-    ((eq? fun compile-varable-global) 'act-refer)
-    ((eq? fun compile-if-then) 'act-then)
-    ((eq? fun compile-if-else) 'act-else)
-    ((eq? fun compile-if-test) 'act-if)
-    ((eq? fun compile-lambda) 'act-lambda)
-    ((eq? fun compile-application-frame) 'act-function-call)
-    ((eq? fun compile-application-argument) 'act-argument)
-    ((eq? fun compile-application-name) 'act-body)))
+(define-macro define-act-vm
+  (lambda ()
+    `(set! VM-else
+           VM-else-with-breakpoint)))
+       
+                 
+;==========run define-act==========
 
-(define (content? e lst)
-  (if (null? lst)
-      false
-      (if (eq? (car lst) e)
-          true
-          (content? e (cdr lst)))))
+(define act
+  (lambda ()
+    (define-act-compile compile-self-evaluating 'act-constant)
+    (define-act-compile compile-quoted 'act-constant)
+    (define-act-compile compile-variable-local 'act-refer)
+    (define-act-compile compile-varable-global 'act-refer)
+    (define-act-compile compile-if-then 'act-then)
+    (define-act-compile compile-if-else 'act-else)
+    (define-act-compile compile-if-test 'act-if)
+    (define-act-compile compile-lambda 'act-lambda)
+    (define-act-compile compile-application-frame 'act-function-call)
+    (define-act-compile compile-application-argument 'act-argument)
+    (define-act-compile compile-application-name 'act-body)
 
-(define e-list (list eval-self-evaluating
-                     eval-quotation
-                     eval-variable
-                     eval-assignment
-                     eval-definition
-                     eval-if
-                     eval-if-test
-                     eval-if-then
-                     eval-if-else
-                     eval-lambda
-                     eval-application
-                     eval-application-arg
-                     eval-application-body))
+    (define-act-eval eval-self-evaluating "eval-self-evaluating")
+    (define-act-eval eval-quotation "eval-quotation")
+    (define-act-eval eval-variable "eval-variable")
+    (define-act-eval eval-assignment "eval-assignment")
+    (define-act-eval eval-definition "eval-definition")
+    (define-act-eval eval-if "eval-if")
+    (define-act-eval eval-if-test "eval-if-test")
+    (define-act-eval eval-if-then "eval-if-then")
+    (define-act-eval eval-if-else "eval-if-else")
+    (define-act-eval eval-lambda "eval-lambda")
+    (define-act-eval eval-application "eval-application")
+    (define-act-eval eval-application-arg "eval-application-arg")
+    (define-act-eval eval-application-body "eval-application-body")
 
-(define c-list (list compile-self-evaluating
-                     compile-quoted
-                     compile-variable-local
-                     compile-varable-global
-                     compile-if-then
-                     compile-if-else
-                     compile-if-test
-                     compile-lambda
-                     compile-application-frame
-                     compile-application-argument
-                     compile-application-name))
+    (define-act-vm)))
 
-; (define-act eval-self-evaluating)
-; (define-act compile-self-evaluating)
-; (define-act eval-quotation)
-; (define-act compile-quoted)
-; (define-act eval-variable)
-; (define-act compile-variable-local)
-; (define-act compile-varable-global)
-; (define-act eval-assignment)
-; (define-act eval-definition)
-; (define-act eval-if)
-; (define-act eval-if-test)
-; (define-act eval-if-then)
-; (define-act eval-if-else)
-; (define-act compile-if-then)
-; (define-act compile-if-else)
-; (define-act compile-if-test)
-; (define-act eval-lambda)
-; (define-act compile-lambda)
-; (define-act eval-application)
-; (define-act eval-application-arg)
-; (define-act eval-application-body)
-; (define-act compile-application-frame)
-; (define-act compile-application-argument)
-; (define-act compile-application-name)
-
-
-;==========entery==========
-
-(define run
-  (lambda (x)
-    (VM '() (compile x '() '(halt)) '()  0)))
-
-(define (sc x)
-  (compile x '() '(halt)))
-
-(define (eval exp) (exec exp GE))
-
-;=============================;
-
-;(eval '(+ 1 1))
-;(run '(+ 1 1))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+(act)
 
 

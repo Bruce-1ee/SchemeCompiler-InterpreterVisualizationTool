@@ -22,9 +22,8 @@
 
 
 
-(define (send-stack)
-  (js-call (js-eval "getStack") stack))
+(define (send-stack stack s)
+  (js-call (js-eval "updateStack") stack s))
 
-(define (update name expr)
-  (js-call (js-eval "updateEvalInfo") name expr))
-
+(define (eval-update name expr)
+    (js-call (js-eval "updateEvalInfo") name expr))

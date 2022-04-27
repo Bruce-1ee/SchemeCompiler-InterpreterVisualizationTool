@@ -26,7 +26,7 @@
     $(document).ready(function () {
       $("button").click(function () {
         txt = getContent();
-        biwa.evaluate(getContent(), display);
+        biwa.evaluate("(eval '" + getContent() + ")" , display);
 
 
       });
@@ -34,7 +34,16 @@
   </script>
 
 
-  <textarea name="content" id="content" rows="40" cols="100"> (eval '(if 1 2 3))
+  <div> 
+    <div id="impName">
+      name 
+    </div>
+    <div id="impExpr">
+      expression
+    </div>
+  </div>
+
+  <textarea style=" position: absolute; left: 200px; top: 10px;" name="content" id="content" rows="18" cols="50"> (if #f 2 ((lambda (a b) (* a b)) 4 5))
 
   </textarea>
 
@@ -46,10 +55,12 @@
     }
   </script>
 
-
-  <p> <button>button</button> </p>
+<div style=" position: absolute; left: 300px; top: 300px;">
+   <button>eval</button> 
   <input type="button" value="next" onclick="javascript:next(); ">
 
+  <input type="button" value="biwa" onclick="javascript:biwac(); ">
+</div>
 
 </body>
 

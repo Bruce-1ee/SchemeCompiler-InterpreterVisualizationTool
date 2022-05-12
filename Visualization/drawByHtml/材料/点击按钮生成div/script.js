@@ -9,5 +9,6 @@ function addElement () {
   newDiv.appendChild(newContent);
   // 将这个新的元素和它的文本添加到 DOM 中
   let currentDiv = document.getElementById("div1");
-  document.body.insertBefore(newDiv, currentDiv);
+  //document.body.insertBefore(newDiv, currentDiv);
+  currentDiv.appendChild(newDiv);
 }

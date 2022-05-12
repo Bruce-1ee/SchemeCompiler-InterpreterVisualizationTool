@@ -4,7 +4,26 @@
   <title>||Working with elements||</title>
 </head>
 <script src="script.js"></script>
-<button onclick="addElement()">aaa</button>
+<script>
+
+function makeNewElement(tag,content){
+    let newElement = document.createElement(tag);
+    let newContent = document.createTextNode(content);
+    newElement.appendChild(newContent);
+    return newElement;
+}
+
+function setAttribute(element,attribute,value){
+    element.setAttribute(attribute,value);
+}
+
+function addElementInNode(currentNodeId,element){
+    let node = document.getElementById(currentNodeId);
+    node.appendChild(element);
+}
+
+</script>
+<button onclick="addElementInElement('div1','neirong','b')">aaa</button>
 <body>
   <div id="div1">The text above has been created dynamically.</div>
 </body>

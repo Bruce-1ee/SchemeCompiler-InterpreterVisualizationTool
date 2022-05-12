@@ -38,16 +38,12 @@ function removeAllChildren(element) {
 }
 
 function updateStack(s, p) {
-    /**
-     * 绘制栈时通过顶端的指针来选取内容
-     */
     stack = s;
     pointer = p;
 
     document.getElementById('stack').innerHTML = stack;
     document.getElementById('pointer').innerHTML = pointer;
-
-
+    
     var stackframe = document.getElementById("stack-frame");
 
     function createStack(num) {
@@ -79,11 +75,8 @@ function updateStack(s, p) {
     }
     removeAllChildren(stackframe);
     for (var i = 0; i < p; i++) {
-
         createStack(i);
     }
-
-
 }
 
 function updateEvalInfo(Name, Expr) {

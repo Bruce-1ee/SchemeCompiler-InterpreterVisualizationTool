@@ -103,3 +103,26 @@ function deleteCallFrame(callFrameNumber) {
     let currentNode = document.getElementById("callFrame_" + callFrameNumber);
     parentNode.removeChild(currentNode);
 }
+
+
+
+// jsPlumb Function
+
+function connect(s, t) {
+    return jsPlumb.connect({
+        source: s,
+        target: t,
+        endpoint: ['Dot', { radius: '0' }],
+        overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
+        connector: ['Flowchart'],
+        anchor: ['Bottom', 'Right', 'Left']
+    })
+    //jsPlumb.draggable(s)
+    //jsPlumb.draggable(t)
+}
+
+setTimeout(function () { connect("globalEnvironmentName", "globalEnvironmentFrame"); }, 100);
+setTimeout(function () { connect("localEnvironmentName_1", "localEnvironmentFrame_1"); }, 100);
+setTimeout(function () { connect("localEnvironmentFrame_1", "globalEnvironmentFrame"); }, 100);
+
+

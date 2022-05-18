@@ -1,0 +1,1 @@
+var frameCounter = 0;

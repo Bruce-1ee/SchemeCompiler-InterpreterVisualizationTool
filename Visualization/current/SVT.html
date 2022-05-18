@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVT</title>
+    <link rel="stylesheet" href="./style/style.css">
+
+</head>
+
+<body>
+
+    <div id="visualizationBox" class="visualizationBox">
+        <div id="environmentBox" class="environmentBox">
+            environmentBox
+            <div id="globalEnvironmentBox" class="globalEnvironmentBox">
+                <div id="globalEnvironmentName" class="globalEnvironmentName">GEnv</div>
+                <div id="globalEnvironmentFrame" class="globalEnvironmentFrame">
+                    <div id="globalVariableFrame_1" class="globalVariableFrame">
+                        <div id="globalVariable_1" class="globalVariable">
+                            fun
+                        </div>
+                        <div id="globalVariable_2" class="globalVariable">
+                            a
+                        </div>
+                        <div id="globalVariable_3" class="globalVariable">
+                            b
+                        </div>
+                    </div>
+                    <div id="globalVariableFrame_1" class="globalVariableFrame">
+                        <div id="globalVariable_4" class="globalVariable">
+                            num
+                        </div>
+                        <div id="globalVariable_5" class="globalVariable">
+                            fact
+                        </div>
+                        <div id="globalVariable_6" class="globalVariable">
+                            c
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="localEnvironmentBox_1" class="localEnvironmentBox">
+                <div id="localEnvironmentName_1" class="localEnvironmentName">
+                    Env1
+                </div>
+                <div id="localEnvironmentFrame_1" class="localEnvironmentFrame">
+                    <div id="localArgument_1" class="localArgument">
+                        localArgument_1
+                    </div>
+                    <div id="localArgument_2" class="localArgument">
+                        localArgument_2
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <div id="stackBox" class="stackBox">
+            stackBox
+            <div id="callFrame_1" class="callFrame">
+                callFrame_1
+                <div id="stackFrame_1" class="stackFrame">
+
+                    <div id="stackFrameConter_1" class="stackFrameConter">
+                        0
+                    </div>
+                    <div id="stackFrameContent_1" class="stackFrameContent">
+                        stackFrameContent_1
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <button onclick="myFunction()">Click me</button>
+
+
+    <div id="controlBox" class="controlBox">
+        this is controlBox
+
+
+    </div>
+
+
+    <div id="inputBox" class="inputBox">this is inputBox
+
+
+        <div id="bs-console">
+        </div>
+
+
+        <textarea style=" position: absolute1; left: 200px; top: 10px;" name="content" id="programInput" rows="18"
+            cols="50">  ( (lambda (a b)  (+ a b) ) 14 14)  </textarea>
+
+        <script>
+            //取值
+            function getContent() {
+                var content = document.getElementById("content").value;
+                return content;
+            }
+        </script>
+
+        <div style=" position: absolute1; left: 300px; top: 300px;">
+            <input type="button" value="interpreter" onclick="javascript:interpreter(); ">
+            <input type="button" value="compiler" onclick="javascript:compiler(); ">
+
+            <input type="button" value="next-inte" onclick="javascript:nextInte(); ">
+            <input type="button" value="next-comp" onclick="javascript:nextComp(); ">
+
+            <input type="button" value="biwa" onclick="javascript:biwac(); ">
+        </div>
+
+
+        <div>
+            <div>
+                <div style="display: inline-block;">
+                    name:
+                </div>
+                <div style="display: inline-block;" id="impName">
+                </div>
+            </div>
+            <div>
+                <div style="display: inline-block;">
+                    expression:
+                </div>
+                <div style="display: inline-block;" id="impExpr">
+
+                </div>
+            </div>
+
+        </div>
+
+        <div>
+            <div>
+                <div style="display: inline-block;">
+                    stack:
+                </div>
+                <div style="display: inline-block;" id="stack"></div>
+            </div>
+            <div>
+                <div style="display: inline-block;">
+                    pointer:
+                </div>
+                <div style="display: inline-block;" id="pointer"></div>
+            </div>
+        </div>
+
+        <div id="stack-frame">
+
+        </div>
+
+
+</body>
+</div>
+
+
+<script type="text/javascript" src="./code/biwascheme.js"></script>
+<script type="text/javascript" src="./code/compilerDefinition.js"></script>
+<script type="text/javascript" src="./code/interpreterLib.js"></script>
+<script type="text/javascript">
+
+    evl(meta);
+
+
+</script>
+<script src="./code/jsplumb.min.js"></script>
+<script type="text/javascript" src="./code/drawLib.js"></script>
+
+</body>
+
+</html>

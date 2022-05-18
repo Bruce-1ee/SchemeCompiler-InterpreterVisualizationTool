@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        #diagramContainer {
+            padding: 20px;
+            width: 80%;
+            height: 400px;
+            border: 1px solid gray;
+        }
+
+        .item {
+            position: absolute;
+            height: 80px;
+            width: 80px;
+            border: 1px solid blue;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <div id="l" class="item" style="top: 500px"></div>
+        <div id="r" class="item" style="left: 356px; top: 500px"></div>
+    </div>
+
+    <div id="diagramContainer">
+        <div id="item_left" class="item" style="top: 200px;"></div>
+        <div id="item_right" class="item" style="left: 356px; "></div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/jsplumb@2.8.0/dist/js/jsplumb.min.js"></script>
+
+    <script>
+        var s = 'item_left';
+        var t = 'item_right';
+        s = 'l';
+        t = 'r';
+        /* global jsPlumb */
+        jsPlumb.ready(function () {
+            jsPlumb.connect({
+                source: s,
+                target: t,
+                endpoint: ['Dot', {
+                    radius: '0'
+                }],
+                overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
+                connector: ['Flowchart'],
+                anchor: ['Bottom', 'Right', 'Top']
+            })
+
+            //jsPlumb.draggable('item_left')
+            //jsPlumb.draggable('item_right')
+        })
+
+        function connect(s, t) {
+            return jsPlumb.connect({
+                source: s,
+                target: t,
+                endpoint: ['Dot', { radius: '0' }],
+                overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
+                connector: ['Flowchart'],
+                anchor: ['Bottom', 'Right', 'Top']
+            })
+            //jsPlumb.draggable(s)
+            //jsPlumb.draggable(t)
+        }
+    </script>
+</body>
+
+</html>

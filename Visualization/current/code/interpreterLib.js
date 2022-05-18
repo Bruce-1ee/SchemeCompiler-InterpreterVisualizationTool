@@ -1,3 +1,12 @@
+var onError = function (e) { console.error(e); }
+var biwa = new BiwaScheme.Interpreter(onError);
+var display = function (result) { console.log(result); }
+
+
+function evl(exp) { biwa.evaluate(exp, display); }
+
+
+
 function getInput() {
     return document.getElementById("programInput").value;
 }
@@ -43,7 +52,7 @@ function updateStack(s, p) {
 
     document.getElementById('stack').innerHTML = stack;
     document.getElementById('pointer').innerHTML = pointer;
-    
+
     var stackframe = document.getElementById("stack-frame");
 
     function createStack(num) {

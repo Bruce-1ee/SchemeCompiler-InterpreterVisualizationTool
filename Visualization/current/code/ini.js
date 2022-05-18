@@ -1,0 +1,1 @@
+connect("globalEnvironmentName", "globalEnvironmentFrame");

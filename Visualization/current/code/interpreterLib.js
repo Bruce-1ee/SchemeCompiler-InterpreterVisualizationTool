@@ -1,17 +1,29 @@
+/**
+ * 定义了biwascheme的解释函数evl
+ */
 var onError = function (e) { console.error(e); }
 var biwa = new BiwaScheme.Interpreter(onError);
 var display = function (result) { console.log(result); }
-
-
 function evl(exp) { biwa.evaluate(exp, display); }
 
 
-
+/**
+ * 获取文本框内的文字，用于临时获取scheme程序用
+ */
 function getInput() {
     return document.getElementById("programInput").value;
 }
 
+var txt;
+function temp() {
+    txt = getInput();
+}
 
+
+/**
+ * 定义了编译、解释、VM下一步、解释器下一步
+ * 用于控制程序执行
+ */
 function interpreter() {
     evl("(eval '" + getInput() + ")");
 }
@@ -20,24 +32,99 @@ function compiler() {
     evl("(run '" + getInput() + ")");
 }
 
-
 function nextInte() {
     evl("(exec-k 'ok)");
 }
 
 function nextComp() {
     evl("(vm-k 'ok)");
+    drawStack(stack, pointer);
 }
 
-var biwac = function () {
-    evl(getInput());
+/**
+ * 用biwascheme执行文本框内的程序
+ */
+var biwac = function () { evl(getInput()); }
+
+
+/////////////////////////////////////////////
+////////////////////分界线////////////////////
+/////////////////////////////////////////////
+
+
+/**
+ * 以下是sheme和js通信的程序
+ */
+
+var impName = ''    //正在执行的操作名   eg:constant
+var impExpr = ''    //正在执行的操作内容 eg:1
+
+var stack;          //堆栈 scheme:stack
+var pointer = 0;    //栈的指针 scheme:s
+
+var evalFlag = false;   //接收完毕标志
+var vmFlag = false;     //接收完毕标志
+
+/**
+ * 更新解释器执行数据
+ * @param {String} Name 
+ * @param {String} Expr 
+ */
+function updateEvalInfo(Name, Expr) {
+    impExpr = Expr;
+    impName = Name;
+    document.getElementById('impName').innerHTML = Name;
+    document.getElementById('impExpr').innerHTML = Expr;
+    evalFlag = true;
 }
 
-var impName = ''
-var impExpr = ''
+/**
+ * 更新VM的执行数据
+ * @param {String} schemeStack 
+ * @param {String} s 
+ */
+function updateVmInfo(schemeStack, s) {
+    stack = schemeStack;
+    pointer = s;
+    vmFlag = true;
+}
 
-var stack;
-var pointer = 0;
+
+
+
+
+
+function updatePage() {
+
+    while (vmFlag !== true);
+
+    vmFlag = false;
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 function removeAllChildren(element) {
@@ -88,12 +175,7 @@ function updateStack(s, p) {
     }
 }
 
-function updateEvalInfo(Name, Expr) {
-    impExpr = Expr;
-    impName = Name;
-    document.getElementById('impName').innerHTML = Name;
-    document.getElementById('impExpr').innerHTML = Expr;
-}
+
 
 
 

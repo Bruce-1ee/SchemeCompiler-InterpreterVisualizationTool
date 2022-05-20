@@ -82,6 +82,11 @@ function makeNewStackFrame(callFrameNumber, stackCounter, content) {
     addElementInNode(currentNode, newStackFrame);
 }
 
+
+/**
+ * 用来创建一个新的callFrame，它是包裹着许多stackFrame的元素
+ * @param {number} callFrameNumber 
+ */
 function makeNewCallFrame(callFrameNumber) {
     let currentNode = document.getElementById("stackBox");
 
@@ -92,12 +97,21 @@ function makeNewCallFrame(callFrameNumber) {
     addElementInNode(currentNode, newFrame);
 }
 
+/**
+ * 用来删除stackFrame
+ * @param {number} callFrameNumber 
+ * @param {number} stackCounter 
+ */
 function deleteStackFrame(callFrameNumber, stackCounter) {
     let parentNode = document.getElementById("callFrame_" + callFrameNumber);
     let currentNode = document.getElementById("stackFrame_" + stackCounter);
     parentNode.removeChild(currentNode);
 }
 
+/**
+ * 用来删除callFrame
+ * @param {number} callFrameNumber 
+ */
 function deleteCallFrame(callFrameNumber) {
     let parentNode = document.getElementById("stackBox");
     let currentNode = document.getElementById("callFrame_" + callFrameNumber);

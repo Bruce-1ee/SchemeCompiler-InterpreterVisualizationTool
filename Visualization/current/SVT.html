@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SVT</title>
     <link rel="stylesheet" href="./style/style.css">
+    <link rel="stylesheet" href="./style/visualizationBox.css">
 
 </head>
 
@@ -54,6 +55,14 @@
                         localArgument_2
                     </div>
 
+                </div>
+            </div>
+            <div id="definition_1" class="doubleDotBox clearfix">
+                <div class="circle">
+                    <div id="definition_1_l" class="point"></div>
+                </div>
+                <div class="circle">
+                    <div id="definition_1_r" class="point"></div>
                 </div>
             </div>
 
@@ -114,6 +123,7 @@
             <input type="button" value="next-comp" onclick="javascript:nextComp(); ">
 
             <input type="button" value="biwa" onclick="javascript:biwac(); ">
+            <input type="button" value="getinput:txt" onclick="javascript:temp(); ">
         </div>
 
 
@@ -160,18 +170,15 @@
 </div>
 
 
-<script type="text/javascript" src="./code/biwascheme.js"></script>
+<script type="text/javascript" src="./code/lib/biwascheme.js"></script>
 <script type="text/javascript" src="./code/compilerDefinition.js"></script>
 <script type="text/javascript" src="./code/interpreterLib.js"></script>
-<script type="text/javascript">
-
-    evl(meta);
-
-
-</script>
-<script src="./code/jsplumb.min.js"></script>
+<script type="text/javascript" src="./code/lib/jsplumb.min.js"></script>
 <script type="text/javascript" src="./code/drawLib.js"></script>
+<script type="text/javascript" src="./code/main.js"></script>
 
+
+<script type="text/javascript">evl(meta);</script>
 </body>
 
 </html>

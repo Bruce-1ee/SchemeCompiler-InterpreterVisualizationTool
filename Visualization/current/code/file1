@@ -1,3 +1,4 @@
+
 (define true #t)
 (define false #f)
 (define (error str . exp)
@@ -9,12 +10,32 @@
   (newline))
 
 
+
+;(js-eval str) evaluate str as JavaScript code
+
+;(js-ref jsobj str) = a.b
+
+;(js-set! jsobj str value) = a.b = c
+
+;(js-call jsfunc args...) = a()
+
+;(js-invoke jsobj methodname args...) = a.b()
+
+
+
 (define (send-stack stack s)
   (js-call (js-eval "updateStack") stack s))
 
 (define (eval-update name expr)
     (js-call (js-eval "updateEvalInfo") name expr))
-    
+
+(define (add-frame-counter)
+  (js-call (js-eval "addFrameCounter")))
+
+(define (sub-frame-counter)
+  (js-call (js-eval "subFrameCounter")))
+
+
 (define exec-k #f)
 (define vm-k #f)
 (define resume-meta #f)
@@ -497,6 +518,7 @@
   ;(display x) (newline)
   ;(display stack) (newline)
   ;(display a) (newline)(newline)(newline)
+  (send-stack stack s)
   (make-breakpoint-vm)
   (VM a (cadr x) e s))
 
@@ -519,12 +541,12 @@
 (define (make-breakpoint-eval)
   (call/cc (lambda (breakpoint)
              (set! exec-k breakpoint)
-             (exec-k 'ok))))
+             (resume-meta 'ok))))
 
 (define (make-breakpoint-vm)
   (call/cc (lambda (breakpoint)
              (set! vm-k breakpoint)
-             (exec-k 'ok))))
+             (resume-meta 'ok))))
 
 (define (pause c)
     (call/cc (lambda (k)
@@ -555,7 +577,7 @@
           (set! resume-meta k)
           (if (eq? vm-k #f)
               (run exp)
-              (exec-k 'ok))))
+              (vm-k 'ok))))
        ;(display "VM -- meta")(newline)
        ;(pause halt)
        (display "generate graphic -- meta")(newline)
@@ -563,7 +585,7 @@
   
   (define (dispatch m)
     (cond ((eq? m 'ini) (small-step))
-          ((eq? m 'nxt) (exec-k 'ok))
+          ((eq? m 'nxt) (resume-meta 'ok))
           (else (error "message error -- meta -- dispatch"))))
   dispatch)
 

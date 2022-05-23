@@ -61,6 +61,10 @@ var impExpr = ''    //正在执行的操作内容 eg:1
 
 var stack;          //堆栈 scheme:stack
 var pointer = 0;    //栈的指针 scheme:s
+var old_pointer = 0;
+
+var frameCounter = 1; //frame计数器
+var old_frameCounter = 1;
 
 var evalFlag = false;   //接收完毕标志
 var vmFlag = false;     //接收完毕标志
@@ -87,6 +91,25 @@ function updateVmInfo(schemeStack, s) {
     stack = schemeStack;
     pointer = s;
     vmFlag = true;
+}
+
+/**
+ * 通过scheme程序的“frame”指令来判断
+ * 新函数的调用，此时frameCounter需要自增
+ */
+function addFrameCounter(){
+    frameCounter++;
+}
+
+/**
+ * 通过scheme程序的
+ * “apply” -- primitive函数的执行
+ * “return” -- 组合函数的执行
+ * 来判断弹出堆栈的时机
+ * 此时frameCounter需要自减
+ */
+function subFrameCounter(){
+    frameCounter--;
 }
 
 

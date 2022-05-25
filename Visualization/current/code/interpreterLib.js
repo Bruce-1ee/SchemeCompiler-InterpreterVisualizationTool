@@ -38,7 +38,9 @@ function nextInte() {
 
 function nextComp() {
     evl("(vm-k 'ok)");
-    drawStack(stack, pointer);
+    // drawEnv([])
+
+    drawStack(stack, pointer, frameCounter);
 }
 
 /**
@@ -63,8 +65,8 @@ var stack;          //堆栈 scheme:stack
 var pointer = 0;    //栈的指针 scheme:s
 var old_pointer = 0;
 
-var frameCounter = 1; //frame计数器
-var old_frameCounter = 1;
+var frameCounter = 0; //frame计数器
+var old_frameCounter = 0;
 
 var evalFlag = false;   //接收完毕标志
 var vmFlag = false;     //接收完毕标志
@@ -97,7 +99,7 @@ function updateVmInfo(schemeStack, s) {
  * 通过scheme程序的“frame”指令来判断
  * 新函数的调用，此时frameCounter需要自增
  */
-function addFrameCounter(){
+function addFrameCounter() {
     frameCounter++;
 }
 
@@ -108,7 +110,7 @@ function addFrameCounter(){
  * 来判断弹出堆栈的时机
  * 此时frameCounter需要自减
  */
-function subFrameCounter(){
+function subFrameCounter() {
     frameCounter--;
 }
 

@@ -1,3 +1,0 @@
-# SchemeCompiler-InterpreterVisualizationTool
-
-

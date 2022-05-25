@@ -31,6 +31,12 @@ function addElementInNode(currentNode, element) {
     currentNode.appendChild(element);
 }
 
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+////////////////环境模型相关操作/////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+
 /**
  * 创建一个新的环境框架
  * @param {number} num 表示当前frame的编号，用于同步显示
@@ -43,7 +49,7 @@ function makeNewEnvironmentFrame(num, args) {
     for (var i = 0; i < args.length; i++) {
         let newArgument = makeNewElement("div", args[i]);
         setAttribute(newArgument, "id", "localEnvironmentFrameArgument_" + i);
-        setAttribute(newArgument, "class", "localEnvironmentFrameArgument");
+        setAttribute(newArgument, "class", "localArgument");
         addElementInNode(newFrame, newArgument);
     }
     setAttribute(newFrame, "id", "localEnvironmentFrame_" + num);
@@ -51,6 +57,39 @@ function makeNewEnvironmentFrame(num, args) {
 
     addElementInNode(currentNode, newFrame);
 }
+
+/**
+ * 创建一个标记当前环境编号的div
+ * @param {number} count 当前frame计数器 
+ */
+function makeEnvNameTag(count) {
+    let currentNode = document.getElementById("environmentBox");
+    let newFrame = makeNewElement("div", ("Env" + count));
+    setAttribute(newFrame, "id", "localEnvironmentName_" + count);
+    setAttribute(newFrame, "class", "localEnvironmentName");
+
+    addElementInNode(currentNode, newFrame);
+
+
+
+
+    let t = makeNewElement("div", '');
+    addElementInNode(currentNode, t);
+}
+
+function makeEnv(count, args) {
+    makeEnvNameTag(count)
+    let s = ("localEnvironmentName_" + count);
+    makeNewEnvironmentFrame(count, args)
+    let t = ("localEnvironmentFrame_" + count);
+    makeEnvConnection(s, t)
+    let g = "globalEnvironmentFrame"
+    makeGloEnvConnection(t, g)
+
+}
+
+
+
 
 /**
  * 用来实现入栈的操作，新的碎片被插入到了第callFrameNumber位置的frame中
@@ -134,6 +173,33 @@ function connect(s, t) {
     //jsPlumb.draggable(s)
     //jsPlumb.draggable(t)
 }
+
+function makeEnvConnection(s, t) {
+    return jsPlumb.connect({
+        source: s,
+        target: t,
+        endpoint: ['Dot', { radius: '0' }],
+        overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
+        connector: ['Flowchart'],
+        anchor: ['Left', 'Right']
+    })
+    //jsPlumb.draggable(s)
+    //jsPlumb.draggable(t)
+}
+
+function makeGloEnvConnection(s, t) {
+    return jsPlumb.connect({
+        source: s,
+        target: t,
+        endpoint: ['Dot', { radius: '0' }],
+        overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
+        connector: ['Flowchart'],
+        anchor: ['Right', 'Bottom']
+    })
+    //jsPlumb.draggable(s)
+    //jsPlumb.draggable(t)
+}
+
 
 setTimeout(function () { connect("globalEnvironmentName", "globalEnvironmentFrame"); }, 100);
 setTimeout(function () { connect("localEnvironmentName_1", "localEnvironmentFrame_1"); }, 100);

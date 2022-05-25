@@ -12,11 +12,14 @@ import shutil
 # """
 
 # ↓↓↓↓↓↓文件地址定义的变量在这里↓↓↓↓↓↓
-program = "Visualization\old file\python demo\program.txt"
-helpingfunc = "Visualization\old file\python demo\helping.txt"
-
+inputpath = 'Compiler&interperter\meta-system.scm'
+helpingfunc = 'Compiler&interperter\helping-function-js.scm'
+outputpath = 'Visualization\current\code\meta-js\meta-js.scm'
+jsfile = 'Visualization\current\code\\test.js'
 
 # 删除头部4行
+
+
 def delUselessLines(fileadds):
     r = open(fileadds, "r", encoding="utf-8")
     # r = open("Visualization/old file/python demo/a.txt", "r")
@@ -44,10 +47,37 @@ def addHelpFunction(fileadds, hepfunc):
     pos = 0
 
     content = content[:pos] + content_add + "\n" + content[pos:]
-    file = open("a.txt", "w", encoding="utf-8")
+    file = open(fileadds,
+                "w", encoding="utf-8")
     file.write(content)
     file.close()
     file_add.close()
+
+
+def toJsLiteral(outputadds):
+
+    r = open(outputadds, "r", encoding="utf-8")
+    lines = r.readlines()
+    w = open(outputadds, "w", encoding="utf-8")
+    for l in lines:
+      #   pos = l.find(";")
+      #   l = l[:pos]
+      #   l = l.replace('\n', '\\n')
+        l = l.replace('\n', ' ')
+        l = l.replace("'", "\\'")
+        w.write(l)
+    file = open(outputadds, "r", encoding="utf-8")
+    content = file.read()
+    content = "meta = '" + content
+    file = open(outputadds, "w", encoding="utf-8")
+    file.write(content)
+    file.close()
+
+
+def addtail(outputadds):
+    w = open(outputadds, "a", encoding="utf-8")
+    w.write("'")
+
 
 # 替换
 
@@ -64,32 +94,21 @@ def alter(file, old_str, new_str):
 # --------------------------------------------------------------------------------
 
 
-def toJsLiteral(outputadds):
-    r = open(outputadds, "r")
-    lines = r.readlines()
-    w = open(outputadds, "w")
-    for l in lines:
-        l = l.replace('\n', '\\n')
-        w.write(l)
+shutil.copyfile(inputpath, outputpath)
 
+delUselessLines(outputpath)
 
-# fileadds = program
+alter(outputpath, "\(exec-k\)", "(exec-k 'ok)")
+alter(outputpath, "\(vm-k\)", "(vm-k 'ok)")
+alter(outputpath, "\(resume-meta\)", "(resume-meta 'ok)")
+alter(outputpath, "\(beginning\)", "(beginning 'ok)")
+alter(outputpath, ";\(sub-frame-counter\)", "(sub-frame-counter)")
+alter(outputpath, ";\(add-frame-counter\)", "(add-frame-counter)")
+alter(outputpath, ";\(send-stack stack s\)", "(send-stack stack s)")
 
-# r = open(program, "r")
-# lines = r.readlines()
-# w = open(program, "w")
-# for l in lines:
-#     l = l.replace('\n', '\\n')
-#     w.write(l)
+addHelpFunction(outputpath, helpingfunc)
 
+# shutil.copyfile(outputpath, jsfile)
 
-# t = '\\'
-# alter(program, "\n", t)
-
-# print('\\')
-
-file = open(helpingfunc, "r", encoding="utf-8")
-lines = file.readlines()
-for l in lines:
-    res = l.find(";")
-    print(l[:res])
+# toJsLiteral(jsfile)
+# addtail(jsfile)

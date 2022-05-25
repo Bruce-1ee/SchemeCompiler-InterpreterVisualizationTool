@@ -183,7 +183,7 @@
 
     background-color: rgb(190, 236, 240);
     /* border-style: solid; */
-
+    border-bottom: solid;
 }
 
 .stackFrame {
@@ -193,6 +193,8 @@
 
     background-color: rgb(171, 234, 239);
     border-style: none;
+
+
 
 }
 
@@ -213,6 +215,7 @@
     border-width: 2px;
     border-right-width: 0px;
     border-style: solid;
+    border-bottom: none;
 
     float: left;
 }
@@ -227,6 +230,7 @@
     background-color: rgb(174, 239, 171);
     border-width: 2px;
     border-style: solid;
+    border-bottom: none;
 
     float: left;
 }

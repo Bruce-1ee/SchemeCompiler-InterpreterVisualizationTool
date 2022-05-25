@@ -8,12 +8,32 @@
     (display exp))
   (newline))
 
-  
+
+
+;(js-eval str) evaluate str as JavaScript code
+
+;(js-ref jsobj str) = a.b
+
+;(js-set! jsobj str value) = a.b = c
+
+;(js-call jsfunc args...) = a()
+
+;(js-invoke jsobj methodname args...) = a.b()
+
+
+
 (define (send-stack stack s)
   (js-call (js-eval "updateStack") stack s))
 
 (define (eval-update name expr)
     (js-call (js-eval "updateEvalInfo") name expr))
+
+(define (add-frame-counter)
+  (js-call (js-eval "addFrameCounter")))
+
+(define (sub-frame-counter)
+  (js-call (js-eval "subFrameCounter")))
+;-------------------------------------
 
 (define exec-k #f)
 (define vm-k #f)
@@ -348,7 +368,7 @@
       [(return) (vm-return a x e s)]
       [else (vm-else a x e s)])))
 
-(define (vm-halt a x e s) (VM-info-output a x e s) a)
+(define (vm-halt a x e s) a)
 (define (vm-empty a x e s) 'ok)
 
 (define (vm-refer a x e s)
@@ -386,6 +406,8 @@
 (define (vm-frame a x e s)
   (let ((ret (cadr x))
         (x (caddr x)))
+    ;(display "frame") (newline)
+    (add-frame-counter)
     (VM a x e (push ret (push e s)))))
 
 (define (vm-argument a x e s)
@@ -397,6 +419,8 @@
 (define (vm-apply a x e s)
     (cond
       [(eq? 'primitive (car a))
+       ;(display "apply") (newline)
+       (sub-frame-counter) ;自动删除
        (letrec ((loop (lambda(argl n)
                         (cond
                           [(= n 0) (VM (apply (cdr a) argl)
@@ -414,6 +438,8 @@
        (VM a (car a) s (push (cadr a) s))]))
 
 (define (vm-return a x e s)
+  ;(display "return") (newline)
+  (sub-frame-counter) ;自动删除
   (let ([s (- s (cadr x))])
          (VM a (index s 0) (index s 1) (- s 2))))
   
@@ -595,6 +621,15 @@
                (list ,inst
                      (apply org-fun (cons arg restarg))))))))
 
+(define-macro define-act-vm-1
+  (lambda (fun inst)
+    `(let* ((org-fun ,fun))
+       (set! ,fun
+             (lambda (arg . restarg)
+
+               (make-breakpoint-eval)
+               (apply org-fun (cons arg restarg)))))))
+
 (define-macro define-act-vm
   (lambda ()
     `(set! vm-else
@@ -634,7 +669,7 @@
           (get-vec ins (+ 1 p)))
       (error "no such ins")))
 
-(define-macro act-1
+(define-macro act-1 ;可变定义列表
   (lambda (fun ins type)
     `(if (exist? ,ins 0)
          (if (vector-ref (get-vec ,ins 0) 2)
@@ -651,24 +686,25 @@
            (if (eq? ,type 'eval)
                  (define-act-eval ,fun ,ins)
                  (define-act-compile ,fun ,ins))))))
-                 
+
+
+        
 ;==========run define-act==========
 
 
-;     (act-1 eval-self-evaluating "eval-self-evaluating" 'eval)
-;     (act-1 eval-quotation "eval-quotation" 'eval)
-;     (act-1 eval-variable "eval-variable" 'eval)
-;     (act-1 eval-if "eval-if" 'eval)
-;     (act-1 eval-if-test "eval-if" 'eval)
-;     (act-1 eval-if-then "eval-if-then" 'eval)
-;     (act-1 eval-if-else "eval-if-else"   'eval)
-;     (act-1 eval-lambda "eval-lambda" 'eval)
-;     (act-1 eval-application "eval-application" 'eval)
-;     (act-1 eval-application-arg "eval-application-arg" 'eval)
-;     (act-1 eval-application-body "eval-application-body" 'eval)
 
 
-
+;(act-1 eval-self-evaluating "eval-self-evaluating" 'eval)
+;(act-1 eval-quotation "eval-quotation" 'eval)
+;(act-1 eval-variable "eval-variable" 'eval)
+;(act-1 eval-if "eval-if" 'eval)
+;(act-1 eval-if-test "eval-if" 'eval)
+;(act-1 eval-if-then "eval-if-then" 'eval)
+;(act-1 eval-if-else "eval-if-else"   'eval)
+;(act-1 eval-lambda "eval-lambda" 'eval)
+;(act-1 eval-application "eval-application" 'eval)
+;(act-1 eval-application-arg "eval-application-arg" 'eval)
+;(act-1 eval-application-body "eval-application-body" 'eval)
 
 
 
@@ -699,6 +735,12 @@
     (define-act-eval eval-application-arg "eval-application-arg")
     (define-act-eval eval-application-body "eval-application-body")
 
+    (let ((org vm-halt))
+      (set! vm-halt
+            (lambda (a x e s)
+              (make-breakpoint-vm)
+              (org a x e s))))
+          
     (define-act-vm)))
 
 
@@ -714,35 +756,21 @@
 
     (define-act-vm)))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;(js-eval str) evaluate str as JavaScript code
-
-;(js-ref jsobj str) = a.b
-
-;(js-set! jsobj str value) = a.b = c
-
-;(js-call jsfunc args...) = a()
-
-;(js-invoke jsobj methodname args...) = a.b()
-
-
-
-
 (act)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

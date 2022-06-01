@@ -42,8 +42,8 @@ function addElementInNode(currentNode, element) {
  * @param {number} num 表示当前frame的编号，用于同步显示
  * @param {Array} args 装有这个frame中所有参数的表，需要将其绘制
  */
-function makeNewEnvironmentFrame(num, args) {
-    let currentNode = document.getElementById("environmentBox");
+function makeNewEnvironmentFrame(count, args) {
+    let currentNode = document.getElementById("localEnvironmentBox_"+count);
 
     let newFrame = makeNewElement("div", "");
     for (var i = 0; i < args.length; i++) {
@@ -52,7 +52,7 @@ function makeNewEnvironmentFrame(num, args) {
         setAttribute(newArgument, "class", "localArgument");
         addElementInNode(newFrame, newArgument);
     }
-    setAttribute(newFrame, "id", "localEnvironmentFrame_" + num);
+    setAttribute(newFrame, "id", "localEnvironmentFrame_" + count);
     setAttribute(newFrame, "class", "localEnvironmentFrame");
 
     addElementInNode(currentNode, newFrame);
@@ -64,17 +64,18 @@ function makeNewEnvironmentFrame(num, args) {
  */
 function makeEnvNameTag(count) {
     let currentNode = document.getElementById("environmentBox");
-    let newFrame = makeNewElement("div", ("Env" + count));
-    setAttribute(newFrame, "id", "localEnvironmentName_" + count);
-    setAttribute(newFrame, "class", "localEnvironmentName");
+    let box = makeNewElement("div", '');
+    setAttribute(box, "id", "localEnvironmentBox_" + count);
+    setAttribute(box, "class", "localEnvironmentBox");
+    addElementInNode(currentNode, box);
 
-    addElementInNode(currentNode, newFrame);
+    currentNode = box;
 
+    let name = makeNewElement("div", ("Env" + count));
+    setAttribute(name, "id", "localEnvironmentName_" + count);
+    setAttribute(name, "class", "localEnvironmentName");
 
-
-
-    let t = makeNewElement("div", '');
-    addElementInNode(currentNode, t);
+    addElementInNode(currentNode, name);
 }
 
 function makeEnv(count, args) {

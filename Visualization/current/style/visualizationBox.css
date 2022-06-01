@@ -6,7 +6,7 @@
 /* 最外层边框 */
 .visualizationBox {
     margin: 10px;
-    width: 1516px;
+    width: 100%;
     height: 768px;
     background-color: beige;
     border-style: ridge;
@@ -15,7 +15,7 @@
 /* 环境模型 */
 .environmentBox {
     margin: 3px;
-    width: 1000px;
+    width: 64%;
     height: 90%;
     background-color: rgb(240, 240, 190);
     border-width: 1px;
@@ -168,7 +168,7 @@
 
 .stackBox {
     margin: 3px;
-    width: 500px;
+    width: 34%;
     height: 90%;
     background-color: rgb(240, 240, 190);
     border-width: 1px;

@@ -19,7 +19,7 @@
             <div id="globalEnvironmentBox" class="globalEnvironmentBox">
                 <div id="globalEnvironmentName" class="globalEnvironmentName">GEnv</div>
                 <div id="globalEnvironmentFrame" class="globalEnvironmentFrame">
-                    <div id="globalVariableFrame_1" class="globalVariableFrame">
+                    <!-- <div id="globalVariableFrame_1" class="globalVariableFrame">
                         <div id="globalVariable_1" class="globalVariable">
                             fun
                         </div>
@@ -30,7 +30,7 @@
                             b
                         </div>
                     </div>
-                    <div id="globalVariableFrame_1" class="globalVariableFrame">
+                    <div id="globalVariableFrame_2" class="globalVariableFrame">
                         <div id="globalVariable_4" class="globalVariable">
                             num
                         </div>
@@ -40,9 +40,10 @@
                         <div id="globalVariable_6" class="globalVariable">
                             c
                         </div>
-                    </div>
+                    </div> -->
                 </div>
             </div>
+            <!-- <div class="localEnvironmentOuterFrame"></div> -->
             <!-- <div id="localEnvironmentBox_1" class="localEnvironmentBox">
                 <div id="localEnvironmentName_1" class="localEnvironmentName">
                     Env1
@@ -57,6 +58,7 @@
 
                 </div>
             </div> -->
+
 
 
             <!-- 定义点对 -->
@@ -92,7 +94,8 @@
         </div>
     </div>
 
-    <button onclick="myFunction()">Click me</button>
+    <button onclick="compiler()">Click me</button>
+    <button onclick="nextComp()">Click me</button>
 
 
     <div id="controlBox" class="controlBox">
@@ -109,8 +112,8 @@
         </div>
 
 
-        <textarea style=" position: absolute1; left: 200px; top: 10px;" name="content" id="programInput" rows="18"
-            cols="50">  ( (lambda (a b)  (+ a b) ) 14 14)  </textarea>
+        <textarea style=" position: absolute1; left: 200px; top: 10px;" name="content" id="programInput" rows="8"
+            cols="50">  ( (lambda (a b)  (+ a b) ) 15 7)  </textarea>
 
         <script>
             //取值

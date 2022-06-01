@@ -38,7 +38,7 @@ function nextInte() {
 
 function nextComp() {
     evl("(vm-k 'ok)");
-    // drawEnv([])
+     drawEnv([])
 
     drawStack(stack, pointer, frameCounter);
 }

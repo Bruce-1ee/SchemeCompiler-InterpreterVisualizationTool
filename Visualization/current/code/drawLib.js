@@ -36,6 +36,19 @@ function addElementInNode(currentNode, element) {
 ////////////////环境模型相关操作/////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
+/**
+ * 包裹局部环境的外围边框
+ * @param {*} num 
+ */
+function makeColumnBox(num) {
+    let currentNode = document.getElementById("environmentBox");
+
+    let box = makeNewElement("div", "");
+    setAttribute(box, "id", "localEnvironmentColumnBox_" + num);
+    setAttribute(box, "class", "localEnvironmentColumnBox");
+    addElementInNode(currentNode, box);
+
+}
 
 /**
  * 创建一个新的环境框架
@@ -43,7 +56,10 @@ function addElementInNode(currentNode, element) {
  * @param {Array} args 装有这个frame中所有参数的表，需要将其绘制
  */
 function makeNewEnvironmentFrame(count, args) {
-    let currentNode = document.getElementById("localEnvironmentBox_"+count);
+    let currentNode = document.getElementById("localEnvironmentBox_" + count);
+    let outerFrame = makeNewElement("div", "");
+    setAttribute(outerFrame, "id", "localEnvironmentOuterFrame_" + count);
+    // setAttribute(outerFrame, "class", "localEnvironmentOuterFrame");
 
     let newFrame = makeNewElement("div", "");
     for (var i = 0; i < args.length; i++) {
@@ -54,8 +70,8 @@ function makeNewEnvironmentFrame(count, args) {
     }
     setAttribute(newFrame, "id", "localEnvironmentFrame_" + count);
     setAttribute(newFrame, "class", "localEnvironmentFrame");
-
-    addElementInNode(currentNode, newFrame);
+    addElementInNode(outerFrame, newFrame);
+    addElementInNode(currentNode, outerFrame);
 }
 
 /**
@@ -63,7 +79,16 @@ function makeNewEnvironmentFrame(count, args) {
  * @param {number} count 当前frame计数器 
  */
 function makeEnvNameTag(count) {
-    let currentNode = document.getElementById("environmentBox");
+    if (columnCounter === 0) {
+        makeColumnBox(++columnCounter);
+        columnCounter++;
+    } else if (columnSize > maxSize) {
+        makeColumnBox(++columnCounter);
+        columnCounter = 1;
+    }
+
+    // let currentNode = document.getElementById("localEnvironmentBox_" + columnCounter);
+    let currentNode = document.getElementById("localEnvironmentColumnBox_1");
     let box = makeNewElement("div", '');
     setAttribute(box, "id", "localEnvironmentBox_" + count);
     setAttribute(box, "class", "localEnvironmentBox");
@@ -78,15 +103,35 @@ function makeEnvNameTag(count) {
     addElementInNode(currentNode, name);
 }
 
-function makeEnv(count, args) {
-    makeEnvNameTag(count)
+/**
+ * 生成frame下部的函数本体
+ * @param {*} count 
+ * @param {*} str 
+ */
+function makeFunBody(count, str) {
+    let currentNode = document.getElementById("localEnvironmentOuterFrame_" + count);
+    let box = makeNewElement("div", str);
+    setAttribute(box, "id", "localEnvironmentFunBody" + count);
+    // setAttribute(box, "class", "localEnvironmentFunBody clearFix");
+    setAttribute(box, "class", "clearfix");
+    addElementInNode(currentNode, box);
+}
+
+
+/**
+ * 创建一个局部环境
+ * @param {*} count 
+ * @param {*} args 
+ */
+function makeEnv(count, args, fun) {
+    makeEnvNameTag(count) //先创建名片tag
     let s = ("localEnvironmentName_" + count);
-    makeNewEnvironmentFrame(count, args)
+    makeNewEnvironmentFrame(count, args) //再创建环境框架
+    makeFunBody(count, fun);
     let t = ("localEnvironmentFrame_" + count);
-    makeEnvConnection(s, t)
+    makeEnvConnection(s, t) //之后将其链接
     let g = "globalEnvironmentFrame"
     makeGloEnvConnection(t, g)
-
 }
 
 
@@ -203,7 +248,7 @@ function makeGloEnvConnection(s, t) {
 
 
 setTimeout(function () { connect("globalEnvironmentName", "globalEnvironmentFrame"); }, 100);
-setTimeout(function () { connect("localEnvironmentName_1", "localEnvironmentFrame_1"); }, 100);
-setTimeout(function () { connect("localEnvironmentFrame_1", "globalEnvironmentFrame"); }, 100);
+// setTimeout(function () { connect("localEnvironmentName_1", "localEnvironmentFrame_1"); }, 100);
+// setTimeout(function () { connect("localEnvironmentFrame_1", "globalEnvironmentFrame"); }, 100);
 
 

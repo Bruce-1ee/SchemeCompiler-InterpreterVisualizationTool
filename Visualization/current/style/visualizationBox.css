@@ -6,8 +6,9 @@
 /* 最外层边框 */
 .visualizationBox {
     margin: 10px;
-    width: 100%;
+    width: 1500px;
     height: 768px;
+    min-height: 768px;
     background-color: beige;
     border-style: ridge;
 }
@@ -16,7 +17,7 @@
 .environmentBox {
     margin: 3px;
     width: 64%;
-    height: 90%;
+    min-height: 90%;
     background-color: rgb(240, 240, 190);
     border-width: 1px;
     border-style: solid;
@@ -54,7 +55,7 @@
 .globalEnvironmentFrame {
     /* margin-top: 10px; */
     margin-left: 50px;
-    width: 90%;
+    width: 800px;
     height: 120px;
     background-color: rgb(190, 236, 240);
     border-width: 2px;
@@ -73,6 +74,11 @@
 
 .globalVariable {
     margin-top: 10px;
+
+}
+
+.localEnvironmentColumnBox {
+    width: 420px;
 
 }
 
@@ -95,12 +101,18 @@
     float: left;
 }
 
+/* .localEnvironmentOuterFrame {} */
+
+
 .localEnvironmentFrame {
     /* margin-top: 10px; */
     margin-top: 10px;
     margin-left: 50px;
     width: 20%;
-    height: 80px;
+    /* height: 80px;  */
+    /*demo用记得改回来*/
+    height: 110px;
+
     background-color: rgb(190, 236, 240);
     border-width: 2px;
     border-color: rgb(0, 0, 0);
@@ -169,7 +181,7 @@
 .stackBox {
     margin: 3px;
     width: 34%;
-    height: 90%;
+    min-height: 90%;
     background-color: rgb(240, 240, 190);
     border-width: 1px;
     border-style: solid;
@@ -232,5 +244,6 @@
     border-style: solid;
     border-bottom: none;
 
+    overflow: hidden;
     float: left;
 }

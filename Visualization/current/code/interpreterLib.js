@@ -36,11 +36,21 @@ function nextInte() {
     evl("(exec-k 'ok)");
 }
 
+function start() {
+    interpreter();
+    compiler();
+}
+
 function nextComp() {
     evl("(vm-k 'ok)");
-     drawEnv([])
+    // drawEnv([])
 
     drawStack(stack, pointer, frameCounter);
+}
+
+function next() {
+    nextInte();
+    nextComp();
 }
 
 /**
@@ -68,6 +78,13 @@ var old_pointer = 0;
 var frameCounter = 0; //frame计数器
 var old_frameCounter = 0;
 
+var columnCounter = 0; //存放函数frame的柱子的编号
+var columnSize = 0; //当前column中元素的数量
+const maxSize = 5; //最大可存放数量
+
+var argument = new Array(2); //用于存放函数调用的参数
+
+
 var evalFlag = false;   //接收完毕标志
 var vmFlag = false;     //接收完毕标志
 
@@ -79,8 +96,8 @@ var vmFlag = false;     //接收完毕标志
 function updateEvalInfo(Name, Expr) {
     impExpr = Expr;
     impName = Name;
-    document.getElementById('impName').innerHTML = Name;
-    document.getElementById('impExpr').innerHTML = Expr;
+    // document.getElementById('impName').innerHTML = Name;
+    // document.getElementById('impExpr').innerHTML = Expr;
     evalFlag = true;
 }
 
@@ -114,9 +131,49 @@ function subFrameCounter() {
     frameCounter--;
 }
 
+function getArgumentsFromScheme(args, vals, body, type) {
+    var t = new Array(3);
+    if (type === 0) {//type == 0 : primitive
+        t[0] = null;
+    } else { //type == 1 : funciton
+        var argList = [];
+        while (args !== undefined) {
+            argList.push(args.car);
+            args = args.cdr;
+        }
+        t[0] = [];
+        for (var i = 0; i < argList.length - 1; i++) {
+            t[0].push(argList[i].name);
+        }
+    }
+    var valList = [];
+    while (vals !== undefined) {
+        valList.push(vals.car);
+        vals = vals.cdr;
+    }
+    valList.pop();
+    t[1] = valList;
 
+    t[2] = body;
+    argument[0] = [];
+    for (var i = 0; i < t[0].length; i++) {
+        argument[0].push(t[0][i] + " : " + t[1][i])
+    }
+    argument[1] = t[2];
 
+    console.log(argument);
 
+}
+
+function makeEnvrionmentFrame() {
+    makeEnvNameTag(frameCounter)
+    let s = ("localEnvironmentName_" + frameCounter);
+    makeNewEnvironmentFrame(frameCounter, argument[0]);
+    let t = ("localEnvironmentFrame_" + frameCounter++);
+    makeEnvConnection(s, t)
+    let g = "globalEnvironmentFrame"
+    makeGloEnvConnection(t, g)
+}
 
 
 function updatePage() {
@@ -162,42 +219,42 @@ function updateStack(s, p) {
     stack = s;
     pointer = p;
 
-    document.getElementById('stack').innerHTML = stack;
-    document.getElementById('pointer').innerHTML = pointer;
+    // document.getElementById('stack').innerHTML = stack;
+    // document.getElementById('pointer').innerHTML = pointer;
 
-    var stackframe = document.getElementById("stack-frame");
+    // var stackframe = document.getElementById("stack-frame");
 
-    function createStack(num) {
-        var newstackFrame = document.createElement("div");
+    // function createStack(num) {
+    //     var newstackFrame = document.createElement("div");
 
-        var newstackNum = document.createElement("div");
-        var newstackInfo = document.createElement("div");
-        var newstackNode = document.createElement("div");
+    //     var newstackNum = document.createElement("div");
+    //     var newstackInfo = document.createElement("div");
+    //     var newstackNode = document.createElement("div");
 
-        newstackNum.id = "stackNum_" + num;
-        newstackNum.className = "stackNum";
-        newstackNum.appendChild(document.createTextNode(num));
-
-
-        newstackInfo.id = "stackInfo_" + num;
-        newstackInfo.className = "stackInfo";
-        newstackInfo.appendChild(document.createTextNode(stack[num]));
+    //     newstackNum.id = "stackNum_" + num;
+    //     newstackNum.className = "stackNum";
+    //     newstackNum.appendChild(document.createTextNode(num));
 
 
-        newstackNode.id = "stack_" + (num);
-        newstackNode.setAttribute("name", newstackNode.id);
-        newstackNode.appendChild(newstackNum);
-        newstackNode.appendChild(newstackInfo);
+    //     newstackInfo.id = "stackInfo_" + num;
+    //     newstackInfo.className = "stackInfo";
+    //     newstackInfo.appendChild(document.createTextNode(stack[num]));
 
-        newstackFrame.className = "stackFrameBackground"
-        newstackFrame.appendChild(newstackNode);
 
-        stackframe.appendChild(newstackFrame);
-    }
-    removeAllChildren(stackframe);
-    for (var i = 0; i < p; i++) {
-        createStack(i);
-    }
+    //     newstackNode.id = "stack_" + (num);
+    //     newstackNode.setAttribute("name", newstackNode.id);
+    //     newstackNode.appendChild(newstackNum);
+    //     newstackNode.appendChild(newstackInfo);
+
+    //     newstackFrame.className = "stackFrameBackground"
+    //     newstackFrame.appendChild(newstackNode);
+
+    //     stackframe.appendChild(newstackFrame);
+    // }
+    // removeAllChildren(stackframe);
+    // for (var i = 0; i < p; i++) {
+    //     createStack(i);
+    // }
 }
 
 

@@ -94,8 +94,10 @@
         </div>
     </div>
 
-    <button onclick="compiler()">Click me</button>
-    <button onclick="nextComp()">Click me</button>
+    <button onclick="start()">Click me</button>
+    <button onclick="nextComp()">vm</button>
+    <button onclick="nextInte()">inter</button>
+    <button onclick="next()">next</button>
 
 
     <div id="controlBox" class="controlBox">
@@ -113,7 +115,20 @@
 
 
         <textarea style=" position: absolute1; left: 200px; top: 10px;" name="content" id="programInput" rows="8"
-            cols="50">  ( (lambda (a b)  (+ a b) ) 15 7)  </textarea>
+            cols="50"> (let ((a1 1)
+            (a2 2)
+            (a3 3)
+            (a4 4))
+        (let ((b1 5)
+              (b2 6)
+              (b3 7))
+          (let ((c1 9)
+                (c2 1)
+                (c3 2))
+            (let ((d1 3)
+                  (d2 4)
+                  (d3 5))
+              a4))))  </textarea>
 
         <script>
             //取值

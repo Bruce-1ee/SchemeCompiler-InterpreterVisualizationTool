@@ -19,3 +19,9 @@
 
 (define (sub-frame-counter)
   (js-call (js-eval "subFrameCounter")))
+
+(define (make-envrionment-frame)
+  (js-call (js-eval "makeEnvrionmentFrame")))
+
+(define (send-arguments-to-js args vals body type)
+  (js-call (js-eval "getArgumentsFromScheme") args vals body type))

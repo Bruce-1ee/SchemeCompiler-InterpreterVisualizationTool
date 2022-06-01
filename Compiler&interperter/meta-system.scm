@@ -27,6 +27,7 @@
              ((quoted? exp) (eval-quotation exp))
              ((assignment? exp) (eval-assignment exp env))
              ((definition? exp) (eval-definition exp env))
+             ((let? exp) (eval-let exp env))
              ((if? exp) (eval-if exp env))
              ((lambda? exp) (eval-lambda exp env))
              ((begin? exp) (eval-sequence (cdr exp) env)) ;new
@@ -82,6 +83,8 @@
       (eq? (car exp) tag)
       false))
 
+(define (let? exp)
+  (tagged-list? exp 'let))
 
 ;==========new==========
 (define (begin? exp) (tagged-list? exp 'begin))
@@ -137,8 +140,10 @@
     (list 'function vars body env)))
 
 (define (eval-application exp env)
+  
   (let ((arg (map (lambda(x) (eval-application-arg x env)) (cdr exp)))
         (body (eval-application-body (car exp) env)))
+    ;(display (caddr body))(newline)
     (eval-application-apply body arg env)))
 (define (eval-application-arg arg env) (exec arg env))
 (define (eval-application-body name env) (exec name env))
@@ -146,13 +151,42 @@
 (define (eval-application-apply func arguments env)
   (case (car func)
     ((primitive)
+     ;biwaschemeFunction
+     ;(send-arguments-to-js arguments arguments (cdr func) 0)
      (eval-application-apply-primitive func arguments))
     ((function)
+     ;biwaschemeFunction
+     ;(send-arguments-to-js (cadr func) arguments (caddr func) 1)
      (exec (caddr func)
            (eval-extend (cadddr func) (cadr func) arguments)))
     (else (error "Not a function -- eval-application-apply"))))
 (define (eval-application-apply-primitive func args)
   (apply (cdr func) args))
+
+
+(define (eval-let exp env)
+  (let ((e (let->lambda exp)))
+        (exec e env)))
+
+;==========new==========
+(define getargs
+  (lambda (args ret)
+    (if (null? args)
+        ret
+        (getargs (cdr args) (append ret (list (car (car args))))))))
+(define getvals
+  (lambda (args ret)
+    (if (null? args)
+        ret
+        (getvals (cdr args) (append ret (list (cadr (car args))))))))
+
+(define let->lambda
+  (lambda (exp)
+    (let* ((args (cadr exp))
+          (body (caddr exp))
+          (lambda-args (getargs args '()))
+          (lambda-vals (getvals args '())))
+    (cons (list 'lambda lambda-args body) lambda-vals))))
 
 
 
@@ -166,6 +200,7 @@
         ((quoted? exp) (compile-quoted exp next))
         ((variable? exp) (compile-variable exp env next))
         ((definition? exp) (compile-definition exp env next))
+        ((let? exp) (compile-let exp env next))
         ((if? exp) (compile-if exp env next))
         ((lambda? exp) (compile-lambda exp env next))
         ((application? exp)
@@ -260,70 +295,23 @@
                        (compile (car exps) env (loop (cdr exps)))))))
     (loop (cdr exp))))
 
+(define (compile-let exp env next)
+  (let ((e (let->lambda exp)))
+    (compile e env next)))
+
 
 ;==========VM==========
 
 
-
-
-(define VM-1
-  (lambda (a x e s)
-    (case (car x)
-      [(halt) a]
-      [(empty) 'ok]
-      [(refer) ;(n m x) (cadr x) (caddr x) (cadddr x)
-       (VM (index (find-link (cadr x) e) (caddr x)) (cadddr x) e s)]
-      [(refer-global) ;var (cadr x) next (caddr x)
-       (VM (find-global (cadr x) GE) (caddr x) e s)]
-      [(constant) ;(obj x) (cadr x) (caddr x)
-       (VM (cadr x) (caddr x) e s)]
-      
-      [(close) ;body : (cadr x) x : (caddr x) 
-       (VM (closure (cadr x) e) (caddr x) e s)]
-      
-      [(functional) ;body : (cadr x) x : (caddr x) 
-       (VM (closure (cadr x) e) (caddr x) e s)]
-      
-      [(test) ;(then else) (cadr x) (caddr x)
-       (VM a (if a (cadr x) (caddr x)) e s)]
-      [(frame) ;ret  (cadr x)  x next (caddr x)
-       (VM a (caddr x) e (push (cadr x) (push e s)))]
-      ;[(frame)
-      [(argument) ;(x) (cadr x)       
-       (if (pair? (car x))
-           (VM a (cadr x) e (push (cadr a) s))
-           (VM a (cadr x) e (push a s)))]
-      [(apply) ;body (car a) link (cadr a)
-       (cond
-         [(eq? 'primitive (car a))
-          (letrec ((loop (lambda(argl n)
-                           (cond
-                             [(= n 0) (VM (apply (cdr a) argl)
-                                          (index (- s  (cadr x)) 0)
-                                          (index (- s  (cadr x)) 1)
-                                          (- (- s (cadr x)) 2))]
-                             [else  (loop (cons (index s (- n 1)) argl) (- n 1))]))))
-            (loop '() (cadr x)))]
-
-         [(eq? 'function (car a))
-          (if (eq? 'frame (car (cadr a)))
-              (VM a (cadr a) e s)
-              (VM a (cadr (cadr a)) e (push e s)))]
-         [else
-          (VM a (car a) s (push (cadr a) s))]
-         )]
-      [(return) ;(n) (cadr x)
-       (let ([s (- s (cadr x))])
-         (VM a (index s 0) (index s 1) (- s 2)))]
-
-      [else (vm-else a x e s)])))
-
-
 (define VM
+
   (lambda (a x e s)
+    ;(display "a:")(display a)(newline)
+    ;(display "x:")(display x)(newline)
+    ;(display "e:")(display e)(newline)
+    ;(display "s:")(display s)(newline)
+    ;(display "s:")(display stack)(newline)(newline)
     (case (car x)
-
-
       [(halt)  (vm-halt a x e s)]
       [(empty) (vm-empty a x e s)]
       [(refer) (vm-refer a x e s)]
@@ -415,20 +403,17 @@
   
 
 
-
-
-
-
-
 ;==========helping-function==========
 
-(define index
+(define index ;找到s向下偏移i位置的元素
   (lambda (s i)
     (vector-ref stack (- (- s i) 1))))
 (define index-set!
   (lambda (s i v)
     (vector-set! stack (- (- s i) 1) v)))
 (define (find-link n e)
+  ;(display "n:   ")(display n)(newline)
+  ;(display "e:   ")(display e)(newline)
   (if (= n 0) e
       (find-link (- n 1) (index e -1))))
 (define closure
@@ -710,6 +695,26 @@
             (lambda (a x e s)
               (make-breakpoint-vm)
               (org a x e s))))
+
+    (let ((org vm-apply))
+      (set! vm-apply
+            (lambda (a x e s)
+              ;;biwaschemeFunction
+              ;;(make-envrionment-frame)  
+              (org a x e s))))
+
+    (let ((org eval-application-apply))
+      (set! eval-application-apply
+            (lambda (func arguments env)
+              (org func arguments env)
+              ;(make-envrionment-frame)
+              )))
+
+    (let ((org vm-return))
+      (set! vm-return
+            (lambda (a x e s)
+              (make-breakpoint-vm)
+              (org a x e s))))
           
     (define-act-vm)))
 
@@ -726,7 +731,7 @@
 
     (define-act-vm)))
 
-(act)
+;(act)
 
 
 

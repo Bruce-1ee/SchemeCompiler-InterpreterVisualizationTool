@@ -14,7 +14,7 @@
                        (lambda (n m)
                          (list 'refer n m next))
                        (lambda (var)
-                         (list 'refer-free var next)))]
+                         (list 'refer-fr0ee var next)))]
       [(pair? x)
        (case (car x)
          [(quote) ;(obj) (cadr x)

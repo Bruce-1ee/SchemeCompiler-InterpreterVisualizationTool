@@ -20,6 +20,7 @@
 
 (define exec
   (lambda (exp env)
+    (display env)(newline)
     (call/cc
      (lambda (quit)
        (cond ((self-evaluating? exp)(eval-self-evaluating exp))
@@ -285,6 +286,10 @@
                   (nxtelt (car e) 0)))))))
     (nxtrib e 0)))
 
+(define (compile-let exp env next)
+  (let ((e (let->lambda exp)))
+    (compile e env next)))
+
 
 ;==========new==========
 
@@ -295,9 +300,7 @@
                        (compile (car exps) env (loop (cdr exps)))))))
     (loop (cdr exp))))
 
-(define (compile-let exp env next)
-  (let ((e (let->lambda exp)))
-    (compile e env next)))
+
 
 
 ;==========VM==========
@@ -715,6 +718,14 @@
             (lambda (a x e s)
               (make-breakpoint-vm)
               (org a x e s))))
+
+    (let ((org vm-argument))
+      (set! vm-argument
+            (lambda (a x e s)
+              (make-breakpoint-vm)
+              (js-push-element-into-stack a)
+              (org a x e s))))
+
           
     (define-act-vm)))
 
@@ -732,11 +743,6 @@
     (define-act-vm)))
 
 ;(act)
-
-
-
-
-
 
 
 

@@ -25,3 +25,8 @@
 
 (define (send-arguments-to-js args vals body type)
   (js-call (js-eval "getArgumentsFromScheme") args vals body type))
+
+
+; view.stack.push(val)
+(define (js-push-element-into-stack val)
+  (js-invoke (js-ref (js-eval "view") "stack") "push" val))

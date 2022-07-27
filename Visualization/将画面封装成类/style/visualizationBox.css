@@ -1,0 +1,259 @@
+/* 
+    在这个文件里定义了环境模型和栈的样式
+*/
+
+
+/* 最外层边框 */
+.visualizationBox {
+    margin: 10px;
+    width: 1500px;
+    height: 768px;
+    min-height: 768px;
+    background-color: beige;
+    border-style: ridge;
+}
+
+/* 环境模型 */
+.environment {
+    margin: 3px;
+    width: 64%;
+    min-height: 90%;
+    background-color: rgb(240, 240, 190);
+    border-width: 1px;
+    border-style: solid;
+    float: left;
+}
+
+.globalEnvironmentFrame {
+    margin-top: 10px;
+    height: 120px;
+
+    /* border-width: 2px;
+    border-color: rgb(0, 0, 0);
+    border-style: solid; */
+}
+
+/* .globalEnvironmentFrame::after {
+    display: block;
+    content: "";
+    clear: both;
+} */
+
+.globalEnvironmentName {
+
+    /* border-width: 2px;
+    border-color: rgb(0, 0, 0);
+    border-style: solid; */
+
+    margin-right: 5px;
+    line-height: 120px;
+    height: 124px;
+    float: left;
+}
+
+.globalEnvironmentFrame {
+    /* margin-top: 10px; */
+    margin-left: 50px;
+    width: 800px;
+    height: 120px;
+    background-color: rgb(190, 236, 240);
+    border-width: 2px;
+    border-color: rgb(0, 0, 0);
+    border-style: solid;
+    /* float: left; */
+}
+
+
+.globalVariableFrame {
+    margin-top: 10px;
+    margin-left: 30px;
+    width: 20%;
+    float: left;
+}
+
+.globalVariable {
+    margin-top: 10px;
+
+}
+
+.localEnvironmentColumnBox {
+    width: 420px;
+
+}
+
+.localEnvironmentFrame {
+    margin-top: 10px;
+    height: 120px;
+}
+
+/* .localEnvironmentFrame::after {
+    display: block;
+    content: "";
+    clear: both;
+} */
+
+.localEnvironmentName {
+    margin-top: 10px;
+    margin-right: 5px;
+    line-height: 80px;
+    height: 84px;
+    float: left;
+}
+
+/* .localEnvironmentOuterFrame {} */
+
+
+.localEnvironmentFrame {
+    /* margin-top: 10px; */
+    margin-top: 10px;
+    margin-left: 50px;
+    width: 20%;
+    /* height: 80px;  */
+    /*demo用记得改回来*/
+    height: 110px;
+
+    background-color: rgb(190, 236, 240);
+    border-width: 2px;
+    border-color: rgb(0, 0, 0);
+    border-style: solid;
+    /* float: left; */
+    /* margin: 10px;
+    width: 20%;
+    width: fit-content;
+    width: -webkit-fit-content;
+    width: -moz-fit-content;
+    max-width: 40%;
+    background-color: rgb(190, 236, 240);
+    border-width: 2px;
+    border-color: rgb(0, 0, 0);
+    border-style: solid;
+    overflow: hidden; */
+}
+
+.localArgument {
+    margin: 10px;
+    /*min-width: 100px;
+    width: auto;*/
+    font-size: large;
+}
+
+.circle {
+    width: 29px;
+    height: 29px;
+    background-color: rgb(255, 255, 255);
+    border: 1px black solid;
+    border-radius: 50%;
+    float: left;
+}
+
+.point {
+
+    /* 
+    (29 + 2 - 1)/2 - (1 + 4)
+    内部长度-point一半长度-边框宽
+        50 - （1 + 10） */
+    width: 1px;
+    height: 1px;
+    background-color: black;
+    border: 4px black solid;
+    border-radius: 50%;
+    margin: 10px;
+
+}
+
+.clearfix::before,
+.clearfix::after {
+    content: '';
+    display: table;
+    clear: both;
+}
+
+.doubleDotBox {
+    /* border: 3px #bfa solid; */
+    float: left;
+}
+
+
+
+
+
+.stack {
+    margin: 3px;
+    width: 34%;
+    min-height: 90%;
+    background-color: rgb(240, 240, 190);
+    border-width: 1px;
+    border-style: solid;
+    float: left;
+
+}
+
+.stackElementFrame {
+    /* margin-left: 140px; */
+    /* width: 70%; */
+
+    background-color: rgb(190, 236, 240);
+    /* border-style: solid; */
+    border-bottom: solid;
+}
+
+.stackElementFrame {
+    /* margin: 10px;
+    width: 90%;
+    height: 80px; */
+
+    background-color: rgb(171, 234, 239);
+    border-style: none;
+
+
+
+}
+
+.stackElementFrame::after {
+    display: block;
+    content: "";
+    clear: both;
+}
+
+.stackElementFrameNumber {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 15%;
+    height: 30px;
+
+    background-color: rgb(174, 239, 171);
+    border-width: 2px;
+    border-right-width: 0px;
+    border-style: solid;
+    border-bottom: none;
+
+    float: left;
+}
+
+.StackElementFrameContent {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 83%;
+    height: 30px;
+
+    background-color: rgb(174, 239, 171);
+    border-width: 2px;
+    border-style: solid;
+    border-bottom: none;
+
+    overflow: hidden;
+    float: left;
+}
+
+
+.closure {
+    margin: 3px;
+    width: 34%;
+    min-height: 90%;
+    background-color: rgb(240, 240, 190);
+    border-width: 1px;
+    border-style: solid;
+    float: left;
+}

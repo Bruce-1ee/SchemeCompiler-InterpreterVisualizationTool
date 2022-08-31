@@ -15,32 +15,46 @@ class View {
  * 环境
  */
 class Environment {
-    globalEnvironmentFrame = null;
+
+
+
     constructor() {
         let environment = makeNewElement('environment', 'environment', 'environment');
         document.getElementsByTagName("body")[0].appendChild(environment);
-        this.globalEnvironmentFrame = new EnvironmentFrame(-1, true);
+        this.frameCounter = 1;
+        this.box = new EnvironmentFrame();
+
     }
 
-    createFrame() {
-
+    addFrame(varList = []) {
+        this.box.newFrame(this.frameCounter, varList);
+        this.frameCounter++;
     }
 }
+
 
 class EnvironmentFrame {
-
-    constructor(frameNumber, global = false) {
-        if (global === true) {
-            let globalEnvironmentFrame = makeNewElement('', 'globalEnvironmentFrame', 'globalEnvironmentFrame');
-            document.getElementById('environment').appendChild(globalEnvironmentFrame);
-        } else {
-            let newglobalEnvironmentFrame = makeNewElement('', 'environmentFrame_' + frameNumber, 'localEnvironmentFrame');
-            document.getElementById('environment').appendChild(newglobalEnvironmentFrame);
+    constructor() {
+        let globalEnvironmentFrame = makeNewElement('', 'globalEnvironmentFrame', 'globalEnvironmentFrame');
+        document.getElementById('environment').appendChild(globalEnvironmentFrame);
+    }
+    newFrame(frameCounter, varList) {
+        //外侧的框
+        let box = makeNewElement('', 'localEnvrionmenBox_' + frameCounter, 'localEnvrionmenBox');
+        document.getElementById('environment').appendChild(box);
+        //环境的名字
+        let envName = makeNewElement('env' + frameCounter, 'localEnvrionmenName_' + frameCounter, 'localEnvironmentName');
+        document.getElementById('localEnvrionmenBox_' + frameCounter).appendChild(envName);
+        //环境本体的框
+        let evnFrm = makeNewElement('', 'localEnvrionmenFrame_' + frameCounter, 'localEnvironmentFrame');
+        document.getElementById('localEnvrionmenBox_' + frameCounter).appendChild(evnFrm);
+        //将所有变量插入
+        for (var i = 0; i < varList.length; i++) {
+            let v = makeNewElement(varList[i], 'F_' + frameCounter + 'V_' + i, 'envVirable');
+            document.getElementById('localEnvrionmenFrame_' + frameCounter).appendChild(v);
         }
-
     }
 }
-
 
 
 
@@ -159,15 +173,18 @@ class Closure {
 
 
 
+// let view = new View();
+// let s = view.stack;
+// s.createFrame();
+// s.push("test")
+// s.push("test")
+// s.push("test")
+// s.push("test")
+// s.createFrame();
+// s.push("test")
+// s.push("test")
+// s.push("test")
+// s.push("test")
+
 let view = new View();
-let s = view.stack;
-s.createFrame();
-s.push("test")
-s.push("test")
-s.push("test")
-s.push("test")
-s.createFrame();
-s.push("test")
-s.push("test")
-s.push("test")
-s.push("test")
+

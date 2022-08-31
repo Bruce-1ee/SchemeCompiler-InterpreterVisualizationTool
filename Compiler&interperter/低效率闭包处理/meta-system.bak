@@ -588,10 +588,23 @@
                (make-breakpoint-eval)
                (apply org-fun (cons arg restarg)))))))
 
+
 (define-macro define-act-vm
-  (lambda ()
-    `(set! vm-else
-           vm-else-with-breakpoint)))
+  (lambda (fun act)
+    `(let* ((org-fun ,fun))
+       (set! ,fun
+             (lambda (arg . restarg)
+               (make-breakpoint-vm)
+               (,act)
+               (apply org-fun (cons arg restarg)))))))
+
+(define-act-vm vm-argument js-push-element-into-stack)
+(define-act-vm vm-frame js-create-env-frame)
+
+;(define-macro define-act-vm
+;  (lambda ()
+;    `(set! vm-else
+;           vm-else-with-breakpoint)))
 
 
 ;==========lst=================
@@ -723,11 +736,12 @@
       (set! vm-argument
             (lambda (a x e s)
               (make-breakpoint-vm)
-              (js-push-element-into-stack a)
+             ; (js-push-element-into-stack a)
               (org a x e s))))
 
           
-    (define-act-vm)))
+    ;(define-act-vm)
+    ))
 
 
 (define define-act-if
@@ -740,7 +754,8 @@
     (define-act-eval eval-if-then "eval-if-then")
     (define-act-eval eval-if-else "eval-if-else")
 
-    (define-act-vm)))
+    ;(define-act-vm)
+    ))
 
 ;(act)
 

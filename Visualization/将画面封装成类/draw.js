@@ -1,9 +1,8 @@
 /**
  * 新建一个标签
- * @param {String} tag 标签的类型
  * @param {String} content 标签的内容
- * @param {String} attritute 属性
- * @param {String} value 属性值
+ * @param {String} id id值
+ * @param {String} style style值
  * @returns 
  */
 function makeNewElement(content, id, style) {

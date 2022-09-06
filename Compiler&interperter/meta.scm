@@ -609,11 +609,12 @@
 
 
 (define-macro define-act
-  (lambda (target fun info)
+  (lambda (target fun info proc)
     ;(lambda (target inst fun info) 
     `(let* ((org-fun ,fun))
        (set! ,fun
              (lambda (arg . restarg)
+               (set! proc-name ,proc)
                (,target)
                (display ,info)(newline)
                ;(,inst)
@@ -630,99 +631,197 @@
                (list ,pseins
                      (apply org-fun (cons arg restarg))))))))
 
+(define ins-step-lst (make-vector 6))
+
+(define ins-lst (list 'self-evaluating
+                        'quotation
+                        'variable
+                        'if
+                        'lambda
+                        'application))
+
+(define (ini-vector num)
+  (if (> num 0)
+      (begin
+        (vector-set! ins-step-lst (- num 1) (make-vector 2 0))
+        (ini-vector (- num 1)))
+      (set! ins-step-lst ins-step-lst)))
+(ini-vector 6)
+
+
+(define (get-ins-num ins ins-lst)
+  (let loop ((num 0) (lst ins-lst))
+    (cond ((null? lst) 'bad)
+          ((eq? ins (car lst)) num)
+          (else (loop (+ num 1) (cdr lst))))))
+
+(define (set-ins-num ins target)       ;target 0 = inte
+  (let ((n (get-ins-num ins ins-lst)))  ;target 1 = vm
+       (vector-set! (vector-ref ins-step-lst n)
+                    target
+                    (+ 1 (vector-ref (vector-ref ins-step-lst n)
+                                     target)))))
+
+(define (set-ins-num-by-num ins target num)       ;target 0 = inte
+  (let ((n (get-ins-num ins ins-lst)))  ;target 1 = vm
+       (vector-set! (vector-ref ins-step-lst n)
+                    target
+                    num)))
+
+
 
 ;定义伪指令
+
+;; 0 self-evaluating
 (define-pseins compile-self-evaluating 'act-constant)
+(set-ins-num-by-num 'self-evaluating 1 1)
+
+(define-act make-breakpoint-eval eval-self-evaluating 'eval-self-evaluating 'self-evaluating)
+(set-ins-num-by-num 'self-evaluating 0 1)
+
+;; 1 quotation
 (define-pseins compile-quoted 'act-constant)
+(set-ins-num-by-num 'quotation 1 1)
 
+(define-act make-breakpoint-eval eval-quotation 'eval-quotation 'quotation)
+(set-ins-num-by-num 'quotation 0 1)
+
+;; 2 variable
 (define-pseins compile-variable 'act-variable)
+(set-ins-num-by-num 'variable 1 1)
 
+(define-act make-breakpoint-eval eval-variable 'eval-variable 'variable)
+(set-ins-num-by-num 'variable 0 1)
+
+;; 3 if
 (define-pseins compile-if 'act-if)
 (define-pseins compile-test 'act-test)
 (define-pseins compile-then 'act-then)
 (define-pseins compile-else 'act-else)
+(set-ins-num-by-num 'if 1 4)
 
+(define-act make-breakpoint-eval eval-if 'eval-if 'if)
+(define-act make-breakpoint-eval eval-if-test 'eval-test 'subif)
+(define-act make-breakpoint-eval eval-if-then 'eval-then 'subif)
+(define-act make-breakpoint-eval eval-if-else 'eval-else 'subif)
+(set-ins-num-by-num 'if 0 4)
+
+
+;; 4 lambda
 (define-pseins compile-lambda 'act-lambda)
+(set-ins-num-by-num 'lambda 1 1)
 
+(define-act make-breakpoint-eval eval-lambda 'eval-lambda 'lambda)
+(set-ins-num-by-num 'lambda 0 1)
+
+
+;; 5 application
 (define-pseins compile-application 'act-application)
 (set! pseins-list (append pseins-list (list 'act-args)))
 (set! pseins-list (append pseins-list (list 'act-fun-body)))
+(set-ins-num-by-num 'application 1 3)
 
-
-
-;; self-evaluating
-(define-act make-breakpoint-eval eval-self-evaluating 'eval-self-evaluating)
-
-;(define-act make-breakpoint-vm VM-constant 'VM-constant)
-;
-;; quotation
-(define-act make-breakpoint-eval eval-quotation 'eval-quotation)
-
-;(define-act make-breakpoint-vm VM-constant 'VM-constant)
-;
-;; variable
-(define-act make-breakpoint-eval eval-variable 'eval-variable)
-
-;(define-act make-breakpoint-vm VM-refer 'VM-refer)
-;(define-act make-breakpoint-vm VM-refer-free 'VM-refer-free)
-;(define-act make-breakpoint-vm VM-refer-global 'VM-refer-global)
-;
-;; if
-(define-act make-breakpoint-eval eval-if 'eval-if)
-(define-act make-breakpoint-eval eval-if-test 'eval-test)
-(define-act make-breakpoint-eval eval-if-then 'eval-then)
-(define-act make-breakpoint-eval eval-if-else 'eval-else)
-;
-;; lambda
-(define-act make-breakpoint-eval eval-lambda 'eval-lambda)
-
-;(define-act make-breakpoint-vm VM-functional 'VM-functional)
-;(define-act make-breakpoint-vm VM-close 'VM-close)
-;
-;; application
-(define-act make-breakpoint-eval eval-application 'eval-application)
-(define-act make-breakpoint-eval eval-application-args 'eval-arguments)
-(define-act make-breakpoint-eval eval-application-body 'eval-body)
-;(define-act make-breakpoint-vm VM-frame 'VM-frame)
-;(define-act make-breakpoint-vm VM-argument 'VM-argument)
-;(define-act make-breakpoint-vm VM-apply 'VM-apply)
-;(define-act make-breakpoint-vm VM-return 'VM-return)
-
-
-
-
+(define-act make-breakpoint-eval eval-application 'eval-application 'application)
+(define-act make-breakpoint-eval eval-application-args 'eval-arguments 'subapplication)
+(define-act make-breakpoint-eval eval-application-body 'eval-body 'subapplication)
+(set-ins-num-by-num 'application 0 3)
 
 
 (define next #f)
 (define (meta)
   (call/cc (lambda (quit)
-             (define top #f)
-             (call/cc (lambda (t)
-                        (set! top t)
-                        (top)))
+             (let ((count 0))
+               (define top #f)
+               (call/cc (lambda (t)
+                          (set! top t)
+                          (quit)))
              
-             (call/cc (lambda (breakpoint)
+               (call/cc (lambda (breakpoint)
+                          (set! count (+ 1 count))
+                          (display count)
+                          (set! next breakpoint)
+                          (exec-k) 
+                          (quit)
+                          ))
+               (call/cc (lambda (breakpoint)
 
-                        (set! next breakpoint)
-                        (exec-k) 
-                        (quit)
-                        ))
-             (call/cc (lambda (breakpoint)
+                          (set! next top)
+                          (vm-k)
+                          (quit)))))))
 
-                        (set! next top)
-                        (vm-k)
-                        (quit))))))
+
+(define next2 #f)
+(define proc-name #f)
+(define (meta2)
+  (call/cc
+   (lambda (quit)
+     (let ((loop #f)
+           (loop2 #f)
+           (in-c 0)
+           (vm-c 0))
+       (call/cc
+        (lambda (top)
+          (set! next2 top)
+          (set! loop top)
+          (quit)))
+       (display 'loop1) (display proc-name) (newline)
+       ;loop
+       (if (and (eq? in-c 0) (eq? vm-c 0))
+           (begin
+             (let ((n (get-ins-num proc-name ins-lst)))
+               (set! in-c (vector-ref (vector-ref ins-step-lst n) 0))
+               (set! vm-c (vector-ref (vector-ref ins-step-lst n) 1)))
+             (loop))
+           (begin
+             (call/cc
+              (lambda (mid)
+                (set! loop2 mid)))
+             (display 'loop2) (newline)
+             ;loop2
+             (call/cc
+              (lambda (eval-breakpoint)
+                (if (not (eq? in-c 0))
+                    (begin
+                      (set! in-c (- in-c 1))
+                      (set! next2 eval-breakpoint)
+                      (exec-k)
+                      (quit))
+                    (quit))))
+
+             (call/cc
+              (lambda (vm-breakpoint)
+                (if (not (eq? vm-c 0))
+                    (begin
+                      (set! vm-c (- vm-c 1))
+                      (set! next2 vm-breakpoint)
+                      (vm-k)
+                      (quit))
+                    (quit))))
+             (if (and (eq? in-c 0)
+                      (eq? vm-c 0))
+                 (loop)
+                 (loop2))
+
+             )
+
+
+       )))))
 
 
 
 ;(run '(if 1 2 3))
 ;(eval '(if 1 2 3))
 
+(run '(+ 1 1))
+(eval '(+ 1 1))
 
+(meta2)
 
-;(meta)
-
-
-     
+(next2)
+;多次调用next2之后会发生错误
+;原因是当前的procname为SUBAPPLICATION，但没有处理该SUBAPPLICATION的操作
+;具体的原因是在处理app的时候掺杂了SELF-EVAL的操作，然而procname只能存储一个数据
+;当selfeval处理结束的时候，无法返回之前未完成的app操作
+;解决办法是使用一个栈的数据结构记录之前未完成的操作
 
 

@@ -14,7 +14,7 @@
 }
 
 /* 环境模型 */
-.environmentBox {
+.environment {
     margin: 3px;
     width: 64%;
     min-height: 90%;
@@ -24,21 +24,13 @@
     float: left;
 }
 
-.globalEnvironmentBox {
-    margin-top: 10px;
 
-    height: 120px;
 
-    /* border-width: 2px;
-    border-color: rgb(0, 0, 0);
-    border-style: solid; */
-}
-
-.globalEnvironmentBox::after {
+/* .globalEnvironmentFrame::after {
     display: block;
     content: "";
     clear: both;
-}
+} */
 
 .globalEnvironmentName {
 
@@ -55,13 +47,13 @@
 .globalEnvironmentFrame {
     /* margin-top: 10px; */
     margin-left: 50px;
-    width: 800px;
+    /* width: 800px; */
     height: 120px;
     background-color: rgb(190, 236, 240);
     border-width: 2px;
     border-color: rgb(0, 0, 0);
     border-style: solid;
-    float: left;
+    /* float: left; */
 }
 
 
@@ -82,16 +74,16 @@
 
 }
 
-.localEnvironmentBox {
+.localEnvironmentFrame {
     margin-top: 10px;
     height: 120px;
 }
 
-.localEnvironmentBox::after {
+/* .localEnvironmentFrame::after {
     display: block;
     content: "";
     clear: both;
-}
+} */
 
 .localEnvironmentName {
     margin-top: 10px;
@@ -109,15 +101,15 @@
     margin-top: 10px;
     margin-left: 50px;
     width: 20%;
-    /* height: 80px;  */
-    /*demo用记得改回来*/
-    height: 110px;
+    height: 80px;
+
+
 
     background-color: rgb(190, 236, 240);
     border-width: 2px;
     border-color: rgb(0, 0, 0);
     border-style: solid;
-    float: left;
+    /* float: left; */
     /* margin: 10px;
     width: 20%;
     width: fit-content;
@@ -178,7 +170,7 @@
 
 
 
-.stackBox {
+.stack {
     margin: 3px;
     width: 34%;
     min-height: 90%;
@@ -189,16 +181,16 @@
 
 }
 
-.callFrame {
-    margin-left: 140px;
-    width: 70%;
+.stackElementFrame {
+    /* margin-left: 140px; */
+    /* width: 70%; */
 
     background-color: rgb(190, 236, 240);
     /* border-style: solid; */
     border-bottom: solid;
 }
 
-.stackFrame {
+.stackElementFrame {
     /* margin: 10px;
     width: 90%;
     height: 80px; */
@@ -210,13 +202,13 @@
 
 }
 
-.stackFrame::after {
+.stackElementFrame::after {
     display: block;
     content: "";
     clear: both;
 }
 
-.stackFrameConter {
+.stackElementFrameNumber {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -232,7 +224,7 @@
     float: left;
 }
 
-.stackFrameContent {
+.StackElementFrameContent {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -245,5 +237,16 @@
     border-bottom: none;
 
     overflow: hidden;
+    float: left;
+}
+
+
+.closure {
+    margin: 3px;
+    width: 34%;
+    min-height: 90%;
+    background-color: rgb(240, 240, 190);
+    border-width: 1px;
+    border-style: solid;
     float: left;
 }

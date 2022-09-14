@@ -14,13 +14,15 @@ interpreter                         ->          VM
 (eval-quotation exp)                ->          'act-constant
 (eval-variable exp env)             ->          'act-variable    
 (eval-if exp env)                   ->          'act-if
-(eval-if-test test env)             ->          'act-test
-(eval-if-then then env)             ->          'act-then
-(eval-if-else else env)             ->          'act-else
+(eval-if-test test env)             ->          　　'act-test
+(eval-if-then then env)             ->          　　'act-then
+(eval-if-else else env)             ->          　　'act-else
 (eval-lambda exp env)               ->          'act-lambda
 (eval-application exp env)          ->          'act-application
 (eval-application-args args env)    ->          'act-args
 (eval-application-body name env)    ->          'act-fun-body
+                                                'act-apply
+                                                'act-return
 
 
 

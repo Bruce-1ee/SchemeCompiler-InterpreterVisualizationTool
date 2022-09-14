@@ -108,3 +108,43 @@ class controler {
 }
 
 
+
+lst = [];
+function testVal(val) {
+    lst.push(val);
+};
+
+function interNewFrame(vals, args) {
+
+    values = vals;
+    retVals = [];
+    while (values.car != null) {
+        retVals.push(values.car)
+        values = values.cdr;
+    }
+    argument = args;
+    console.log(argument)
+    if (argument.car.name == "function") {
+        argument = argument.cdr.car;
+        retArgs = [];
+
+        for (var i = 0; i < retVals.length; i++) {
+            retArgs.push(argument.car.name);
+            argument = argument.cdr;
+        }
+
+        for (var i = 0; i < retVals.length; i++) {
+            retVals[i] = retVals[i] + " " + retArgs[i];
+        }
+
+
+    } else if (argument.car.name == "primitive") {
+        //tbd
+    }
+    t4 = retArgs;
+    t5 = retVals;
+    return retVals;
+
+}
+
+//(eval1 '( (lambda (a b c) c) 1 2 33))

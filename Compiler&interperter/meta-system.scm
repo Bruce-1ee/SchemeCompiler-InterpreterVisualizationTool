@@ -1,48 +1,8 @@
-(define true #t)
-(define false #f)
-(define (error str . exp)
-  (display str)
-  (display " ")
-  (if (null? exp)
-    (display " ")
-    (display exp))
-  (newline))
-
-(define (send-stack stack s)
-  (js-call (js-eval "updateStack") stack s))
-
-(define (eval-update name expr)
-    (js-call (js-eval "updateEvalInfo") name expr))
-
-(define (add-frame-counter)
-  (js-call (js-eval "addFrameCounter")))
-
-(define (sub-frame-counter)
-  (js-call (js-eval "subFrameCounter")))
-
-(define (make-envrionment-frame)
-  (js-call (js-eval "makeEnvrionmentFrame")))
-
-(define (send-arguments-to-js args vals body type)
-  (js-call (js-eval "getArgumentsFromScheme") args vals body type))
+#lang scheme
+(require r5rs)
+(require compatibility/defmacro)
 
 
-;(define (test-val val)
-;  (js-call (js-eval "testVal") val))
-
-;(define (test-arg vals args)
-;  (js-call (js-eval "newFrame") vals args))
-
-(define (interpreter-new-frame vals args)
-  (js-call (js-eval "interNewFrame") vals args))
-
-(define (stack-new-frame)
- (js-invoke (js-ref (js-eval "view") "stack") "createFrame" ))
-
-
-; view.stack.push(val)
-(define (js-push-element-into-stack val)
-  (js-invoke (js-ref (js-eval "view") "stack") "push" val))
 (define (compile exp env next)
   (cond ((self-evaluating? exp) (compile-self-evaluating exp next))
         ((quoted? exp) (compile-quoted exp next))
@@ -390,7 +350,7 @@
   (if (set-member? (car x) pseins-list)
       (begin
         (make-breakpoint-vm)
-        (console-log (car x)) (newline)
+        (display (car x)) (newline)
         (VM a (cadr x) f c s))
       (error "unknow inst")))
  
@@ -516,9 +476,9 @@
 (define GE
   (eval-extend
    '()
-   '(+ - * = console-log) ; <- ( + - * / )
+   '(+ - * = display) ; <- ( + - * / )
    (map (lambda (f) (cons 'primitive f))
-        (list + - * = console-log))))  ; <- ( + - * / )
+        (list + - * = display))))  ; <- ( + - * / )
 
 
 ;==========new==========
@@ -642,12 +602,12 @@
 (define (make-breakpoint-eval)
   (call/cc (lambda (breakpoint)
              (set! exec-k breakpoint)
-             (resume-meta 'ok))))
+             (resume-meta))))
 
 (define (make-breakpoint-vm)
   (call/cc (lambda (breakpoint)
              (set! vm-k breakpoint)
-             (resume-meta 'ok))))
+             (resume-meta))))
 
 
 (define-macro define-act
@@ -658,7 +618,7 @@
              (lambda (arg . restarg)
                (set! proc-name ,proc)
                (,target)
-               (console-log ,info)(newline)
+               (display ,info)(newline)
                ;(,inst)
                (apply org-fun (cons arg restarg)))))))
 
@@ -673,9 +633,37 @@
                (js-push-element-into-stack c)
                (js-push-element-into-stack f)
                (js-push-element-into-stack (cadr x))
+               (make-breakpoint-vm)
                )))))
 
+
+(define-macro define-act-push-element
+  (lambda ()
+    `(let* ((org-fun VM-argument))
+       (set! VM-argument
+             (lambda (a x f c s)
+               (console-log "act-push-element")(newline)
+               (org-fun a x f c s)
+               (js-push-element-into-stack a))
+               (make-breakpoint-vm)
+               ))))
               
+(define-macro define-act-delete-frame
+  (lambda ()
+    `(let* ((org-fun VM-return))
+       (set! VM-return
+             (lambda (a x f c s)
+               (console-log "act-delete-frame")(newline)
+               (org-fun a x f c s)
+               (js-pop-element))
+               (make-breakpoint-vm)
+               (js-pop-element))
+               (make-breakpoint-vm)
+               (js-pop-element))
+               (make-breakpoint-vm)
+               ))))
+
+
 
 (define pseins-list '())
 (define-macro define-pseins
@@ -832,16 +820,16 @@
              
                (call/cc (lambda (breakpoint)
                           (set! count (+ 1 count))
-                          (console-log count)
+                          (display count)
                           (set! next breakpoint)
-                          (exec-k 'ok)
-                          (console-log 'abc)
+                          (exec-k)
+                          (display 'abc)
                           ;(quit)
                           ))
                (call/cc (lambda (breakpoint)
 
                           (set! next top)
-                          (vm-k 'ok)
+                          (vm-k)
                           (quit)))))))
 
 
@@ -859,7 +847,7 @@
           (set! next2 top)
           (set! loop top)
           (quit)))
-       (console-log 'loop1) (console-log proc-name) (newline)
+       (display 'loop1) (display proc-name) (newline)
        ;loop
        (if (and (eq? in-c 0) (eq? vm-c 0))
            (begin
@@ -871,7 +859,7 @@
              (call/cc
               (lambda (mid)
                 (set! loop2 mid)))
-             (console-log 'loop2) (newline)
+             (display 'loop2) (newline)
              ;loop2
              (call/cc
               (lambda (eval-breakpoint)
@@ -879,7 +867,7 @@
                     (begin
                       (set! in-c (- in-c 1))
                       (set! next2 eval-breakpoint)
-                      (exec-k 'ok)
+                      (exec-k)
                       (quit))
                     (quit))))
 
@@ -889,7 +877,7 @@
                     (begin
                       (set! vm-c (- vm-c 1))
                       (set! next2 vm-breakpoint)
-                      (vm-k 'ok)
+                      (vm-k)
                       (quit))
                     (quit))))
              (if (and (eq? in-c 0)
@@ -941,7 +929,7 @@
           (set! loop top)
           (quit)))
        ;loop
-       ;(console-log tsk-lst) (newline)
+       ;(display tsk-lst) (newline)
        (let ((n (get-ins-num proc-name ins-lst)))
          (if (not (eq? n -1))
              (begin
@@ -954,31 +942,31 @@
                   (set! next3 eval-breakpoint)
                   (if (eq? (get-tsk 0) #f)
                       (begin
-                        (console-log 'done-eval)
+                        (display 'done-eval)
                         (quit))
                       (if (not (eq? (get-tsk 0) 0))
                           (begin
                             (set-tsk 0) 
-                            (exec-k 'ok))
+                            (exec-k))
                           (begin
-                            (console-log 'wait-eval) (newline)
+                            (display 'wait-eval) (newline)
                             (quit))))))
-               ;(console-log tsk-lst) (newline)
+               ;(display tsk-lst) (newline)
                (call/cc
                 (lambda (vm-breakpoint)
                   (set! next3 vm-breakpoint)
                   (if (eq? (get-tsk 0) #f)
                       (begin
-                        (console-log 'done-vm)
+                        (display 'done-vm)
                         (quit))
                       (if (not (eq? (get-tsk 1) 0))
                           (begin
                             (set-tsk 1)
-                            (vm-k 'ok))
+                            (vm-k))
                           (begin
-                            (console-log 'wait-vm) (newline)
+                            (display 'wait-vm) (newline)
                             (quit))))))))
-         ;(console-log tsk-lst) (newline)
+         ;(display tsk-lst) (newline)
          (cond ((dummy-tsk?) (del-tsk)))
            
          (loop)

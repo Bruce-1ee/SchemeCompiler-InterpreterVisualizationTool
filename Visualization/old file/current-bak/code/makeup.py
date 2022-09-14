@@ -106,16 +106,13 @@ alter(outputpath, ";\(sub-frame-counter\)", "(sub-frame-counter)")
 alter(outputpath, ";\(add-frame-counter\)", "(add-frame-counter)")
 alter(outputpath, ";\(send-stack stack s\)", "(send-stack stack s)")
 alter(outputpath, ";\(make-envrionment-frame\)", "(make-envrionment-frame)")
-alter(outputpath, "display", "console-log")
-
-
 # alter(outputpath, ";\(send-arguments-to-js arguments arguments \(cdr func\) 0\)",
 #      "(send-arguments-to-js arguments arguments (cdr func) 0)")
 # alter(outputpath, ";\(send-arguments-to-js (cadr func) arguments \(caddr func\) 1\)",
 #      "(send-arguments-to-js (cadr func) arguments (caddr func) 1)")
 #alter(outputpath, ";\(act\)", "(act)")
 
-alter(outputpath, "\(next3\)", "(next3 'ok)")
+alter(outputpath, "\(meta3\)", "(meta3 'ok)")
 
 
 addHelpFunction(outputpath, helpingfunc)

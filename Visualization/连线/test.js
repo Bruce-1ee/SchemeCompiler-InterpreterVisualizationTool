@@ -1,4 +1,7 @@
-
+/**
+ * 输入两个element的id进行连接
+ * connect('box1','box2')
+ */
 function connect(s, t) {
     return jsPlumb.connect({
         source: s,  // from

@@ -1,22 +1,28 @@
+/**
+ * 这个文件里记载了关于画面类的定义及其方法
+ */
+
+
+/**
+ * View类是整个画面的类，其中包含了环境、栈、和闭包的表示
+ */
 class View {
     frameLength = 0;
 
-
+    /**
+     * 构造方法中建立了环境、栈、和闭包的对象
+     */
     constructor() {
         this.environment = new Environment();
         this.stack = new Stack();
         this.closure = new Closure();
-
     }
-
 }
 
 /**
  * 环境
  */
 class Environment {
-
-
 
     constructor() {
         let environment = makeNewElement('environment', 'environment', 'environment');
@@ -48,6 +54,10 @@ class EnvironmentFrame {
         //环境本体的框
         let evnFrm = makeNewElement('', 'localEnvrionmenFrame_' + frameCounter, 'localEnvironmentFrame');
         document.getElementById('localEnvrionmenBox_' + frameCounter).appendChild(evnFrm);
+
+        makeLocalEnvConnection('localEnvrionmenName_' + frameCounter, 'localEnvrionmenFrame_' + frameCounter);
+
+
         //将所有变量插入
         for (var i = 0; i < varList.length; i++) {
             let v = makeNewElement(varList[i], 'F_' + frameCounter + 'V_' + i, 'envVirable');

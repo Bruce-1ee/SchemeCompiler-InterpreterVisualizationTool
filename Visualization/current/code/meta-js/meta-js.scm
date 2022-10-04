@@ -163,7 +163,7 @@
                        env
                        (list 'argument c))))))
 
-(define (compile-application exp env next)
+(define (compile-application-bak exp env next)
   (let loop ((args (cdr exp))
              (c (list 'act-fun-body (compile (car exp) env '(apply)))))
     (if (null? args)
@@ -176,6 +176,22 @@
                        env
                        (list 'argument c))))))
 
+(define (compile-application exp env next)
+  (let loop ((args (cdr exp))
+             (c (compile-fun-body exp env)))
+    (if (null? args)
+        (list 'frame
+              next
+              (compile-arg c))
+        (loop (cdr args)
+              (compile (car args)
+                       env
+                       (list 'argument c))))))
+
+(define (compile-fun-body exp env)
+  (compile (car exp) env '(apply)))
+(define (compile-arg c)
+  c)
       
 
 ;==========helping-function=========================
@@ -318,7 +334,7 @@
       
       ((return) (VM-return a x f c s))
 
-      (else (VM-else a x f c s)))))
+      (else (VM-otherwise a x f c s)))))
 
 (define (VM-constant a x f c s)
   (let ((obj (cadr x))
@@ -386,7 +402,7 @@
     (let ((s (- s n)))
       (VM a (index s 0) (index s 1) (index s 2) (- s 3)))))
 
-(define (VM-else a x f c s)
+(define (VM-otherwise a x f c s)
   (if (set-member? (car x) pseins-list)
       (begin
         (make-breakpoint-vm)
@@ -650,16 +666,14 @@
              (resume-meta 'ok))))
 
 
-(define-macro define-act
-  (lambda (target fun info proc)
-    ;(lambda (target inst fun info) 
+(define-macro define-act-eval
+  (lambda (fun info proc)
     `(let* ((org-fun ,fun))
        (set! ,fun
              (lambda (arg . restarg)
                (set! proc-name ,proc)
-               (,target)
+               (make-breakpoint-eval)
                (console-log ,info)(newline)
-               ;(,inst)
                (apply org-fun (cons arg restarg)))))))
 
 (define-macro define-act-create-frame
@@ -678,7 +692,7 @@
               
 
 (define pseins-list '())
-(define-macro define-pseins
+(define-macro define-act-compiler
   (lambda (fun pseins)
     `(let* ((org-fun ,fun))
        (set! pseins-list    ;擬似命令のリストに追加する
@@ -736,55 +750,58 @@
 ;定义伪指令
 
 ;; 0 self-evaluating
-(define-pseins compile-self-evaluating 'act-constant)
+(define-act-compiler compile-self-evaluating 'act-constant)
 (set-ins-num-by-num 'self-evaluating 1 1)
 
-(define-act make-breakpoint-eval eval-self-evaluating 'eval-self-evaluating 'self-evaluating)
+(define-act-eval eval-self-evaluating 'eval-self-evaluating 'self-evaluating)
 (set-ins-num-by-num 'self-evaluating 0 1)
 
 ;; 1 quotation
-(define-pseins compile-quoted 'act-constant)
+(define-act-compiler compile-quoted 'act-constant)
 (set-ins-num-by-num 'quotation 1 1)
 
-(define-act make-breakpoint-eval eval-quotation 'eval-quotation 'quotation)
+(define-act-eval eval-quotation 'eval-quotation 'quotation)
 (set-ins-num-by-num 'quotation 0 1)
 
 ;; 2 variable
-(define-pseins compile-variable 'act-variable)
+(define-act-compiler compile-variable 'act-variable)
 (set-ins-num-by-num 'variable 1 1)
 
-(define-act make-breakpoint-eval eval-variable 'eval-variable 'variable)
+(define-act-eval eval-variable 'eval-variable 'variable)
 (set-ins-num-by-num 'variable 0 1)
 
 ;; 3 if
-(define-pseins compile-if 'act-if)
-(define-pseins compile-test 'act-test)
-(define-pseins compile-then 'act-then)
-(define-pseins compile-else 'act-else)
+(define-act-compiler compile-if 'act-if)
+(define-act-compiler compile-test 'act-test)
+(define-act-compiler compile-then 'act-then)
+(define-act-compiler compile-else 'act-else)
 (set-ins-num-by-num 'if 1 3)
 
-(define-act make-breakpoint-eval eval-if 'eval-if 'if)
-(define-act make-breakpoint-eval eval-if-test 'eval-test 'subif)
-(define-act make-breakpoint-eval eval-if-then 'eval-then 'subif)
-(define-act make-breakpoint-eval eval-if-else 'eval-else 'subif)
+(define-act-eval eval-if 'eval-if 'if)
+(define-act-eval eval-if-test 'eval-test 'subif)
+(define-act-eval eval-if-then 'eval-then 'subif)
+(define-act-eval eval-if-else 'eval-else 'subif)
 (set-ins-num-by-num 'if 0 3)
 
 ;; 4 lambda
-(define-pseins compile-lambda 'act-lambda)
+(define-act-compiler compile-lambda 'act-lambda)
 (set-ins-num-by-num 'lambda 1 1)
 
-(define-act make-breakpoint-eval eval-lambda 'eval-lambda 'lambda)
+(define-act-eval eval-lambda 'eval-lambda 'lambda)
 (set-ins-num-by-num 'lambda 0 1)
 
 ;; 5 application
-(define-pseins compile-application 'act-application)
+(define-act-compiler compile-application 'act-application)
+(define-act-compiler compile-fun-body 'act-fun-body)
+(define-act-compiler compile-arg 'act-args)
+
 (set! pseins-list (append pseins-list (list 'act-args)))
 (set! pseins-list (append pseins-list (list 'act-fun-body)))
 (set-ins-num-by-num 'application 1 3)
 
-(define-act make-breakpoint-eval eval-application 'eval-application 'application)
-(define-act make-breakpoint-eval eval-application-args 'eval-arguments 'subapplication)
-(define-act make-breakpoint-eval eval-application-body 'eval-body 'subapplication)
+(define-act-eval eval-application 'eval-application 'application)
+(define-act-eval eval-application-args 'eval-arguments 'subapplication)
+(define-act-eval eval-application-body 'eval-body 'subapplication)
 (set-ins-num-by-num 'application 0 3)
 
 ;; 6 others

@@ -36,7 +36,7 @@
 (define (interpreter-new-frame vals args)
   (js-call (js-eval "interNewFrame") vals args))
 
-(define (stack-new-frame)
+(define (stack-createFrame)
  (js-invoke (js-ref (js-eval "view") "stack") "createFrame" ))
 
 
@@ -47,3 +47,6 @@
 
 (define (js-pop-element)
   (js-invoke (js-ref (js-eval "view") "stack") "pop"))
+
+(define (stack-deleteFrame)
+ (js-invoke (js-ref (js-eval "view") "stack") "deleteFrame" ))

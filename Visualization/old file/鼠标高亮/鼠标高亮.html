@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>列表高亮显示</title>
+</head>
+
+<body>
+    <ul>
+        <li>苹果</li>
+        <li>香蕉</li>
+        <li>梨子</li>
+        <li>水蜜桃</li>
+        <li>榴莲</li>
+        <li>红枣</li>
+        <li>石榴</li>
+        <li>橘子</li>
+    </ul>
+    <div name="tagname1">aaaa</div>
+    <script>
+        //获取所有的li标签
+        var list = document.getElementsByTagName("li");
+        for (var i = 0; i < list.length; i++) {
+            //为li注册鼠标进入事件
+            list[i].onmouseover = function () {
+                this.style.backgroundColor = "blue";
+                list[0].style.backgroundColor = "blue";
+            };
+            //为li注册鼠标离开事件
+            list[i].onmouseout = function () {
+                this.style.backgroundColor = "";
+                list[0].style.backgroundColor = "";
+            };
+        }
+    </script>
+</body>
+
+</html>

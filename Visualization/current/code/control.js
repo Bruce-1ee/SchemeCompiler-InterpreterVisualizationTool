@@ -49,11 +49,14 @@ function nextComp() {
 }
 
 function next() {
-    nextInte();
-    nextComp();
+    let p = "(next 'ok)"
+    evl(p);
 }
 
 /**
  * 用biwascheme执行文本框内的程序
  */
 var biwac = function () { evl(getInput()); }
+
+var breakpointOn = function () { evl('(breakpoint-on)'); }
+var breakpointOff = function () { evl('(breakpoint-off)'); }

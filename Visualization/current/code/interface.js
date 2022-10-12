@@ -8,6 +8,13 @@ function testVal(val) {
     lst.push(val);
 };
 
+
+/**
+ * (interpreter-new-frame arguments func)
+ * @param {*} vals  传入eval-application-apply的arguments参数
+ * @param {*} args  传入eval-application-apply的func参数
+ * 可以得到 参数：值 的结果，显示在环境box中
+ */
 function interNewFrame(vals, args) {
 
     var values = vals;

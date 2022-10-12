@@ -139,7 +139,6 @@ class StackElementFrame {
     }
 
     delete(frameLength, stackLength) {
-        console.log(frameLength); console.log(stackLength)
         popStackElement(frameLength, stackLength);
     }
 

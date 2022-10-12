@@ -18,8 +18,7 @@
     <div id="inputBox" class="inputBox">this is inputBox
 
         <textarea style=" position: absolute1; left: 200px; top: 10px;" name="content" id="programInput" rows="8"
-            cols="50">
-        (+ 1 2)
+            cols="50"> (meta '((lambda (a b c) (if a b c)) 11 22 33))
 
          </textarea>
 
@@ -32,13 +31,10 @@
         </script>
 
         <div style=" position: absolute1; left: 300px; top: 300px;">
-            <input type="button" value="interpreter" onclick="javascript:interpreter(); ">
-            <input type="button" value="compiler" onclick="javascript:compiler(); ">
+            <input type="button" value="breakpointOn" onclick="javascript:breakpointOn(); ">
+            <input type="button" value="breakpointOff" onclick="javascript:breakpointOff(); ">
 
-            <input type="button" value="next-inte" onclick="javascript:nextInte(); ">
-            <input type="button" value="next-comp" onclick="javascript:nextComp(); ">
-
-            <input type="button" value="biwa" onclick="javascript:biwac(); ">
+            <input type="button" value="eval" onclick="javascript:biwac(); ">
             <input type="button" value="next" onclick="javascript:next(); ">
         </div>
 

@@ -86,7 +86,6 @@
 (define (compile-else else env next)
   (compile else env next))
 
-
 (define (compile-lambda exp env next)
   (cond [(eq? (car exp) 'slambda) (compile-slambda exp env next)]
         [(eq? (car exp) 'clambda) (compile-clambda exp env next)]
@@ -111,31 +110,6 @@
                                    (list 'return
                                          (length vars)))
                           next)))))
-(define (compile-application-org exp env next)
-  (let loop ((args (cdr exp))
-             (c (compile (car exp) env '(apply))))
-    (if (null? args)
-        (list 'frame
-              next
-              c)
-        (loop (cdr args)
-              (compile (car args)
-                       env
-                       (list 'argument c))))))
-
-(define (compile-application-bak exp env next)
-  (let loop ((args (cdr exp))
-             (c (list 'act-fun-body (compile (car exp) env '(apply)))))
-    (if (null? args)
-        (list 'frame
-              next
-              (list 'act-args
-                    c))
-        (loop (cdr args)
-              (compile (car args)
-                       env
-                       (list 'argument c))))))
-
 (define (compile-application exp env next)
   (let loop ((args (cdr exp))
              (c (compile-fun-body exp env)))
@@ -150,9 +124,7 @@
 
 (define (compile-fun-body exp env)
   (compile (car exp) env '(apply)))
-(define (compile-arg c)
-  c)
-      
+(define (compile-arg c) c)
 
 ;==========helping-function=========================
 (define compile-extend
@@ -259,22 +231,17 @@
   (compile (preprocess exp #f) '(() . ()) '(halt)))
 
 (define VM
+  
   (lambda (a x f c s) ;; (a x e s)
+
     (case (car x)
       ((halt) a)
-      
       ((refer) (VM-refer a x f c s))
-      
       ((refer-free) (VM-refer-free a x f c s))
-
       ((refer-global) (VM-refer-global a x f c s))
-      
       ((constant) (VM-constant a x f c s))
-      
       ((functional) (VM-functional a x f c s))
-      
       ((close) (VM-close a x f c s))
-      
       ((test) (VM-test a x f c s))
       
       ;((assign) 
@@ -287,13 +254,9 @@
       ; (error "not yot implemented"))
       
       ((frame) (VM-frame a x f c s))
-      
       ((argument) (VM-argument a x f c s))
-      
       ((apply) (VM-apply a x f c s))
-      
       ((return) (VM-return a x f c s))
-
       (else (VM-otherwise a x f c s)))))
 
 (define (VM-constant a x f c s)
@@ -345,9 +308,7 @@
 (define (VM-apply a x f c s)
   (case (car a)
     ((functional) ;;;
-     (let ((body (cadr a))
-           (link (caddr a)))
-       (VM a body s c (push link s))))
+     (VM-apply-functional a x f c s))
     ((closure) ;;;
      (VM a (closure-body (cdr a)) s (cdr a) s)) ;;;
     ((primitive) ;;;
@@ -357,23 +318,19 @@
     (else
      (error "Not a function"))))
 
+(define (VM-apply-functional a x f c s)
+  (let ((body (cadr a))
+        (link (caddr a)))
+    (VM a body s c (push link s))))
+
 (define (VM-return a x f c s)
   (let ((n (cadr x)))
     (let ((s (- s n)))
       (VM a (index s 0) (index s 1) (index s 2) (- s 3)))))
 
 (define (VM-otherwise a x f c s)
-  (if (set-member? (car x) pseins-list)
-      (begin
-        (set! vm-info (car x))
-        (cond ((break? vm-info) (set! break #t)))
-        (make-jumppoint-vm)
-        (display 'vm:)(display (car x)) (newline)
-        (VM a (cadr x) f c s))
-      (error "unknow inst")))
+      (error "unknow inst"))
  
-  
-
 (define functional
   (lambda (body e)
     (list 'functional body e))) ;;;
@@ -381,7 +338,7 @@
 (define (primitive-fun natfun) ;;;
   (list 'primitive natfun))
 
-(define stack (make-vector 1000))
+(define stack (make-vector 10))
 
 (define push
   (lambda (x s)
@@ -604,10 +561,9 @@
 
 (define (eval1 exp) (exec exp GE))
 
-(define exec-k #f)
-(define vm-k #f)
-(define resume-meta #f)
 
+
+;====macro======
 
 (define (cc)
   (call/cc
@@ -639,288 +595,95 @@
                ;(,inst)
                (apply org-fun (cons arg restarg)))))))
 
-(define pseins-list '())
 (define-macro define-act-compiler
   (lambda (fun pseins)
     `(let* ((org-fun ,fun))
-       (set! pseins-list    ;擬似命令のリストに追加する
-             (append pseins-list (list ,pseins))) 
        (set! ,fun
              (lambda (arg . restarg)
                (list ,pseins
                      (apply org-fun (cons arg restarg))))))))
 
-(define ins-step-lst (make-vector 6))
 
-(define ins-lst (list 'self-evaluating
-                        'quotation
-                        'variable
-                        'if
-                        ;;new
-                        ;'test
-                        ;'then
-                        ;'else
-                        ;;
-                        'lambda
-                        'application))
-
-(define (ini-vector num)
-  (if (> num 0)
-      (begin
-        (vector-set! ins-step-lst (- num 1) (make-vector 2 0))
-        (ini-vector (- num 1)))
-      (set! ins-step-lst ins-step-lst)))
-(ini-vector 6)
+(define-macro define-vm-otherwise
+  (lambda ()
+    `(let* ((org-fun VM-otherwise))
+       (set! VM-otherwise
+             (lambda (a x f c s)
+               (if (get-act (car x)) ;如果存在于acts的VECTOR里那么就执行,不然就报错
+                   (begin
+                     (set! vm-info (car x))
+                     (cond ((break? vm-info) (set! break #t)))
+                     (make-jumppoint-vm)
+                     (display 'vm:)(display (car x)) (newline)
+                     (VM a (cadr x) f c s))
+                   (org-fun a x f c s)))))))
 
 
-
-(define (get-ins-num ins ins-lst)
-  (let loop ((num 0) (lst ins-lst))
-    (cond ((null? lst) -1) ;not included
-          ((eq? ins (car lst)) num)
-          (else (loop (+ num 1) (cdr lst))))))
-
-(define (set-ins-num ins target)       ;target 0 = inte
-  (let ((n (get-ins-num ins ins-lst)))  ;target 1 = vm
-       (vector-set! (vector-ref ins-step-lst n)
-                    target
-                    (+ 1 (vector-ref (vector-ref ins-step-lst n)
-                                     target)))))
-
-(define (set-ins-num-by-num ins target num)       ;target 0 = inte
-  (let ((n (get-ins-num ins ins-lst)))  ;target 1 = vm
-       (vector-set! (vector-ref ins-step-lst n)
-                    target
-                    num)))
 
 
 
 ;定义伪指令
 
+
+(define (define-all)
+  
+
 ;; 0 self-evaluating
 (define-act-compiler compile-self-evaluating 'act-constant)
-(set-ins-num-by-num 'self-evaluating 1 1)
+
 
 (define-act-eval eval-self-evaluating 'eval-self-evaluating 'act-constant)
-(set-ins-num-by-num 'self-evaluating 0 1)
+
 
 ;; 1 quotation
 (define-act-compiler compile-quoted 'act-constant)
-(set-ins-num-by-num 'quotation 1 1)
+
 
 (define-act-eval eval-quotation 'eval-quotation 'act-constant)
-(set-ins-num-by-num 'quotation 0 1)
+
 
 ;; 2 variable
 (define-act-compiler compile-variable 'act-variable)
-(set-ins-num-by-num 'variable 1 1)
+
 
 (define-act-eval eval-variable 'eval-variable 'act-variable)
-(set-ins-num-by-num 'variable 0 1)
+
 
 ;; 3 if
 (define-act-compiler compile-if 'act-if)
 (define-act-compiler compile-test 'act-test)
 (define-act-compiler compile-then 'act-then)
 (define-act-compiler compile-else 'act-else)
-(set-ins-num-by-num 'if 1 3)
+
 
 (define-act-eval eval-if 'eval-if 'act-if)
 (define-act-eval eval-if-test 'eval-test 'act-test)
 (define-act-eval eval-if-then 'eval-then 'act-then)
 (define-act-eval eval-if-else 'eval-else 'act-else)
-(set-ins-num-by-num 'if 0 3)
+
 
 ;; 4 lambda
 (define-act-compiler compile-lambda 'act-lambda)
-(set-ins-num-by-num 'lambda 1 1)
 
 (define-act-eval eval-lambda 'eval-lambda 'act-lambda)
-(set-ins-num-by-num 'lambda 0 1)
+
 
 ;; 5 application
 (define-act-compiler compile-application 'act-application)
 (define-act-compiler compile-fun-body 'act-fun-body)
 (define-act-compiler compile-arg 'act-args)
 
-(set! pseins-list (append pseins-list (list 'act-args)))
-(set! pseins-list (append pseins-list (list 'act-fun-body)))
-(set-ins-num-by-num 'application 1 3)
 
 (define-act-eval eval-application 'eval-application 'act-application)
 (define-act-eval eval-application-args 'eval-arguments 'act-args)
 (define-act-eval eval-application-body 'eval-body 'act-fun-body)
-(set-ins-num-by-num 'application 0 3)
+
 
 ;; 6 others
 ;(define-act-create-frame)
+(define-vm-otherwise) )
 
 
-
-
-(define (meta)
-  (call/cc (lambda (quit)
-             (let ((count 0))
-               (define top #f)
-               (call/cc (lambda (t)
-                          (set! top t)
-                          (set! next t)
-                          (quit)))
-             
-               (call/cc (lambda (breakpoint)
-                          (set! count (+ 1 count))
-                          (display count)
-                          (set! next breakpoint)
-                          (exec-k)
-                          (display 'abc)
-                          ;(quit)
-                          ))
-               (call/cc (lambda (breakpoint)
-
-                          (set! next top)
-                          (vm-k)
-                          (quit)))))))
-
-
-(define next2 #f)
-(define proc-name #f)
-(define (meta2)
-  (call/cc
-   (lambda (quit)
-     (let ((loop #f)
-           (loop2 #f)
-           (in-c 0)
-           (vm-c 0))
-       (call/cc
-        (lambda (top)
-          (set! next2 top)
-          (set! loop top)
-          (quit)))
-       (display 'loop1) (display proc-name) (newline)
-       ;loop
-       (if (and (eq? in-c 0) (eq? vm-c 0))
-           (begin
-             (let ((n (get-ins-num proc-name ins-lst)))
-               (set! in-c (vector-ref (vector-ref ins-step-lst n) 0))
-               (set! vm-c (vector-ref (vector-ref ins-step-lst n) 1)))
-             (loop))
-           (begin
-             (call/cc
-              (lambda (mid)
-                (set! loop2 mid)))
-             (display 'loop2) (newline)
-             ;loop2
-             (call/cc
-              (lambda (eval-breakpoint)
-                (if (not (eq? in-c 0))
-                    (begin
-                      (set! in-c (- in-c 1))
-                      (set! next2 eval-breakpoint)
-                      (exec-k)
-                      (quit))
-                    (quit))))
-
-             (call/cc
-              (lambda (vm-breakpoint)
-                (if (not (eq? vm-c 0))
-                    (begin
-                      (set! vm-c (- vm-c 1))
-                      (set! next2 vm-breakpoint)
-                      (vm-k)
-                      (quit))
-                    (quit))))
-             (if (and (eq? in-c 0)
-                      (eq? vm-c 0))
-                 (loop)
-                 (loop2))
-
-             )
-
-
-       )))))
-
-
-(define tsk-lst '())
-
-(define (add-tsk tsk)
-  (set! tsk-lst (append tsk-lst (list (list (vector-ref tsk 0) (vector-ref tsk 1))))))
-(define (get-tsk target)
-  (cond ((null? tsk-lst) #f)
-        ((eq? target 0) (caar (reverse tsk-lst)))
-        ((eq? target 1) (cadar (reverse tsk-lst)))))
-(define (set-tsk target)
-  (let* ((lst (reverse tsk-lst))
-        (e (caar lst))
-        (v (cadar lst)))
-    (set! lst (reverse (cdr lst)))
-    (cond ((eq? target 0)
-           (set! tsk-lst (append lst (list (list (- e 1) v)))))
-          ((eq? target 1)
-           (set! tsk-lst (append lst (list (list e (- v 1)))))))))
-(define (dummy-tsk?)
-  (if (and (eq? (get-tsk 0) 0)
-           (eq? (get-tsk 1) 0))
-      #t
-      #f))
-(define (del-tsk)
-  (let ((lst (reverse tsk-lst)))
-    (set! tsk-lst (reverse (cdr lst)))))
-
-(define next3 #f)
-(define (meta3)
-  (call/cc
-   (lambda (quit)
-     (let ((loop #f))
-
-       (call/cc
-        (lambda (top)
-          (set! next3 top)
-          (set! loop top)
-          (quit)))
-       ;loop
-       ;(display tsk-lst) (newline)
-       (let ((n (get-ins-num proc-name ins-lst)))
-         (if (not (eq? n -1))
-             (begin
-               (add-tsk (vector-ref ins-step-lst n))
-               (set! proc-name #f)
-               (loop))
-             (begin  
-               (call/cc
-                (lambda (eval-breakpoint)
-                  (set! next3 eval-breakpoint)
-                  (if (eq? (get-tsk 0) #f)
-                      (begin
-                        (display 'done-eval)
-                        (quit))
-                      (if (not (eq? (get-tsk 0) 0))
-                          (begin
-                            (set-tsk 0) 
-                            (exec-k))
-                          (begin
-                            (display 'wait-eval) (newline)
-                            (quit))))))
-               ;(display tsk-lst) (newline)
-               (call/cc
-                (lambda (vm-breakpoint)
-                  (set! next3 vm-breakpoint)
-                  (if (eq? (get-tsk 0) #f)
-                      (begin
-                        (display 'done-vm)
-                        (quit))
-                      (if (not (eq? (get-tsk 1) 0))
-                          (begin
-                            (set-tsk 1)
-                            (vm-k))
-                          (begin
-                            (display 'wait-vm) (newline)
-                            (quit))))))))
-         ;(display tsk-lst) (newline)
-         (cond ((dummy-tsk?) (del-tsk)))
-           
-         (loop)
-
-           )))))
 
 ;====break===
 
@@ -971,6 +734,12 @@
 
 ;========meta======
 
+
+(define exec-k #f)
+(define vm-k #f)
+(define resume-meta #f)
+
+
 (define vm-info #f)
 (define inte-info #f)
 
@@ -991,7 +760,7 @@
 
 (define (get-act act-name)
   (define (loop n)
-    (cond ((>= n (vector-length acts)) 'not_included)
+    (cond ((>= n (vector-length acts)) #f)
           ((eq? (vector-ref (vector-ref acts n) 0) act-name) n)
           (else (loop (+ n 1)))))
   (loop 0))
@@ -1013,7 +782,7 @@
          (org (get-act-num act-name target)))
     (vector-set! v t (+ org 1))))
 
-(define (is-same-positon?)
+(define (is-same-position?)
   (if (or (eq? vm-info #f)
           (eq? inte-info #f))
       #f
@@ -1026,13 +795,13 @@
 (define (p t)
   (display t) (newline))
 
-(define (meta4 program)
+(define (meta program)
   (call/cc
    (lambda (return)
      (call/cc
       (lambda (top)
         (set! resume-meta top)))
-     
+     ;(display acts) (newline)
      (call/cc
       (lambda (c)
         (cond ((eq? break #t)
@@ -1042,10 +811,12 @@
       
          (cond ((eq? vm-k #f) (run program))
                ((eq? exec-k #f) (eval1 program))
-               ((is-same-positon?)
+               ((is-same-position?)
+                ;(p 'is-same-position)
                 (act-add1 inte-info 'exec)
                 (exec-k))
                (else
+                ;(p 'not-same)
                 (act-add1 vm-info 'vm)
                 (vm-k))))))
          
@@ -1066,14 +837,5 @@
 
 ;(run '1)
 ;(eval1 '1)
-
-;(meta3)
-
-;(next2)
-;多次调用next2之后会发生错误
-;原因是当前的procname为SUBAPPLICATION，但没有处理该SUBAPPLICATION的操作
-;具体的原因是在处理app的时候掺杂了SELF-EVAL的操作，然而procname只能存储一个数据
-;当selfeval处理结束的时候，无法返回之前未完成的app操作
-;解决办法是使用一个栈的数据结构记录之前未完成的操作
-
-
+(define-all)
+(breakpoint-on)

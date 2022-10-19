@@ -44,12 +44,22 @@
 (define (js-push-element-into-stack val)
   (js-invoke (js-ref (js-eval "view") "stack") "push" val))
 
+; view.stack.pushArgument(val)
+(define (js-push-argument val)
+  (js-invoke (js-ref (js-eval "view") "stack") "pushArgument" val))
 
 (define (js-pop-element)
   (js-invoke (js-ref (js-eval "view") "stack") "pop"))
 
 (define (stack-deleteFrame)
  (js-invoke (js-ref (js-eval "view") "stack") "deleteFrame" ))
+
+
+(define (draw-interpreter-info info)
+  (js-call (js-eval "drawInterpreterInfo") info))
+
+(define (draw-VM-Info info)
+  (js-call (js-eval "drawVMInfo") info))
 (define (compile exp env next)
   (cond ((self-evaluating? exp) (compile-self-evaluating exp next))
         ((quoted? exp) (compile-quoted exp next))
@@ -635,13 +645,12 @@
     `(let* ((org-fun ,fun))
        (set! ,fun
              (lambda (arg . restarg)
-               ;(set! proc-name ,proc)
-               (set! inte-info ,act)
-               (cond ((break? inte-info) (set! break #t)))
-               (make-jumppoint-eval)
-               (console-log 'eval:)(console-log ,info)(newline)
-               ;(,inst)
-               (apply org-fun (cons arg restarg)))))))
+              (set! inte-info ,act)
+              (cond ((break? inte-info) (set! break #t)))
+              (make-jumppoint-eval)
+              (draw-interpreter-info ,info)
+              ;(console-log 'eval:)(console-log ,info)(newline)
+              (apply org-fun (cons arg restarg)))))))
 
 (define-macro define-act-compiler
   (lambda (fun pseins)
@@ -659,11 +668,12 @@
              (lambda (a x f c s)
                (if (get-act (car x)) ;如果存在于acts的VECTOR里那么就执行,不然就报错
                    (begin
-                     (set! vm-info (car x))
-                     (cond ((break? vm-info) (set! break #t)))
-                     (make-jumppoint-vm)
-                     (console-log 'vm:)(console-log (car x)) (newline)
-                     (VM a (cadr x) f c s))
+                    (set! vm-info (car x))
+                    (cond ((break? vm-info) (set! break #t)))
+                    (make-jumppoint-vm)
+                    (draw-VM-Info (car x))
+                    ;(console-log 'vm:)(console-log (car x)) (newline)
+                    (VM a (cadr x) f c s))
                    (org-fun a x f c s)))))))
 
 
@@ -692,7 +702,7 @@
     `(let* ((org-fun VM-argument))
        (set! VM-argument
              (lambda (a x f c s)
-              (js-push-element-into-stack a)
+              (js-push-argument a)
               (org-fun a x f c s))))))
 
 (define-macro define-vm-draw-apply-functional 
@@ -708,7 +718,6 @@
     `(let* ((org-fun VM-apply-primitive))
        (set! VM-apply-primitive
              (lambda (a x f c s)
-              (console-log "进入VM-apply-functional")
               (js-push-element-into-stack 0)
               (org-fun a x f c s))))))
 
@@ -724,9 +733,8 @@
 (define-macro define-vm-draw-prim-return 
   (lambda ()
     `(let* ((org-fun prim-return))
-       (set! VM-return
+       (set! prim-return
              (lambda (retval s)
-              (console-log "进入prim-return")
               (loop 3 js-pop-element)
               (stack-deleteFrame)
               (org-fun retval s))))))
@@ -793,8 +801,10 @@
 (define-eval-draw-frame)
 (define-vm-draw-frame)
 (define-vm-draw-arg-push)
-(define-vm-draw-apply-functional) 
+(define-vm-draw-apply-functional)
 (define-vm-draw-return)
+
+(define-vm-draw-apply-primitive)
 (define-vm-draw-prim-return)
 
 

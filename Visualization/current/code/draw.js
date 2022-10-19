@@ -72,3 +72,18 @@ function makeLocalEnvConnection(envName, envFrame) {
     connectEnvNameAndEnvFrame(envName, envFrame);
     connectEnvFrameAndGloEnv(envFrame);
 }
+
+var inteCounter = 1;
+function drawInterpreterInfo(info) {
+    let e = makeNewElement(inteCounter + ". " + info, "inteInfo" + inteCounter, "null");
+    document.getElementById('interpreterInfo').appendChild(e);
+    inteCounter++;
+}
+
+var VMCounter = 1;
+function drawVMInfo(info) {
+    let e = makeNewElement(VMCounter + ". " + info, "VMInfo" + VMCounter, "null");
+    document.getElementById('VMInfo').appendChild(e);
+    VMCounter++;
+}
+

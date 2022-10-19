@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>列表高亮显示</title>
+</head>
+
+
+<style>
+    .box1 {
+        width: 100px;
+        height: 100px;
+        margin: 30px;
+        background-color: #bfa;
+        float: left;
+    }
+
+    .box2 {
+        width: 100px;
+        height: 100px;
+        background-color: silver;
+        float: left;
+    }
+
+    .box3 {
+        width: 300px;
+        height: 300px;
+        background-color: orange;
+    }
+
+    .clearfix::before,
+    .clearfix::after {
+        content: '';
+        display: table;
+        clear: both;
+    }
+</style>
+
+<body>
+
+    <div class="box1" name="t1"></div>
+
+    <div class="box2" name="t1"></div>
+
+
+
+
+</body>
+
+
+
+<script type="text/javascript">
+
+    var backtar = [];
+
+    document.onmouseover = function (e) {
+        // console.log("in");
+        var e = e ? e : window.event;
+        var tar = e.target;
+
+        eleList = document.getElementsByName(tar.getAttribute("name"));
+
+        if (eleList.length > 1) {
+
+            for (var o of eleList) {
+
+                o.style.backgroundColor = 'lightblue';
+            }
+
+            backtar.push(tar)
+
+        }
+    }
+
+
+
+
+    document.onmouseout = function (e) {
+        console.log("onmouseout!");
+        if (backtar.length != 0) {
+            var tar = backtar.shift();
+            var tarName = tar.getAttribute("name");
+            var allObj = document.getElementsByName(tarName);
+            var tarClass;
+            for (var o of allObj) {
+                o.style.backgroundColor = 'blue';
+            }
+        }
+    }
+
+</script>
+
+</html>

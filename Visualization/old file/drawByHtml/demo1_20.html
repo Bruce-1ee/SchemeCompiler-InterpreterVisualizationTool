@@ -153,6 +153,7 @@
     }
 
     document.onmouseover = function (e) {
+        console.log("onmouseover!");
         var e = e ? e : window.event;
         var tar = e.srcElement || e.target;
         if (tar.getAttribute("syn") == "1") {
@@ -170,6 +171,7 @@
         }
     }
     document.onmouseout = function (e) {
+        console.log("onmouseout!");
         if (backtar.length != 0) {
             var tar = backtar.shift();
             var tarName = tar.getAttribute("name");

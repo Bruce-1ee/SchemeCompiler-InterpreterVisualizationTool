@@ -44,9 +44,19 @@
 (define (js-push-element-into-stack val)
   (js-invoke (js-ref (js-eval "view") "stack") "push" val))
 
+; view.stack.pushArgument(val)
+(define (js-push-argument val)
+  (js-invoke (js-ref (js-eval "view") "stack") "pushArgument" val))
 
 (define (js-pop-element)
   (js-invoke (js-ref (js-eval "view") "stack") "pop"))
 
 (define (stack-deleteFrame)
  (js-invoke (js-ref (js-eval "view") "stack") "deleteFrame" ))
+
+
+(define (draw-interpreter-info info)
+  (js-call (js-eval "drawInterpreterInfo") info))
+
+(define (draw-VM-Info info)
+  (js-call (js-eval "drawVMInfo") info))

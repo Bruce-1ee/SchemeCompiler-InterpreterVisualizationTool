@@ -588,13 +588,12 @@
     `(let* ((org-fun ,fun))
        (set! ,fun
              (lambda (arg . restarg)
-               ;(set! proc-name ,proc)
-               (set! inte-info ,act)
-               (cond ((break? inte-info) (set! break #t)))
-               (make-jumppoint-eval)
-               (display 'eval:)(display ,info)(newline)
-               ;(,inst)
-               (apply org-fun (cons arg restarg)))))))
+              (set! inte-info ,act)
+              (cond ((break? inte-info) (set! break #t)))
+              (make-jumppoint-eval)
+              (draw-interpreter-info ,info)
+              ;(display 'eval:)(display ,info)(newline)
+              (apply org-fun (cons arg restarg)))))))
 
 (define-macro define-act-compiler
   (lambda (fun pseins)
@@ -612,11 +611,12 @@
              (lambda (a x f c s)
                (if (get-act (car x)) ;如果存在于acts的VECTOR里那么就执行,不然就报错
                    (begin
-                     (set! vm-info (car x))
-                     (cond ((break? vm-info) (set! break #t)))
-                     (make-jumppoint-vm)
-                     (display 'vm:)(display (car x)) (newline)
-                     (VM a (cadr x) f c s))
+                    (set! vm-info (car x))
+                    (cond ((break? vm-info) (set! break #t)))
+                    (make-jumppoint-vm)
+                    (draw-VM-Info (car x))
+                    ;(display 'vm:)(display (car x)) (newline)
+                    (VM a (cadr x) f c s))
                    (org-fun a x f c s)))))))
 
 
@@ -645,7 +645,7 @@
     `(let* ((org-fun VM-argument))
        (set! VM-argument
              (lambda (a x f c s)
-              (js-push-element-into-stack a)
+              (js-push-argument a)
               (org-fun a x f c s))))))
 
 (define-macro define-vm-draw-apply-functional 

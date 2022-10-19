@@ -60,3 +60,51 @@ var biwac = function () { evl(getInput()); }
 
 var breakpointOn = function () { evl('(breakpoint-on)'); }
 var breakpointOff = function () { evl('(breakpoint-off)'); }
+
+
+
+
+
+/**
+ * 同步闪烁程序
+ */
+
+
+var backtar = [];
+
+document.onmouseover = function (e) {
+    // console.log("in");
+    var e = e ? e : window.event;
+    var tar = e.target;
+
+    eleList = document.getElementsByName(tar.getAttribute("name"));
+
+    if (eleList.length > 1) {
+        console.log('in');
+        var tarClass;
+        for (var o of eleList) {
+            tarClass = o.className;
+            o.className = tarClass + 'BESELECTED';
+            console.log(o.className);
+        }
+        backtar.push(tar)
+
+    }
+}
+
+document.onmouseout = function (e) {
+    // console.log("onmouseout!");
+    if (backtar.length != 0) {
+        console.log('out')
+        var tar = backtar.shift();
+        var tarName = tar.getAttribute("name");
+        var allObj = document.getElementsByName(tarName);
+        var tarClass;
+        for (var o of allObj) {
+            c = o.className.split(" ")[0];
+            tarClass = c.slice(0, o.className.length - 10);
+            // var backClass = o.className.slice(8, tar.className.length);
+            o.className = tarClass;
+        }
+    }
+}

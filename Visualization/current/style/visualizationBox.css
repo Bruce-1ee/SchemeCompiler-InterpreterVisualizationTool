@@ -16,7 +16,7 @@
 /* 环境模型 */
 .environment {
     margin: 3px;
-    width: 64%;
+    width: 45%;
     min-height: 90%;
     background-color: rgb(240, 240, 190);
     border-width: 1px;
@@ -123,6 +123,42 @@
     overflow: hidden; */
 }
 
+.localEnvironmentFrameBESELECTED {
+    /* margin-top: 10px; */
+    margin-top: 10px;
+    margin-left: 50px;
+    width: 20%;
+    height: 80px;
+
+
+
+    background-color: rgb(190, 236, 240);
+    border-width: 4px;
+    border-color: rgb(255, 0, 0);
+    border-style: solid;
+    /* float: left; */
+    /* margin: 10px;
+    width: 20%;
+    width: fit-content;
+    width: -webkit-fit-content;
+    width: -moz-fit-content;
+    max-width: 40%;
+    background-color: rgb(190, 236, 240);
+    border-width: 2px;
+    border-color: rgb(0, 0, 0);
+    border-style: solid;
+    overflow: hidden; */
+}
+
+.envVirable {
+    background-color: rgb(190, 236, 240);
+}
+
+.envVirableBESELECTED {
+    background-color: rgb(93, 226, 238);
+}
+
+
 .localArgument {
     margin: 10px;
     /*min-width: 100px;
@@ -179,6 +215,18 @@
     border-style: solid;
     float: left;
 
+}
+
+.stackFrame {
+    border-style: solid;
+    border-width: 0px;
+    border-color: rgb(255, 0, 0);
+}
+
+.stackFrameBESELECTED {
+    border-style: solid;
+    border-width: 4px;
+    border-color: rgb(255, 0, 0);
 }
 
 .stackElementFrame {
@@ -240,10 +288,26 @@
     float: left;
 }
 
+.StackElementFrameContentBESELECTED {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 83%;
+    height: 30px;
+
+    background-color: rgb(117, 216, 112);
+    border-width: 2px;
+    border-style: solid;
+    border-bottom: none;
+
+    overflow: hidden;
+    float: left;
+}
+
 
 .closure {
     margin: 3px;
-    width: 34%;
+    width: 15%;
     min-height: 90%;
     background-color: rgb(240, 240, 190);
     border-width: 1px;

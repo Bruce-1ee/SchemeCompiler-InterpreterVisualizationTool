@@ -2,6 +2,11 @@
  * 这个文件里记载了关于画面类的定义及其方法
  */
 
+var stackFrameCounter = 0;
+var stackArgumentCounter = [];
+
+var envFrameCounter = 0;
+var envArgumentCounter = 0;
 
 /**
  * View类是整个画面的类，其中包含了环境、栈、和闭包的表示
@@ -26,7 +31,8 @@ class Environment {
 
     constructor() {
         let environment = makeNewElement('environment', 'environment', 'environment');
-        document.getElementsByTagName("body")[0].appendChild(environment);
+        document.getElementById('view').appendChild(environment); //控制其生成的位置
+        //document.getElementsByTagName("body")[0].appendChild(environment); 
         this.frameCounter = 1;
         this.box = new EnvironmentFrame();
 
@@ -53,6 +59,8 @@ class EnvironmentFrame {
         document.getElementById('localEnvrionmenBox_' + frameCounter).appendChild(envName);
         //环境本体的框
         let evnFrm = makeNewElement('', 'localEnvrionmenFrame_' + frameCounter, 'localEnvironmentFrame');
+        //同步用
+        evnFrm.setAttribute('name', 'F' + frameCounter);
         document.getElementById('localEnvrionmenBox_' + frameCounter).appendChild(evnFrm);
 
         makeLocalEnvConnection('localEnvrionmenName_' + frameCounter, 'localEnvrionmenFrame_' + frameCounter);
@@ -60,7 +68,8 @@ class EnvironmentFrame {
 
         //将所有变量插入
         for (var i = 0; i < varList.length; i++) {
-            let v = makeNewElement(varList[i], 'F_' + frameCounter + 'V_' + i, 'envVirable');
+            let v = makeNewElement(varList[i], 'frame' + frameCounter + ' variable' + i, 'envVirable');
+            v.setAttribute('name', 'F' + frameCounter + 'A' + (varList.length - 1 - i));
             document.getElementById('localEnvrionmenFrame_' + frameCounter).appendChild(v);
         }
     }
@@ -79,18 +88,26 @@ class Stack {
 
     constructor() {
         let stack = makeNewElement('stack', 'stack', 'stack');
-        document.getElementsByTagName("body")[0].appendChild(stack);
+        document.getElementById('view').appendChild(stack);
+        //document.getElementsByTagName("body")[0].appendChild(stack);
     }
 
     createFrame() {
         let newFrame = new StackFrame(this.frameLength);
         this.frameLength += 1;
         this.frameList.push(newFrame);
+        stackArgumentCounter.push(0);
     }
 
     deleteFrame() {
         this.frameList.pop().delete(this.frameLength - 1);
         this.frameLength--;
+        stackArgumentCounter.pop();
+    }
+
+    pushArgument(ele) {
+        this.frameList[this.frameLength - 1].pushArgument(ele, this.stackLength, this.frameLength - 1);
+        this.stackLength += 1;
     }
 
     push(ele) {
@@ -110,11 +127,25 @@ class StackFrame {
 
     constructor(number) {
         let stackFrame = makeNewElement('', 'stackFrame_' + number, 'stackFrame');
+        //为了同步显示新加入的全局变量
+        stackFrameCounter++;
+        stackFrame.setAttribute("name", "F" + stackFrameCounter);
         document.getElementById('stack').appendChild(stackFrame);
     }
 
     delete(frameLength) {
         popStackFrame(frameLength)
+    }
+
+    //为了同步显示新加入的方法，可以和pushElement合并成同一个，待修改
+    pushArgument(ele, number, frameNumber) {
+        let newElement = new StackElementFrame(ele, number, frameNumber);
+        this.elementList.push(newElement);
+        this.frameLength += 1;
+        let t = document.getElementById('StackElementFrameContent_' + number);
+
+        t.setAttribute("name", "F" + stackFrameCounter + "A" + stackArgumentCounter[stackArgumentCounter.length - 1]);
+        stackArgumentCounter[stackArgumentCounter.length - 1]++;
     }
 
     pushElement(ele, number, frameNumber) {
@@ -175,7 +206,8 @@ class StackElementFrameContent {
 class Closure {
     constructor() {
         let closure = makeNewElement('closure', 'closure', 'closure');
-        document.getElementsByTagName("body")[0].appendChild(closure);
+        document.getElementById('view').appendChild(closure);
+        //document.getElementsByTagName("body")[0].appendChild(closure);
 
     }
 }

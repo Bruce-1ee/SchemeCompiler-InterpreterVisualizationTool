@@ -1,7 +1,29 @@
 /**
  * 这个文件里记载了关于画面类的定义及其方法
  */
+class AST {
+    tree = [];
+    pointer = 0;
 
+    levelUp() {
+        this.pointer++;
+        if (this.pointer >= this.tree.length) {
+            this.tree.push(0);
+        }
+        this.tree[this.pointer - 1]++;
+    }
+
+    levelDown() {
+        this.pointer--;
+    }
+
+    //// L: level F:frame [L,F]
+    current() {
+        return [this.pointer - 1, this.tree[this.pointer - 1]];
+    }
+}
+
+var ast = new AST();
 var stackFrameCounter = 0;
 var stackArgumentCounter = [];
 
@@ -60,7 +82,9 @@ class EnvironmentFrame {
         //环境本体的框
         let evnFrm = makeNewElement('', 'localEnvrionmenFrame_' + frameCounter, 'localEnvironmentFrame');
         //同步用
-        evnFrm.setAttribute('name', 'F' + frameCounter);
+        // L: level F:frame
+        evnFrm.setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1]);
+        evnFrm.setAttribute('syn', '1');
         document.getElementById('localEnvrionmenBox_' + frameCounter).appendChild(evnFrm);
 
         makeLocalEnvConnection('localEnvrionmenName_' + frameCounter, 'localEnvrionmenFrame_' + frameCounter);
@@ -69,7 +93,8 @@ class EnvironmentFrame {
         //将所有变量插入
         for (var i = 0; i < varList.length; i++) {
             let v = makeNewElement(varList[i], 'frame' + frameCounter + ' variable' + i, 'envVirable');
-            v.setAttribute('name', 'F' + frameCounter + 'A' + (varList.length - 1 - i));
+            v.setAttribute('syn', '1');
+            v.setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1] + 'A' + (varList.length - 1 - i));
             document.getElementById('localEnvrionmenFrame_' + frameCounter).appendChild(v);
         }
     }
@@ -93,6 +118,8 @@ class Stack {
     }
 
     createFrame() {
+        //新加入
+        ast.levelUp();
         let newFrame = new StackFrame(this.frameLength);
         this.frameLength += 1;
         this.frameList.push(newFrame);
@@ -100,6 +127,8 @@ class Stack {
     }
 
     deleteFrame() {
+        //新加入
+        ast.levelDown();
         this.frameList.pop().delete(this.frameLength - 1);
         this.frameLength--;
         stackArgumentCounter.pop();
@@ -107,6 +136,11 @@ class Stack {
 
     pushArgument(ele) {
         this.frameList[this.frameLength - 1].pushArgument(ele, this.stackLength, this.frameLength - 1);
+        this.stackLength += 1;
+    }
+
+    pushStaticLink(ele) {
+        this.frameList[this.frameLength - 1].pushStaticLink(ele, this.stackLength, this.frameLength - 1);
         this.stackLength += 1;
     }
 
@@ -128,8 +162,8 @@ class StackFrame {
     constructor(number) {
         let stackFrame = makeNewElement('', 'stackFrame_' + number, 'stackFrame');
         //为了同步显示新加入的全局变量
-        stackFrameCounter++;
-        stackFrame.setAttribute("name", "F" + stackFrameCounter);
+        stackFrame.setAttribute('syn', '1');
+        stackFrame.setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1]);
         document.getElementById('stack').appendChild(stackFrame);
     }
 
@@ -143,9 +177,22 @@ class StackFrame {
         this.elementList.push(newElement);
         this.frameLength += 1;
         let t = document.getElementById('StackElementFrameContent_' + number);
-
-        t.setAttribute("name", "F" + stackFrameCounter + "A" + stackArgumentCounter[stackArgumentCounter.length - 1]);
+        t.setAttribute('syn', '1');
+        t.setAttribute("name", 'L' + ast.current()[0] + 'F' + ast.current()[1] + "A" + stackArgumentCounter[stackArgumentCounter.length - 1]);
         stackArgumentCounter[stackArgumentCounter.length - 1]++;
+    }
+
+    pushStaticLink(ele, number, frameNumber) {
+        let newElement = new StackElementFrame(ele, number, frameNumber);
+        this.elementList.push(newElement);
+        this.frameLength += 1;
+
+        let t = document.getElementById('StackElementFrameContent_' + number);
+        t.setAttribute('syn', '1');
+        t.setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1] + '_link')
+
+
+
     }
 
     pushElement(ele, number, frameNumber) {

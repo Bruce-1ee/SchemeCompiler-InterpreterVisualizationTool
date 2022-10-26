@@ -516,22 +516,22 @@
     (eval-application-apply body args env)))
 
 (define (eval-application-args args env)
-  (map (lambda(x) (exec x env)) args))
+  (reverse (map (lambda(x) (exec x env)) (reverse args))))
 
 (define (eval-application-body name env) (exec name env))
 
 (define (eval-application-apply func arguments env)
   (case (car func)
     ((primitive)
-     ;biwaschemeFunction
-     ;(send-arguments-to-js arguments arguments (cdr func) 0)
      (eval-application-apply-primitive func arguments))
     ((function)
-     ;biwaschemeFunction
-     ;(send-arguments-to-js (cadr func) arguments (caddr func) 1)
-     (exec (caddr func)
-           (eval-extend (cadddr func) (cadr func) arguments)))
+     (eval-application-apply-functional func arguments))
     (else (error "Not a function -- eval-application-apply"))))
+
+(define (eval-application-apply-functional func arguments)
+  (exec (caddr func)
+        (eval-extend (cadddr func) (cadr func) arguments)))
+
 (define (eval-application-apply-primitive func args)
   (apply (cdr func) args))
 
@@ -621,15 +621,27 @@
 
 
 
-(define-macro define-eval-draw-frame 
-  (lambda ()
-    `(let* ((org-fun eval-application-apply))
-       (set! eval-application-apply
-             (lambda (func arguments env)
-              (interpreter-new-frame arguments func)
-              (org-fun func arguments env))))))
+;===============画面相关=================
 
-(define-macro define-vm-draw-frame 
+(define-macro embed-vm-draw-find-link
+  (lambda ()
+    `(let* ((org-fun find-link))
+       (set! find-link
+             (lambda (n e)
+              (draw-VM-Info "finding link")
+              (org-fun n e))))))
+
+
+
+(define-macro embed-eval-draw-frame-functional
+  (lambda ()
+    `(let* ((org-fun eval-application-apply-functional))
+       (set! eval-application-apply-functional
+             (lambda (func arguments)
+              (interpreter-new-frame arguments func)
+              (org-fun func arguments))))))
+
+(define-macro embed-vm-draw-frame 
   (lambda ()
     `(let* ((org-fun VM-frame))
        (set! VM-frame
@@ -640,7 +652,7 @@
               (js-push-element-into-stack (cadr x))
               (org-fun a x f c s))))))
 
-(define-macro define-vm-draw-arg-push 
+(define-macro embed-vm-draw-arg-push 
   (lambda ()
     `(let* ((org-fun VM-argument))
        (set! VM-argument
@@ -648,15 +660,15 @@
               (js-push-argument a)
               (org-fun a x f c s))))))
 
-(define-macro define-vm-draw-apply-functional 
+(define-macro embed-vm-draw-apply-functional 
   (lambda ()
     `(let* ((org-fun VM-apply-functional))
        (set! VM-apply-functional
              (lambda (a x f c s)
-              (js-push-element-into-stack (caddr a))
+              (js-push-pushStaticLink (caddr a))
               (org-fun a x f c s))))))
 
-(define-macro define-vm-draw-apply-primitive
+(define-macro embed-vm-draw-apply-primitive
   (lambda ()
     `(let* ((org-fun VM-apply-primitive))
        (set! VM-apply-primitive
@@ -664,7 +676,7 @@
               (js-push-element-into-stack 0)
               (org-fun a x f c s))))))
 
-(define-macro define-vm-draw-return 
+(define-macro embed-vm-draw-return 
   (lambda ()
     `(let* ((org-fun VM-return))
        (set! VM-return
@@ -673,7 +685,7 @@
               (stack-deleteFrame)
               (org-fun a x f c s))))))
 
-(define-macro define-vm-draw-prim-return 
+(define-macro embed-vm-draw-prim-return 
   (lambda ()
     `(let* ((org-fun prim-return))
        (set! prim-return
@@ -741,14 +753,14 @@
 
 (define-vm-otherwise)
 
-(define-eval-draw-frame)
-(define-vm-draw-frame)
-(define-vm-draw-arg-push)
-(define-vm-draw-apply-functional)
-(define-vm-draw-return)
+(embed-eval-draw-frame-functional)
+(embed-vm-draw-frame)
+(embed-vm-draw-arg-push)
+(embed-vm-draw-apply-functional)
+(embed-vm-draw-return)
 
-(define-vm-draw-apply-primitive)
-(define-vm-draw-prim-return)
+(embed-vm-draw-apply-primitive)
+(embed-vm-draw-prim-return)
 
 
 ;====break===

@@ -71,6 +71,13 @@ function makeLocalEnvConnection(envName, envFrame) {
 
     connectEnvNameAndEnvFrame(envName, envFrame);
     connectEnvFrameAndGloEnv(envFrame);
+
+    let lst = document.getElementsByTagName('path');
+    lst[lst.length - 1].setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1] + '_link');
+    lst[lst.length - 1].setAttribute('syn', '1');
+    lst[lst.length - 2].setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1] + '_link');
+    lst[lst.length - 2].setAttribute('syn', '1');
+
 }
 
 var inteCounter = 1;

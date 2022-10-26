@@ -71,23 +71,44 @@ var breakpointOff = function () { evl('(breakpoint-off)'); }
 
 
 var backtar = [];
-
+var g;
 document.onmouseover = function (e) {
     // console.log("in");
     var e = e ? e : window.event;
     var tar = e.target;
 
-    eleList = document.getElementsByName(tar.getAttribute("name"));
+    if (tar.getAttribute('syn') === '1') {
+        tagname = tar.getAttribute("name");
+        //console.log(tagname.slice(tagname.length - 4))
+        if (tagname.slice(tagname.length - 4) === 'link') {
+            //link处理
+            //箭头变色
+            eleList = document.getElementsByName(tagname);
+            eleList[1].setAttribute('stroke', '#ea213a');
+            eleList[2].setAttribute('stroke', '#ea213a');
+            eleList[2].setAttribute('fill', '#ea213a');
 
-    if (eleList.length > 1) {
-        console.log('in');
-        var tarClass;
-        for (var o of eleList) {
-            tarClass = o.className;
-            o.className = tarClass + 'BESELECTED';
-            console.log(o.className);
+            // stackElementFrameNumber_0
+            var tarClass = eleList[0].className;
+            eleList[0].className = tarClass + 'BESELECTED';
+            var n = document.getElementById('stackElementFrameNumber_' + eleList[0].textContent);
+
+            var nClass = n.className;
+            n.className = nClass + 'BESELECTED';
+
+
+
+        } else {
+            eleList = document.getElementsByName(tagname);
+            var tarClass;
+            for (var o of eleList) {
+                tarClass = o.className;
+                o.className = tarClass + 'BESELECTED';
+                //console.log(o.className);
+            }
         }
         backtar.push(tar)
+
 
     }
 }
@@ -95,16 +116,35 @@ document.onmouseover = function (e) {
 document.onmouseout = function (e) {
     // console.log("onmouseout!");
     if (backtar.length != 0) {
-        console.log('out')
         var tar = backtar.shift();
         var tarName = tar.getAttribute("name");
-        var allObj = document.getElementsByName(tarName);
-        var tarClass;
-        for (var o of allObj) {
-            c = o.className.split(" ")[0];
-            tarClass = c.slice(0, o.className.length - 10);
-            // var backClass = o.className.slice(8, tar.className.length);
-            o.className = tarClass;
+        if (tarName.slice(tarName.length - 4) === 'link') {
+            //link处理
+            //箭头变色
+            arrowList = document.getElementsByName(tagname);
+            arrowList[1].setAttribute('stroke', '#456');
+            arrowList[2].setAttribute('stroke', '#456');
+            arrowList[2].setAttribute('fill', '#456');
+
+            let tarClass = arrowList[0].className.split(" ")[0];
+            tarClass = tarClass.slice(0, arrowList[0].className.length - 10);
+            arrowList[0].className = tarClass;
+
+            let n = document.getElementById('stackElementFrameNumber_' + arrowList[0].textContent);
+            g = n;
+            let nClass = n.className;
+            nClass = nClass.slice(0, nClass.length - 10);
+            n.className = nClass;
+
+        } else {
+            var allObj = document.getElementsByName(tarName);
+            var tarClass;
+            for (var o of allObj) {
+                c = o.className.split(" ")[0];
+                tarClass = c.slice(0, o.className.length - 10);
+                // var backClass = o.className.slice(8, tar.className.length);
+                o.className = tarClass;
+            }
         }
     }
 }

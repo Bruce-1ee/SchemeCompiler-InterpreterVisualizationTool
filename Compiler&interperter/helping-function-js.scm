@@ -51,6 +51,10 @@
 (define (js-pop-element)
   (js-invoke (js-ref (js-eval "view") "stack") "pop"))
 
+; view.stack.pushStaticLink(val)
+(define (js-push-pushStaticLink val)
+  (js-invoke (js-ref (js-eval "view") "stack") "pushStaticLink" val))
+
 (define (stack-deleteFrame)
  (js-invoke (js-ref (js-eval "view") "stack") "deleteFrame" ))
 

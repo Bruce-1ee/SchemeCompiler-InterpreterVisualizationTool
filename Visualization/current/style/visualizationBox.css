@@ -272,6 +272,22 @@
     float: left;
 }
 
+.stackElementFrameNumberBESELECTED {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 15%;
+    height: 30px;
+
+    background-color: rgb(117, 216, 112);
+    border-width: 2px;
+    border-right-width: 0px;
+    border-style: solid;
+    border-bottom: none;
+
+    float: left;
+}
+
 .StackElementFrameContent {
     display: flex;
     align-items: center;

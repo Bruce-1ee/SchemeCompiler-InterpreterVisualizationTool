@@ -354,7 +354,7 @@
   (lambda (s i v)
     (vector-set! stack (- (- s i) 1) v)))
 
-(define closure
+(define closure-bak
   (lambda (body n s)
     (let ((v (make-vector (+ n 1))))
       (vector-set! v 0 body)
@@ -363,6 +363,20 @@
           (vector-set! v (+ i 1) (index s i))
           (f (+ i 1))))
       (cons 'closure v)))) ;;;
+
+(define closure
+  (lambda (body n s)
+    (let ((v (make-clo body n s)))
+      (cons 'closure v)))) ;;;
+  
+(define (make-clo body n s)
+  (let ((v (make-vector (+ n 1))))
+      (vector-set! v 0 body)
+      (let f ((i 0))
+        (unless (= i n)
+          (vector-set! v (+ i 1) (index s i))
+          (f (+ i 1))))
+    v))
 
 (define closure-body
   (lambda (c)
@@ -505,10 +519,30 @@
 (define (eval-if-test test env) (exec test env))
 (define (eval-if-then then env) (exec then env))
 (define (eval-if-else else env) (exec else env))
-(define (eval-lambda exp env)
+(define (eval-lambda-bak exp env)
   (let ((vars (cadr exp))
         (body (caddr exp)))
     (list 'function vars body env)))
+
+(define (eval-lambda exp env)
+  (cond [(eq? (car exp) 'slambda) (eval-slambda exp env)]
+        [(eq? (car exp) 'clambda) (eval-clambda exp env)]
+        [else (error 'unknown_lambda)]))
+
+(define (eval-slambda exp env)
+  (let ((vars (cadr exp))
+        (body (caddr exp)))
+    (list 'function vars body env)))
+
+(define (eval-clambda exp env)
+  (let ((vb (eval-clambda-helping-fun exp)))
+    ;; draw make-closure 
+    (list 'function (car vb) (cadr vb) env)))
+
+(define (eval-clambda-helping-fun exp)
+    (let ((vars (cadr exp))
+          (body (caddr exp)))
+        (list vars body)))
 
 (define (eval-application exp env)
   (let ((args (eval-application-args (cdr exp) env))
@@ -560,7 +594,7 @@
           (lambda-vals (getvals args '())))
     (cons (list 'lambda lambda-args body) lambda-vals))))
 
-(define (eval1 exp) (exec exp GE))
+(define (eval1 exp) (exec (preprocess exp #f) GE))
 
 
 
@@ -620,6 +654,30 @@
                    (org-fun a x f c s)))))))
 
 
+(define-macro define-vm-make-clo
+  (lambda ()
+    `(let* ((org-fun make-clo))
+       (set! make-clo
+             (lambda (body n s)
+              (let ((v (org-fun body n s)))
+                (test-fun v)
+                v
+              )
+               )))))
+
+
+(define-macro define-eval-exec
+  (lambda ()
+    `(let* ((org-fun exec))
+       (set! exec
+             (lambda (exp env)
+              ;发送exp信息
+              (if (list? exp)
+                  (js-draw-expression (car exp))
+                  (js-draw-expression exp))
+              (org-fun exp env)
+ 
+               )))))
 
 ;===============画面相关=================
 
@@ -694,6 +752,29 @@
               (stack-deleteFrame)
               (org-fun retval s))))))
 
+(define-macro embed-vm-draw-make-clo 
+  (lambda ()
+    `(let* ((org-fun make-clo))
+       (set! make-clo
+             (lambda (body n s)
+              (let ((v (org-fun body n s)))
+                (js-closure-createClosure v)
+                v
+              )
+               )))))
+
+(define-macro embed-eval-draw-clambda
+  (lambda ()
+    `(let* ((org-fun eval-clambda-helping-fun))
+       (set! eval-clambda-helping-fun
+             (lambda (exp)
+              (let ((vb (org-fun exp)))
+                (js-env-addClosure (list->vector (list (list->vector (car vb)) (cadr vb))))
+                vb
+              )
+               )))))
+
+
 (define (loop n fun)
   (cond ((> n 0) (fun) (loop (- n 1) fun))))
 ;定义伪指令
@@ -762,7 +843,11 @@
 (embed-vm-draw-apply-primitive)
 (embed-vm-draw-prim-return)
 
+(embed-vm-draw-make-clo) 
 
+(embed-eval-draw-clambda)
+
+(define-eval-exec)
 ;====break===
 
 (define breakpoints (vector (vector 'act-constant #f)

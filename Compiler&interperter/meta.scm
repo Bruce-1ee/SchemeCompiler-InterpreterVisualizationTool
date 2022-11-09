@@ -338,7 +338,7 @@
 (define (primitive-fun natfun) ;;;
   (list 'primitive natfun))
 
-(define stack (make-vector 10))
+(define stack (make-vector 100))
 
 (define push
   (lambda (x s)
@@ -353,7 +353,7 @@
   (lambda (s i v)
     (vector-set! stack (- (- s i) 1) v)))
 
-(define closure
+(define closure-bak
   (lambda (body n s)
     (let ((v (make-vector (+ n 1))))
       (vector-set! v 0 body)
@@ -362,6 +362,20 @@
           (vector-set! v (+ i 1) (index s i))
           (f (+ i 1))))
       (cons 'closure v)))) ;;;
+
+(define closure
+  (lambda (body n s)
+    (let ((v (make-clo body n s)))
+      (cons 'closure v)))) ;;;
+  
+(define (make-clo body n s)
+  (let ((v (make-vector (+ n 1))))
+      (vector-set! v 0 body)
+      (let f ((i 0))
+        (unless (= i n)
+          (vector-set! v (+ i 1) (index s i))
+          (f (+ i 1))))
+    v))
 
 (define closure-body
   (lambda (c)
@@ -504,9 +518,25 @@
 (define (eval-if-test test env) (exec test env))
 (define (eval-if-then then env) (exec then env))
 (define (eval-if-else else env) (exec else env))
-(define (eval-lambda exp env)
+(define (eval-lambda-bak exp env)
   (let ((vars (cadr exp))
         (body (caddr exp)))
+    (list 'function vars body env)))
+
+(define (eval-lambda exp env)
+  (cond [(eq? (car exp) 'slambda) (eval-slambda exp env)]
+        [(eq? (car exp) 'clambda) (eval-clambda exp env)]
+        [else (error 'unknown_lambda)]))
+
+(define (eval-slambda exp env)
+  (let ((vars (cadr exp))
+        (body (caddr exp)))
+    (list 'function vars body env)))
+
+(define (eval-clambda exp env)
+  (let ((vars (cadr exp))
+        (body (caddr exp)))
+    ;; draw make-closure 
     (list 'function vars body env)))
 
 (define (eval-application exp env)
@@ -559,7 +589,7 @@
           (lambda-vals (getvals args '())))
     (cons (list 'lambda lambda-args body) lambda-vals))))
 
-(define (eval1 exp) (exec exp GE))
+(define (eval1 exp) (exec (preprocess exp #f) GE))
 
 
 
@@ -837,5 +867,5 @@
 
 ;(run '1)
 ;(eval1 '1)
-(define-all)
-(breakpoint-on)
+;(define-all)
+;(breakpoint-on)

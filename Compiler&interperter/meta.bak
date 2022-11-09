@@ -231,7 +231,9 @@
   (compile (preprocess exp #f) '(() . ()) '(halt)))
 
 (define VM
+  
   (lambda (a x f c s) ;; (a x e s)
+
     (case (car x)
       ((halt) a)
       ((refer) (VM-refer a x f c s))
@@ -306,9 +308,7 @@
 (define (VM-apply a x f c s)
   (case (car a)
     ((functional) ;;;
-     (let ((body (cadr a))
-           (link (caddr a)))
-       (VM a body s c (push link s))))
+     (VM-apply-functional a x f c s))
     ((closure) ;;;
      (VM a (closure-body (cdr a)) s (cdr a) s)) ;;;
     ((primitive) ;;;
@@ -318,20 +318,18 @@
     (else
      (error "Not a function"))))
 
+(define (VM-apply-functional a x f c s)
+  (let ((body (cadr a))
+        (link (caddr a)))
+    (VM a body s c (push link s))))
+
 (define (VM-return a x f c s)
   (let ((n (cadr x)))
     (let ((s (- s n)))
       (VM a (index s 0) (index s 1) (index s 2) (- s 3)))))
 
 (define (VM-otherwise a x f c s)
-  (if (get-act (car x)) ;如果存在于acts的VECTOR里那么就执行，不然就报错
-      (begin
-        (set! vm-info (car x))
-        (cond ((break? vm-info) (set! break #t)))
-        (make-jumppoint-vm)
-        (display 'vm:)(display (car x)) (newline)
-        (VM a (cadr x) f c s))
-      (error "unknow inst")))
+      (error "unknow inst"))
  
 (define functional
   (lambda (body e)
@@ -340,7 +338,7 @@
 (define (primitive-fun natfun) ;;;
   (list 'primitive natfun))
 
-(define stack (make-vector 1000))
+(define stack (make-vector 100))
 
 (define push
   (lambda (x s)
@@ -563,10 +561,6 @@
 
 (define (eval1 exp) (exec exp GE))
 
-(define exec-k #f)
-(define vm-k #f)
-(define resume-meta #f)
-
 
 
 ;====macro======
@@ -611,26 +605,28 @@
 
 
 (define-macro define-vm-otherwise
-  (lambda (fun)
-    `(let* ((org-fun ,fun))
-       (set! ,fun
+  (lambda ()
+    `(let* ((org-fun VM-otherwise))
+       (set! VM-otherwise
              (lambda (a x f c s)
-               (if (get-act (car x)) ;如果存在于acts的VECTOR里那么就执行，不然就报错
-      (begin
-        (set! vm-info (car x))
-        (cond ((break? vm-info) (set! break #t)))
-        (make-jumppoint-vm)
-        (display 'vm:)(display (car x)) (newline)
-        (VM a (cadr x) f c s))
-      (error "unknow inst")))
-               (list ,pseins
-                     (apply org-fun (cons arg restarg))))))))
+               (if (get-act (car x)) ;如果存在于acts的VECTOR里那么就执行,不然就报错
+                   (begin
+                     (set! vm-info (car x))
+                     (cond ((break? vm-info) (set! break #t)))
+                     (make-jumppoint-vm)
+                     (display 'vm:)(display (car x)) (newline)
+                     (VM a (cadr x) f c s))
+                   (org-fun a x f c s)))))))
 
 
 
 
 
 ;定义伪指令
+
+
+(define (define-all)
+  
 
 ;; 0 self-evaluating
 (define-act-compiler compile-self-evaluating 'act-constant)
@@ -685,6 +681,7 @@
 
 ;; 6 others
 ;(define-act-create-frame)
+(define-vm-otherwise) )
 
 
 
@@ -737,6 +734,12 @@
 
 ;========meta======
 
+
+(define exec-k #f)
+(define vm-k #f)
+(define resume-meta #f)
+
+
 (define vm-info #f)
 (define inte-info #f)
 
@@ -779,7 +782,7 @@
          (org (get-act-num act-name target)))
     (vector-set! v t (+ org 1))))
 
-(define (is-same-positon?)
+(define (is-same-position?)
   (if (or (eq? vm-info #f)
           (eq? inte-info #f))
       #f
@@ -798,7 +801,7 @@
      (call/cc
       (lambda (top)
         (set! resume-meta top)))
-     
+     ;(display acts) (newline)
      (call/cc
       (lambda (c)
         (cond ((eq? break #t)
@@ -807,11 +810,13 @@
                (return)))))
       
          (cond ((eq? vm-k #f) (run program))
-               ((eq? exec-k #f) (resume-meta (eval1 program)))
-               ((is-same-positon?)
+               ((eq? exec-k #f) (eval1 program))
+               ((is-same-position?)
+                ;(p 'is-same-position)
                 (act-add1 inte-info 'exec)
                 (exec-k))
                (else
+                ;(p 'not-same)
                 (act-add1 vm-info 'vm)
                 (vm-k))))))
          
@@ -832,14 +837,5 @@
 
 ;(run '1)
 ;(eval1 '1)
-
-;(meta3)
-
-;(next2)
-;多次调用next2之后会发生错误
-;原因是当前的procname为SUBAPPLICATION，但没有处理该SUBAPPLICATION的操作
-;具体的原因是在处理app的时候掺杂了SELF-EVAL的操作，然而procname只能存储一个数据
-;当selfeval处理结束的时候，无法返回之前未完成的app操作
-;解决办法是使用一个栈的数据结构记录之前未完成的操作
-
-
+;(define-all)
+;(breakpoint-on)

@@ -27,8 +27,8 @@
   (js-call (js-eval "getArgumentsFromScheme") args vals body type))
 
 
-;(define (test-val val)
-;  (js-call (js-eval "testVal") val))
+(define (test-fun val)
+  (js-call (js-eval "testFun") val))
 
 ;(define (test-arg vals args)
 ;  (js-call (js-eval "newFrame") vals args))
@@ -59,8 +59,21 @@
  (js-invoke (js-ref (js-eval "view") "stack") "deleteFrame" ))
 
 
+;view.closure.createClosure(l)
+(define (js-closure-createClosure val)
+  (js-invoke (js-ref (js-eval "view") "closure") "createClosure" val))
+
+;view.environment.addClosure(l)
+(define (js-env-addClosure val)
+  (js-invoke (js-ref (js-eval "view") "environment") "addClosure" val))
+
+;drawexpression(exp)
+(define (js-draw-expression exp)
+  (js-call (js-eval "drawexpression") exp))
+
 (define (draw-interpreter-info info)
   (js-call (js-eval "drawInterpreterInfo") info))
 
 (define (draw-VM-Info info)
   (js-call (js-eval "drawVMInfo") info))
+

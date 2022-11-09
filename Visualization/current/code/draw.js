@@ -75,9 +75,58 @@ function makeLocalEnvConnection(envName, envFrame) {
     let lst = document.getElementsByTagName('path');
     lst[lst.length - 1].setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1] + '_link');
     lst[lst.length - 1].setAttribute('syn', '1');
+    lst[lst.length - 1].setAttribute('type', 'arrow');
     lst[lst.length - 2].setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1] + '_link');
     lst[lst.length - 2].setAttribute('syn', '1');
+    lst[lst.length - 2].setAttribute('type', 'line');
 
+}
+
+function makeCloConnection(cloName, cloFrame) {
+
+    function connectCloNameAndCloFrame(cloName, cloFrame) {
+        let con = jsPlumb.connect({
+            source: cloName,
+            target: cloFrame,
+            endpoint: ['Dot', { radius: '0' }],
+            overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
+            connector: ['Flowchart'],
+            anchor: ['Right', 'Left']
+        });
+        conMap.set(cloName, con);
+    }
+
+    function connectCloFrameAndGloEnv(cloFrame) { //全局环境的名称为：globalEnvironmentFrame
+        let con = jsPlumb.connect({
+            source: cloFrame,
+            target: 'globalEnvironmentFrame',
+            endpoint: ['Dot', { radius: '0' }],
+            overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
+            connector: ['Flowchart'],
+            anchor: ['Right', 'Bottom']
+        });
+        conMap.set(cloFrame, con);
+    }
+    connectCloNameAndCloFrame(cloName, cloFrame);
+    connectCloFrameAndGloEnv(cloFrame);
+
+}
+
+
+function makeLinkConnection(link, stackTag) {
+
+    function connectLinkAndStackTag(link, stackTag) {
+        let con = jsPlumb.connect({
+            source: link,
+            target: stackTag,
+            endpoint: ['Dot', { radius: '0' }],
+            overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
+            connector: ['Bezier'],
+            anchor: ['Left', 'Left']
+        });
+        conMap.set(link, con);
+    }
+    connectLinkAndStackTag(link, stackTag);
 }
 
 var inteCounter = 1;
@@ -92,5 +141,11 @@ function drawVMInfo(info) {
     let e = makeNewElement(VMCounter + ". " + info, "VMInfo" + VMCounter, "null");
     document.getElementById('VMInfo').appendChild(e);
     VMCounter++;
+}
+
+
+function drawexpression(exp) {
+    let e = document.getElementById("expression");
+    e.innerHTML = exp;
 }
 

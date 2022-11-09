@@ -83,18 +83,49 @@ document.onmouseover = function (e) {
         if (tagname.slice(tagname.length - 4) === 'link') {
             //link处理
             //箭头变色
+
+
             eleList = document.getElementsByName(tagname);
-            eleList[1].setAttribute('stroke', '#ea213a');
-            eleList[2].setAttribute('stroke', '#ea213a');
-            eleList[2].setAttribute('fill', '#ea213a');
 
-            // stackElementFrameNumber_0
-            var tarClass = eleList[0].className;
-            eleList[0].className = tarClass + 'BESELECTED';
-            var n = document.getElementById('stackElementFrameNumber_' + eleList[0].textContent);
 
-            var nClass = n.className;
-            n.className = nClass + 'BESELECTED';
+            for (let i = 0; i < eleList.length; i++) {
+                switch (eleList[i].getAttribute('type')) {
+                    case 'line':
+                        eleList[i].setAttribute('stroke', '#ea213a');
+                        break;
+                    case 'arrow':
+                        eleList[i].setAttribute('stroke', '#ea213a');
+                        eleList[i].setAttribute('fill', '#ea213a');
+                        break;
+                    default:
+                        let tarClass = eleList[i].className;
+                        eleList[i].className = tarClass + 'BESELECTED';
+                        var n = document.getElementById('stackElementFrameNumber_' + eleList[i].textContent);
+
+                        var nClass = n.className;
+                        n.className = nClass + 'BESELECTED';
+
+                        makeLinkConnection(eleList[i].id, 'stackElementFrameNumber_' + eleList[i].textContent)
+
+
+                }
+
+
+            }
+
+
+
+            // eleList[1].setAttribute('stroke', '#ea213a');
+            // eleList[2].setAttribute('stroke', '#ea213a');
+            // eleList[2].setAttribute('fill', '#ea213a');
+
+            // // stackElementFrameNumber_0
+            // var tarClass = eleList[0].className;
+            // eleList[0].className = tarClass + 'BESELECTED';
+            // var n = document.getElementById('stackElementFrameNumber_' + eleList[0].textContent);
+
+            // var nClass = n.className;
+            // n.className = nClass + 'BESELECTED';
 
 
 
@@ -121,20 +152,59 @@ document.onmouseout = function (e) {
         if (tarName.slice(tarName.length - 4) === 'link') {
             //link处理
             //箭头变色
-            arrowList = document.getElementsByName(tagname);
-            arrowList[1].setAttribute('stroke', '#456');
-            arrowList[2].setAttribute('stroke', '#456');
-            arrowList[2].setAttribute('fill', '#456');
 
-            let tarClass = arrowList[0].className.split(" ")[0];
-            tarClass = tarClass.slice(0, arrowList[0].className.length - 10);
-            arrowList[0].className = tarClass;
 
-            let n = document.getElementById('stackElementFrameNumber_' + arrowList[0].textContent);
-            g = n;
-            let nClass = n.className;
-            nClass = nClass.slice(0, nClass.length - 10);
-            n.className = nClass;
+            eleList = document.getElementsByName(tagname);
+
+            for (let i = 0; i < eleList.length; i++) {
+                switch (eleList[i].getAttribute('type')) {
+                    case 'line':
+                        eleList[i].setAttribute('stroke', '#456');
+                        break;
+                    case 'arrow':
+                        eleList[i].setAttribute('stroke', '#456');
+                        eleList[i].setAttribute('fill', '#456');
+                        break;
+                    default:
+                        // let tarClass = eleList[i].className.split(" ")[0];
+                        // tarClass = tarClass.slice(0, eleList[i].className.length - 10);
+                        eleList[i].className = "StackElementFrameContent"
+                        // eleList[i].className = tarClass;
+
+                        let n = document.getElementById('stackElementFrameNumber_' + eleList[i].textContent);
+                        // g = n;
+                        // let nClass = n.className;
+                        // nClass = nClass.slice(0, nClass.length - 10);
+                        // n.className = nClass; 
+                        n.className = "stackElementFrameNumber"
+
+                        let self = document.getElementsByTagName("path");
+                        self = self[self.length - 1];
+                        let p = self.parentElement
+                        self = p;
+                        p = self.parentElement;
+                        p.removeChild(self);
+
+                }
+
+
+            }
+
+
+            // arrowList = document.getElementsByName(tagname);
+            // arrowList[1].setAttribute('stroke', '#456');
+            // arrowList[2].setAttribute('stroke', '#456');
+            // arrowList[2].setAttribute('fill', '#456');
+
+            // let tarClass = arrowList[0].className.split(" ")[0];
+            // tarClass = tarClass.slice(0, arrowList[0].className.length - 10);
+            // arrowList[0].className = tarClass;
+
+            // let n = document.getElementById('stackElementFrameNumber_' + arrowList[0].textContent);
+            // g = n;
+            // let nClass = n.className;
+            // nClass = nClass.slice(0, nClass.length - 10);
+            // n.className = nClass;
 
         } else {
             var allObj = document.getElementsByName(tarName);
@@ -148,3 +218,8 @@ document.onmouseout = function (e) {
         }
     }
 }
+
+function testFun(a) {
+    testArg = a;
+}
+var testArg = "";

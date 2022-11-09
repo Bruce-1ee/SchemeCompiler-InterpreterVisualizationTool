@@ -27,8 +27,8 @@
   (js-call (js-eval "getArgumentsFromScheme") args vals body type))
 
 
-;(define (test-val val)
-;  (js-call (js-eval "testVal") val))
+(define (test-fun val)
+  (js-call (js-eval "testFun") val))
 
 ;(define (test-arg vals args)
 ;  (js-call (js-eval "newFrame") vals args))
@@ -59,11 +59,25 @@
  (js-invoke (js-ref (js-eval "view") "stack") "deleteFrame" ))
 
 
+;view.closure.createClosure(l)
+(define (js-closure-createClosure val)
+  (js-invoke (js-ref (js-eval "view") "closure") "createClosure" val))
+
+;view.environment.addClosure(l)
+(define (js-env-addClosure val)
+  (js-invoke (js-ref (js-eval "view") "environment") "addClosure" val))
+
+;drawexpression(exp)
+(define (js-draw-expression exp)
+  (js-call (js-eval "drawexpression") exp))
+
 (define (draw-interpreter-info info)
   (js-call (js-eval "drawInterpreterInfo") info))
 
 (define (draw-VM-Info info)
   (js-call (js-eval "drawVMInfo") info))
+
+
 (define (compile exp env next)
   (cond ((self-evaluating? exp) (compile-self-evaluating exp next))
         ((quoted? exp) (compile-quoted exp next))
@@ -415,7 +429,7 @@
   (lambda (s i v)
     (vector-set! stack (- (- s i) 1) v)))
 
-(define closure
+(define closure-bak
   (lambda (body n s)
     (let ((v (make-vector (+ n 1))))
       (vector-set! v 0 body)
@@ -424,6 +438,20 @@
           (vector-set! v (+ i 1) (index s i))
           (f (+ i 1))))
       (cons 'closure v)))) ;;;
+
+(define closure
+  (lambda (body n s)
+    (let ((v (make-clo body n s)))
+      (cons 'closure v)))) ;;;
+  
+(define (make-clo body n s)
+  (let ((v (make-vector (+ n 1))))
+      (vector-set! v 0 body)
+      (let f ((i 0))
+        (unless (= i n)
+          (vector-set! v (+ i 1) (index s i))
+          (f (+ i 1))))
+    v))
 
 (define closure-body
   (lambda (c)
@@ -566,10 +594,30 @@
 (define (eval-if-test test env) (exec test env))
 (define (eval-if-then then env) (exec then env))
 (define (eval-if-else else env) (exec else env))
-(define (eval-lambda exp env)
+(define (eval-lambda-bak exp env)
   (let ((vars (cadr exp))
         (body (caddr exp)))
     (list 'function vars body env)))
+
+(define (eval-lambda exp env)
+  (cond [(eq? (car exp) 'slambda) (eval-slambda exp env)]
+        [(eq? (car exp) 'clambda) (eval-clambda exp env)]
+        [else (error 'unknown_lambda)]))
+
+(define (eval-slambda exp env)
+  (let ((vars (cadr exp))
+        (body (caddr exp)))
+    (list 'function vars body env)))
+
+(define (eval-clambda exp env)
+  (let ((vb (eval-clambda-helping-fun exp)))
+    ;; draw make-closure 
+    (list 'function (car vb) (cadr vb) env)))
+
+(define (eval-clambda-helping-fun exp)
+    (let ((vars (cadr exp))
+          (body (caddr exp)))
+        (list vars body)))
 
 (define (eval-application exp env)
   (let ((args (eval-application-args (cdr exp) env))
@@ -621,7 +669,7 @@
           (lambda-vals (getvals args '())))
     (cons (list 'lambda lambda-args body) lambda-vals))))
 
-(define (eval1 exp) (exec exp GE))
+(define (eval1 exp) (exec (preprocess exp #f) GE))
 
 
 
@@ -681,8 +729,42 @@
                    (org-fun a x f c s)))))))
 
 
+(define-macro define-vm-make-clo
+  (lambda ()
+    `(let* ((org-fun make-clo))
+       (set! make-clo
+             (lambda (body n s)
+              (let ((v (org-fun body n s)))
+                (test-fun v)
+                v
+              )
+               )))))
+
+
+(define-macro define-eval-exec
+  (lambda ()
+    `(let* ((org-fun exec))
+       (set! exec
+             (lambda (exp env)
+              ;发送exp信息
+              (if (list? exp)
+                  (js-draw-expression (car exp))
+                  (js-draw-expression exp))
+              (org-fun exp env)
+ 
+               )))))
 
 ;===============画面相关=================
+
+(define-macro embed-vm-draw-find-link
+  (lambda ()
+    `(let* ((org-fun find-link))
+       (set! find-link
+             (lambda (n e)
+              (draw-VM-Info "finding link")
+              (org-fun n e))))))
+
+
 
 (define-macro embed-eval-draw-frame-functional
   (lambda ()
@@ -744,6 +826,29 @@
               (loop 3 js-pop-element)
               (stack-deleteFrame)
               (org-fun retval s))))))
+
+(define-macro embed-vm-draw-make-clo 
+  (lambda ()
+    `(let* ((org-fun make-clo))
+       (set! make-clo
+             (lambda (body n s)
+              (let ((v (org-fun body n s)))
+                (js-closure-createClosure v)
+                v
+              )
+               )))))
+
+(define-macro embed-eval-draw-clambda
+  (lambda ()
+    `(let* ((org-fun eval-clambda-helping-fun))
+       (set! eval-clambda-helping-fun
+             (lambda (exp)
+              (let ((vb (org-fun exp)))
+                (js-env-addClosure (list->vector (list (list->vector (car vb)) (cadr vb))))
+                vb
+              )
+               )))))
+
 
 (define (loop n fun)
   (cond ((> n 0) (fun) (loop (- n 1) fun))))
@@ -813,7 +918,11 @@
 (embed-vm-draw-apply-primitive)
 (embed-vm-draw-prim-return)
 
+(embed-vm-draw-make-clo) 
 
+(embed-eval-draw-clambda)
+
+(define-eval-exec)
 ;====break===
 
 (define breakpoints (vector (vector 'act-constant #f)

@@ -56,6 +56,7 @@ class Environment {
         document.getElementById('view').appendChild(environment); //控制其生成的位置
         //document.getElementsByTagName("body")[0].appendChild(environment); 
         this.frameCounter = 1;
+        this.closureCounter = 1;
         this.box = new EnvironmentFrame();
 
     }
@@ -64,10 +65,23 @@ class Environment {
         this.box.newFrame(this.frameCounter, varList);
         this.frameCounter++;
     }
+
+    /**
+     *  
+     * @param {list} l 包含参数和函数体的列表
+     *                 vars
+     *                 body  
+     */
+    addClosure(l) {
+        this.box.newClosure(this.closureCounter++, l);
+    }
 }
 
 
 class EnvironmentFrame {
+
+    closureCounter = 0;
+
     constructor() {
         let globalEnvironmentFrame = makeNewElement('', 'globalEnvironmentFrame', 'globalEnvironmentFrame');
         document.getElementById('environment').appendChild(globalEnvironmentFrame);
@@ -96,6 +110,34 @@ class EnvironmentFrame {
             v.setAttribute('syn', '1');
             v.setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1] + 'A' + (varList.length - 1 - i));
             document.getElementById('localEnvrionmenFrame_' + frameCounter).appendChild(v);
+        }
+    }
+
+    newClosure(closureCounter, l) {
+        //外侧的框
+        let box = makeNewElement('', 'closureBox_' + closureCounter, 'localEnvrionmenBox');
+        document.getElementById('environment').appendChild(box);
+        //闭包的名字
+        let cloName = makeNewElement('clo' + closureCounter, 'closureName_' + closureCounter, 'localEnvironmentName');
+        document.getElementById('closureBox_' + closureCounter).appendChild(cloName);
+        //闭包本体的框
+        let cloFrm = makeNewElement(l[1], 'closureFrame_' + closureCounter, 'localEnvironmentFrame');
+
+        // //同步用 待修改
+        // // L: level F:frame
+        // evnFrm.setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1]);
+        // evnFrm.setAttribute('syn', '1');
+        document.getElementById('closureBox_' + closureCounter).appendChild(cloFrm);
+
+        makeCloConnection('closureName_' + closureCounter, 'closureFrame_' + closureCounter);
+
+        //将所有变量插入
+        console.log(l);
+        for (var i = 0; i < l[0].length; i++) {
+            let v = makeNewElement(l[0][i], 'C' + closureCounter + ' A' + i, 'envVirable');
+            // v.setAttribute('syn', '1');
+            // v.setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1] + 'A' + (varList.length - 1 - i));
+            document.getElementById('closureFrame_' + closureCounter).appendChild(v);
         }
     }
 }
@@ -251,12 +293,27 @@ class StackElementFrameContent {
 
 
 class Closure {
+
+    closureCounter = 0;
+
     constructor() {
         let closure = makeNewElement('closure', 'closure', 'closure');
         document.getElementById('view').appendChild(closure);
         //document.getElementsByTagName("body")[0].appendChild(closure);
 
     }
+
+    createClosure(eleList) {
+        let eleCoutner = 0;
+        //let body = eleList[0];
+        let closureFrame = makeNewElement("", "C" + this.closureCounter++, 'closureFrame');
+        for (let i = 0; i < eleList.length; i++) {
+            let closureElement = makeNewElement(eleList[i], "C" + this.closureCounter + "E" + eleCoutner++, 'closureElement');
+            closureFrame.appendChild(closureElement);
+        }
+        document.getElementById('closure').appendChild(closureFrame);
+    }
+
 }
 
 

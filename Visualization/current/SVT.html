@@ -18,7 +18,10 @@
     <div id="inputBox" class="inputBox">this is inputBox
 
         <textarea style=" position: absolute1; left: 200px; top: 10px;" name="content" id="programInput" rows="8"
-            cols="50"> (meta '((lambda (a b c) (if a b c)) 11 22 33))
+            cols="50"> (meta '((lambda (arg1 arg2) (lambda () (+ arg1 arg2))) 11 22))
+            
+
+            ;(meta '((lambda (a b c) (if a b c)) 11 22 33))
 
          </textarea>
 

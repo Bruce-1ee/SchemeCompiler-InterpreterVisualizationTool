@@ -330,3 +330,13 @@
     border-style: solid;
     float: left;
 }
+
+.closureElement {
+    width: 50px;
+    border-width: 1px;
+    border-style: solid;
+    float: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

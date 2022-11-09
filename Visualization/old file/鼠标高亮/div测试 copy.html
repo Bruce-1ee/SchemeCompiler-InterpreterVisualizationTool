@@ -1,0 +1,75 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>设置div最小高度及高度自动伸展的实例</title>
+    <style>
+        .divHeight {
+            width: auto;
+            display: inline-block !important;
+            display: inline;
+            background: #bbeeeb;
+        }
+
+        .point {
+
+            /* 
+        (29 + 2 - 1)/2 - (1 + 4)
+        内部长度-point一半长度-边框宽
+            50 - （1 + 10） */
+            width: 1px;
+            height: 1px;
+            background-color: black;
+            border: 4px black solid;
+            border-radius: 50%;
+            margin: 10px;
+
+        }
+
+        .clearfix::before,
+        .clearfix::after {
+            content: '';
+            display: table;
+            clear: both;
+        }
+
+        .doubleDotBox {
+            /* border: 3px #bfa solid; */
+            float: left;
+        }
+
+        .circle {
+            width: 29px;
+            height: 29px;
+            background-color: rgb(255, 255, 255);
+            border: 1px black solid;
+            border-radius: 50%;
+            float: left;
+        }
+
+        .box1 {
+            width: 100px;
+            height: 100px;
+            background-color: #bfa;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 定义点对 -->
+    <div class="clearfix">
+        <div id="definition_1" class="doubleDotBox ">
+            <div class="circle">
+                <div id="definition_1_l" class="point"></div>
+            </div>
+            <div class="circle">
+                <div id="definition_1_r" class="point"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="box1"></div>
+</body>
+
+</html>

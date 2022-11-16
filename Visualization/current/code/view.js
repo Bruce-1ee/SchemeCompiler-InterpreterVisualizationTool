@@ -119,26 +119,33 @@ class EnvironmentFrame {
         document.getElementById('environment').appendChild(box);
         //闭包的名字
         let cloName = makeNewElement('clo' + closureCounter, 'closureName_' + closureCounter, 'localEnvironmentName');
-        document.getElementById('closureBox_' + closureCounter).appendChild(cloName);
-        //闭包本体的框
-        let cloFrm = makeNewElement(l[1], 'closureFrame_' + closureCounter, 'localEnvironmentFrame');
+        //document.getElementById('closureBox_' + closureCounter).appendChild(cloName);
+        box.appendChild(cloName);
+        //     //闭包本体的框
+        //     let cloFrm = makeNewElement(l[1], 'closureFrame_' + closureCounter, 'localEnvironmentFrame');
 
-        // //同步用 待修改
-        // // L: level F:frame
-        // evnFrm.setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1]);
-        // evnFrm.setAttribute('syn', '1');
-        document.getElementById('closureBox_' + closureCounter).appendChild(cloFrm);
+        //     // //同步用 待修改
+        //     // // L: level F:frame
+        //     // evnFrm.setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1]);
+        //     // evnFrm.setAttribute('syn', '1');
+        //     document.getElementById('closureBox_' + closureCounter).appendChild(cloFrm);
 
-        makeCloConnection('closureName_' + closureCounter, 'closureFrame_' + closureCounter);
+        //     makeCloConnection('closureName_' + closureCounter, 'closureFrame_' + closureCounter);
 
-        //将所有变量插入
-        console.log(l);
-        for (var i = 0; i < l[0].length; i++) {
-            let v = makeNewElement(l[0][i], 'C' + closureCounter + ' A' + i, 'envVirable');
-            // v.setAttribute('syn', '1');
-            // v.setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1] + 'A' + (varList.length - 1 - i));
-            document.getElementById('closureFrame_' + closureCounter).appendChild(v);
-        }
+        //     //将所有变量插入
+        //     console.log(l);
+        //     for (var i = 0; i < l[0].length; i++) {
+        //         let v = makeNewElement(l[0][i], 'C' + closureCounter + ' A' + i, 'envVirable');
+        //         // v.setAttribute('syn', '1');
+        //         // v.setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1] + 'A' + (varList.length - 1 - i));
+        //         document.getElementById('closureFrame_' + closureCounter).appendChild(v);
+        //     }
+        let lst = drawClsure(closureCounter, l);
+        box.appendChild(lst[0]);
+
+        makeCloConnection('closureName_' + closureCounter, lst[1], lst[2], lst[3], lst[4]);
+
+
     }
 }
 

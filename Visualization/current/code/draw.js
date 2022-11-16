@@ -37,6 +37,41 @@ function popStackElement(frameLength, stackLength) {
     parentNode.removeChild(currentNode);
 }
 
+
+
+function drawClsure(closureCounter, l) {
+    //外侧的框
+    let box = makeNewElement('', '', 'closureRightBox');
+    //点对的绘制
+
+    let cloBox = makeNewElement('', 'closure_' + closureCounter, 'doubleDotBox clearfix');
+
+    let c1 = makeNewElement('', 'c' + closureCounter + 'l', 'circle');
+    let c1p = makeNewElement('', 'closure_' + closureCounter + "_l_p", 'point');
+
+
+    let c2 = makeNewElement('', 'c' + closureCounter + 'r', 'circle');
+    let c2p = makeNewElement('', 'closure_' + closureCounter + "_r_p", 'point');
+
+    cloBox.appendChild(c1);
+    cloBox.appendChild(c2);
+    c1.appendChild(c1p);
+    c2.appendChild(c2p);
+
+    box.appendChild(cloBox);
+    //闭包本体
+
+    let bodyBox = makeNewElement('', 'closureBodyBox_' + closureCounter, 'closureBodyBox');
+    let cloFrm = makeNewElement(l[1], 'closureFrame_' + closureCounter, 'closureFrame');
+
+    bodyBox.appendChild(cloFrm);
+    box.appendChild(bodyBox);
+    //return box;
+    return [box, 'c' + closureCounter + 'l', 'closure_' + closureCounter + "_l_p", 'closure_' + closureCounter + "_r_p", 'closureFrame_' + closureCounter]
+}
+
+
+
 /**
  * 通过两个element的id连接
  * makeLocalEnvConnection('localEnvrionmenName_' + frameCounter, 
@@ -82,33 +117,44 @@ function makeLocalEnvConnection(envName, envFrame) {
 
 }
 
-function makeCloConnection(cloName, cloFrame) {
+function makeCloConnection(cloName, cl, clp, crp, body) {
 
-    function connectCloNameAndCloFrame(cloName, cloFrame) {
-        let con = jsPlumb.connect({
+    function connectCloNameAndCloCircleL(cloName, cl) {
+        jsPlumb.connect({
             source: cloName,
-            target: cloFrame,
+            target: cl,
             endpoint: ['Dot', { radius: '0' }],
             overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
             connector: ['Flowchart'],
             anchor: ['Right', 'Left']
         });
-        conMap.set(cloName, con);
     }
 
-    function connectCloFrameAndGloEnv(cloFrame) { //全局环境的名称为：globalEnvironmentFrame
-        let con = jsPlumb.connect({
-            source: cloFrame,
-            target: 'globalEnvironmentFrame',
+    function connectclpToCloBody(clp, body) { //全局环境的名称为：globalEnvironmentFrame
+        jsPlumb.connect({
+            source: clp,
+            target: body,
+            endpoint: ['Dot', { radius: '0' }],
+            overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
+            connector: ['Flowchart'],
+            anchor: ['Bottom', 'Top']
+        });
+    }
+
+    function connectcrpToGlo(crp) { //全局环境的名称为：globalEnvironmentFrame
+        jsPlumb.connect({
+            source: crp,
+            target: "globalEnvironmentFrame",
             endpoint: ['Dot', { radius: '0' }],
             overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
             connector: ['Flowchart'],
             anchor: ['Right', 'Bottom']
         });
-        conMap.set(cloFrame, con);
     }
-    connectCloNameAndCloFrame(cloName, cloFrame);
-    connectCloFrameAndGloEnv(cloFrame);
+
+    connectCloNameAndCloCircleL(cloName, cl);
+    connectclpToCloBody(clp, body);
+    connectcrpToGlo(crp)
 
 }
 

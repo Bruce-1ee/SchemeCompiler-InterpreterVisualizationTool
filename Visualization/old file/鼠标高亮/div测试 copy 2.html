@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .menu {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            background: #fff;
+            border: 1px solid #dadce0;
+            visibility: hidden;
+        }
+
+        .active {
+            visibility: visible;
+        }
+
+        .menu__item,
+        .submenu__item {
+            width: 200px;
+            height: 20px;
+        }
+
+        .menu__item:hover,
+        .submenu__item:hover {
+            background-color: #dadce0;
+        }
+
+        .menu__item:hover .submenu {
+            opacity: 1;
+        }
+
+        .submenu {
+            position: relative;
+            top: -20px;
+            left: 200px;
+            opacity: 0;
+            background: #fff;
+            border: 1px solid #dadce0;
+        }
+
+        .icon {
+            position: absolute;
+            right: 3px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="aaaaaaaaaaaaaaaaaaaaaa" class="bbbbbbbbbbbb" oncontextmenu="myfun()"> adfadfasfdaf</div>
+
+    <div id="menu" class="menu">
+        <div id="menuItem1" class="menu__item">menu1</div>
+        <div id="menuItem2" class="menu__item">menu2</div>
+        <div id="menuItem3" class="menu__item">menu3</div>
+        <!-- <div class="menu__item" onclick="log(5)">功能5</div> -->
+    </div>
+
+
+    <script>
+        var t;
+        function myfun() {
+            window.oncontextmenu = function (e) {
+                //取消默认的浏览器自带右键
+                // e.preventDefault();
+                // e.target //右键点击的元素
+                let x = e.offsetX;                //触发点到页面窗口左边的距离
+                let y = e.offsetY;
+                let winWidth = window.innerWidth; //窗口的内部宽度（包括滚动条）
+                let winHeight = window.innerHeight;
+                let menuWidth = menu.offsetWidth; //菜单宽度
+                let menuHeight = menu.offsetHeight;
+                x = winWidth - menuWidth >= x ? x : winWidth - menuWidth;
+                y = winHeight - menuHeight >= y ? y : winHeight - menuHeight;
+                menu.style.top = y + 'px';
+                menu.style.left = x + 'px';
+                if (x > (winWidth - menuWidth)) {
+                    submenu.style.left = '-200px';
+                }
+                menu.classList.add('active');
+                window.oncontextmenu = function () { return false };
+            }
+
+        }
+
+
+
+
+        window.onload = function () {
+            const menu = document.getElementById('menu');
+            const submenu = document.getElementById('submenu');
+            document.oncontextmenu = function () { return false };
+            window.addEventListener('click', function () {
+                menu.classList.remove('active');
+            })
+        }
+
+    </script>
+</body>
+
+</html>

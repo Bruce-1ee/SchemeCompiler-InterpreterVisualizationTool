@@ -1,37 +1,445 @@
 #lang scheme
 (require r5rs)
-(require racket/trace)
 (require compatibility/defmacro)
 
-;-------------------------------------
 
-(define exec-k #f)
-(define vm-k #f)
-(define resume-meta #f)
-(define beginning #f)
+(define (compile exp env next)
+  (cond ((self-evaluating? exp) (compile-self-evaluating exp next))
+        ((quoted? exp) (compile-quoted exp next))
+        ((variable? exp) (compile-variable exp env next))
+        ;((definition? exp) (compile-definition exp env next))
+        ;((let? exp) (compile-let exp env next))
+        ((if? exp) (compile-if exp env next))
+        ((lambda? exp) (compile-lambda exp env next))
+        ((application? exp)
+         (compile-application exp env next))
+        (else (error "Unknown expression type -- COMPILE" exp))))
 
+;=============tagged-list========================
+(define (self-evaluating? exp)
+  (cond ((number? exp) true)
+        ((string? exp) true)
+        ((boolean? exp) true)
+        (else false)))
+(define (quoted? exp)
+  (tagged-list? exp 'quote))
+(define (variable? exp)
+  (symbol? exp))
+;(define (assignment? exp)
+;  (tagged-list? exp 'set!))
+;(define (definition? exp)
+;  (tagged-list? exp 'define))
+;(define (let? exp)
+;  (tagged-list? exp 'let))
+(define (if? exp)
+  (tagged-list? exp 'if))
+(define (lambda? exp)
+  (or (tagged-list? exp 'lambda)
+      (tagged-list? exp 'slambda)
+      (tagged-list? exp 'clambda)))
 
-(define lst (make-vector 20))
-(define lst-vm (make-vector 20))
-(define lst-p 0)
-(define lst-eval-vm 0)
+(define (application? exp)
+  (pair? exp))
 
-;=========INTERPRETER=========
+(define (tagged-list? exp tag)
+  (if (pair? exp)
+      (eq? (car exp) tag)
+      false))
 
+;===========compiler-process=====================
+(define (compile-self-evaluating val next)
+  (list 'constant val next))
+(define (compile-quoted exp next)
+  (list 'constant (cadr exp) next))
+(define compile-variable
+  (lambda (exp env next)
+    (compile-lookup exp env
+                    (lambda (n m) (list 'refer n m next))
+                    (lambda (n) (list 'refer-free n next))
+                    (lambda () (list 'refer-global exp next)))))
+(define compile-lookup
+  (lambda (x e return return-free return-global)
+    (let ((free (cdr e)))
+      (let nxtrib ((e (car e)) (rib 0) (ccb #f))
+        (if (null? e)
+            (return-global)
+            (let nxtelt ((vars (car e)) (n 0) (ccb ccb))
+              (cond ((null? vars) (nxtrib (cdr e) (+ rib 1) ccb))
+                    ((eq? vars 'CB) (nxtrib (cdr e) rib #t))
+                    ((eq? (car vars) x)
+                     (if ccb
+                         (return-free (- (length free) (length (memq x free))))
+                         (return rib n)))
+                    (else (nxtelt (cdr vars) (+ n 1) ccb)))))))))
+(define (compile-if exp env next)
+  (let ((test (cadr exp)) (then (caddr exp)) (else (caddr exp)))
+    (let ((thenc (compile-then then env next))
+          (elsec (compile-else else env next)))
+      (compile-test test env (list 'test thenc elsec)))))
+
+(define (compile-test test env next)
+  (compile test env next))
+
+(define (compile-then then env next)
+  (compile then env next))
+
+(define (compile-else else env next)
+  (compile else env next))
+
+(define (compile-lambda exp env next)
+  (cond [(eq? (car exp) 'slambda) (compile-slambda exp env next)]
+        [(eq? (car exp) 'clambda) (compile-clambda exp env next)]
+        [else (error 'unknown_lambda)]))
+(define (compile-slambda exp env next)
+  (let ((vars (cadr exp)) (body (caddr exp)))
+    (list 'functional
+          (compile body
+                   (cons (compile-extend (car env) vars)
+                         (cdr env))
+                   (list 'return (+ (length vars) 1)))
+          next)))
+(define (compile-clambda exp env next)
+  (let ((vars (cadr exp)) (body (caddr exp)))
+    (let ((free (remove-global (car env) (find-free body vars))))
+      (collect-free free env
+                    (list 'close
+                          (length free)
+                          (compile body
+                                   (cons (compile-extend (compile-extend (car env) 'CB) vars) ;;;
+                                         free)
+                                   (list 'return
+                                         (length vars)))
+                          next)))))
+(define (compile-application exp env next)
+  (let loop ((args (cdr exp))
+             (c (compile-fun-body exp env)))
+    (if (null? args)
+        (list 'frame
+              next
+              (compile-arg c))
+        (loop (cdr args)
+              (compile (car args)
+                       env
+                       (list 'argument c))))))
+
+(define (compile-fun-body exp env)
+  (compile (car exp) env '(apply)))
+(define (compile-arg c) c)
+
+;==========helping-function=========================
+(define compile-extend
+  (lambda (e r)
+    (cons r e)))
+(define (remove-global e free) ;;;
+  (define (flatten l)
+    (cond ((null? l) l)
+          ((not (pair? l)) (list l))
+          (else (append (flatten (car l)) (flatten (cdr l))))))
+  (set-intersect (flatten e) free))
+(define find-free
+  (lambda (x b)
+    (cond
+      ((symbol? x) (if (set-member? x b) '() (list x)))
+      ((pair? x)
+       (case (car x)
+         ((quote) '())
+         ((lambda slambda clambda)
+          (let ((vars (cadr x))
+                (body (caddr x)))
+            (find-free body (set-union vars b))))
+         ((if)
+          (let ((test (cadr x))
+                (then (caddr x))
+                (els (cadddr x)))
+            (set-union (find-free test b)
+                       (set-union (find-free then b)
+                                  (find-free els b)))))
+         ((call/cc)
+          (let ((exp (cadr x))) (find-free exp b)))
+         (else
+          (let next ((x x))
+            (if (null? x)
+                '()
+                (set-union (find-free (car x) b)
+                           (next (cdr x))))))))
+      (else '()))))
+(define collect-free
+  (lambda (vars e next)
+    (if (null? vars)
+        next
+        (collect-free (cdr vars) e
+                      (compile-variable (car vars) e
+                                        (list 'argument next))))))
+
+(define set-member?
+  (lambda (x s)
+    (cond
+      ((null? s) #f) ;;;
+      ((eq? x (car s)) #t) ;;;
+      (else (set-member? x (cdr s))))))
+
+(define set-cons
+  (lambda (x s)
+    (if (set-member? x s)
+        s
+        (cons x s))))
+
+(define set-union
+  (lambda (s1 s2)
+    (if (null? s1)
+        s2
+        (set-union (cdr s1) (set-cons (car s1) s2)))))
+
+(define set-minus
+  (lambda (s1 s2)
+    (if (null? s1)
+        '()
+        (if (set-member? (car s1) s2)
+            (set-minus (cdr s1) s2)
+            (cons (car s1) (set-minus (cdr s1) s2))))))
+
+(define set-intersect
+  (lambda (s1 s2)
+    (if (null? s1)
+        '()
+        (if (set-member? (car s1) s2)
+            (cons (car s1) (set-intersect (cdr s1) s2))
+            (set-intersect (cdr s1) s2)))))
+
+(define (preprocess x funpos?)
+  (cond ((symbol? x) x)
+        ((pair? x)
+         (case (car x)
+           ((quote) x)
+           ((lambda)
+            `(,(if funpos? 'slambda 'clambda)
+              ,(cadr x)
+              ,@(map (lambda (e) (preprocess e #f)) (cddr x)))) 
+           ((if)
+            `(if ,(preprocess (cadr x) #f)
+                 ,(preprocess (caddr x) funpos?)
+                 ,(preprocess (cadddr x) funpos?)))
+           ((set!)
+            `(set! ,(cadr x) ,(preprocess (caddr x) #f)))
+           (else
+            `(,(preprocess (car x) #t)
+              ,@(map (lambda (x) (preprocess x #f))
+                     (cdr x))))))
+        (else x)))
+
+(define (sc exp)
+  (compile (preprocess exp #f) '(() . ()) '(halt)))
+
+(define VM
+  (lambda (a x f c s) ;; (a x e s)
+    (case (car x)
+      ((halt) a)
+      ((refer) (VM-refer a x f c s))
+      ((refer-free) (VM-refer-free a x f c s))
+      ((refer-global) (VM-refer-global a x f c s))
+      ((constant) (VM-constant a x f c s))
+      ((functional) (VM-functional a x f c s))
+      ((close) (VM-close a x f c s))
+      ((test) (VM-test a x f c s))
+      
+      ;((assign) 
+      ;(let ((n (cadr x))
+      ;      (m (caddr x))
+      ;      (x (cadddr x)))
+      ;  (index-set! (find-link n f) m a)
+      ;  (VM a x f c s)))
+      ;((assign-global) ;;;
+      ; (error "not yot implemented"))
+      
+      ((frame) (VM-frame a x f c s))
+      ((argument) (VM-argument a x f c s))
+      ((apply) (VM-apply a x f c s))
+      ((return) (VM-return a x f c s))
+      (else (VM-otherwise a x f c s)))))
+
+(define (VM-constant a x f c s)
+  (let ((obj (cadr x))
+        (x (caddr x)))
+    (VM obj x f c s)))
+
+(define (VM-refer a x f c s)
+  (let ((n (cadr x))
+        (m (caddr x))
+        (x (cadddr x)))
+    (VM (index (find-link n f) m) x f c s)))
+
+(define (VM-refer-free a x f c s)
+  (let ((n (cadr x))
+        (x (caddr x)))
+    (VM (index-closure c n) x f c s)))
+
+(define (VM-refer-global a x f c s)
+  (let ((var (cadr x))
+        (x (caddr x)))
+    (VM (refer-global-var var) x f c s)))
+
+(define (VM-test a x f c s)
+  (let ((then (cadr x))
+        (els (caddr x)))
+    (VM a (if a then els) f c s)))
+
+(define (VM-functional a x f c s)
+  (let ((body (cadr x))
+        (x (caddr x)))
+    (VM (functional body f) x f c s)))
+
+(define (VM-close a x f c s)
+  (let ((n (cadr x))
+        (body (caddr x))
+        (x (cadddr x)))
+    (VM (closure body n s) x f c (- s n))))
+
+(define (VM-frame a x f c s)
+  (let ((ret (cadr x))
+        (x (caddr x)))
+    (VM a x f c (push ret (push f (push c s))))))
+
+(define (VM-argument a x f c s)
+  (let ((x (cadr x)))
+    (VM a x f c (push a s))))
+
+(define (VM-apply a x f c s)
+  (case (car a)
+    ((functional) ;;;
+     (VM-apply-functional a x f c s))
+    ((closure) ;;;
+     (VM a (closure-body (cdr a)) s (cdr a) s)) ;;;
+    ((primitive) ;;;
+     (VM-apply-primitive a x f c s))
+    (else
+     (error "Not a function"))))
+
+(define (VM-apply-functional a x f c s)
+  (let ((body (cadr a))
+        (link (caddr a)))
+    (VM a body s c (push link s))))
+
+(define (VM-apply-primitive a x f c s)
+  (let ((s (+ s 1)) ;; (push link s)
+           (primfun (cadr a)))
+       (primfun s)))
+
+(define (VM-return a x f c s)
+  (let ((n (cadr x)))
+    (let ((s (- s n)))
+      (VM a (index s 0) (index s 1) (index s 2) (- s 3)))))
+
+(define (VM-otherwise a x f c s)
+      (error "unknow inst"))
+ 
+(define functional
+  (lambda (body e)
+    (list 'functional body e))) ;;;
+
+(define (primitive-fun natfun) ;;;
+  (list 'primitive natfun))
+
+(define stack (make-vector 1000))
+
+(define push
+  (lambda (x s)
+    (vector-set! stack s x)
+    (+ s 1)))
+
+(define index
+  (lambda (s i)
+    (vector-ref stack (- (- s i) 1))))
+
+(define index-set!
+  (lambda (s i v)
+    (vector-set! stack (- (- s i) 1) v)))
+
+(define closure-bak
+  (lambda (body n s)
+    (let ((v (make-vector (+ n 1))))
+      (vector-set! v 0 body)
+      (let f ((i 0))
+        (unless (= i n)
+          (vector-set! v (+ i 1) (index s i))
+          (f (+ i 1))))
+      (cons 'closure v)))) ;;;
+
+(define closure
+  (lambda (body n s)
+    (let ((v (make-clo body n s)))
+      (cons 'closure v)))) ;;;
+  
+(define (make-clo body n s)
+  (let ((v (make-vector (+ n 1))))
+      (vector-set! v 0 body)
+      (let f ((i 0))
+        (unless (= i n)
+          (vector-set! v (+ i 1) (index s i))
+          (f (+ i 1))))
+    v))
+
+(define closure-body
+  (lambda (c)
+    (vector-ref c 0)))
+
+(define index-closure
+  (lambda (c n)
+    (vector-ref c (+ n 1))))
+
+(define find-link
+  (lambda (n e)
+    (if (= n 0) e
+        (find-link (- n 1) (index e -1)))))
+
+;;
+
+(define (prim-return retval s)
+  (VM retval (index s 0) (index s 1) (index s 2) (- s 3)))
+
+(define the-global-environment ;;;
+  `((foo . ,(primitive-fun (lambda (s)
+                             (let ((ans 10))
+                               ;; (return 3)
+                               (write s)(newline)
+                               (write stack)(newline)
+                               (prim-return ans (- s 3))))))
+    (+ . ,(primitive-fun (lambda (s)
+                           (let ((ans (+ (index s 1)
+                                         (index s 2))))
+                             (prim-return ans (- s 3))))))
+    (- . ,(primitive-fun (lambda (s)
+                           (let ((ans (- (index s 1)
+                                         (index s 2))))
+                             (prim-return ans (- s 3))))))))
+
+(define (refer-global-var var) ;;;
+  (cond ((assq var the-global-environment)
+         => (lambda (p) (cdr p)))
+        (else
+         (error "unbound symbol"))))
+
+(define run
+  (lambda (exp)
+    (VM '() (compile (preprocess exp #f) '(() . ()) '(halt)) 0 '() 0)))
+
+;; ===============================================
+;; ===============================================
+;; ===============================================
+;; ===============================================
+;; ===============================================
 (define exec
   (lambda (exp env)
-    (display env)(newline)
     (call/cc
      (lambda (quit)
        (cond ((self-evaluating? exp)(eval-self-evaluating exp))
              ((variable? exp)(eval-variable exp env))
              ((quoted? exp) (eval-quotation exp))
-             ((assignment? exp) (eval-assignment exp env))
-             ((definition? exp) (eval-definition exp env))
-             ((let? exp) (eval-let exp env))
+             ;((assignment? exp) (eval-assignment exp env))
+             ;((definition? exp) (eval-definition exp env))
+             ;((let? exp) (eval-let exp env))
              ((if? exp) (eval-if exp env))
              ((lambda? exp) (eval-lambda exp env))
-             ((begin? exp) (eval-sequence (cdr exp) env)) ;new
+             ;((begin? exp) (eval-sequence (cdr exp) env)) ;new
              ((application? exp) (eval-application exp env))
              (else (error "Unknown expression type -- EXEC" exp)))))))
 
@@ -62,30 +470,6 @@
    (map (lambda (f) (cons 'primitive f))
         (list + - * = display))))  ; <- ( + - * / )
 
-;==========判断用函数==========
-
-(define (self-evaluating? exp)
-  (cond ((number? exp) true)
-        ((string? exp) true)
-        ((boolean? exp) true)
-        (else false)))
-(define (variable? exp) (symbol? exp))
-(define (quoted? exp)
-  (tagged-list? exp 'quote))
-(define (assignment? exp)
-  (tagged-list? exp 'set!))
-(define (definition? exp)
-  (tagged-list? exp 'define))
-(define (if? exp) (tagged-list? exp 'if))
-(define (lambda? exp) (tagged-list? exp 'lambda))
-(define (application? exp) (pair? exp))
-(define (tagged-list? exp tag)
-  (if (pair? exp)
-      (eq? (car exp) tag)
-      false))
-
-(define (let? exp)
-  (tagged-list? exp 'let))
 
 ;==========new==========
 (define (begin? exp) (tagged-list? exp 'begin))
@@ -135,32 +519,53 @@
 (define (eval-if-test test env) (exec test env))
 (define (eval-if-then then env) (exec then env))
 (define (eval-if-else else env) (exec else env))
-(define (eval-lambda exp env)
+(define (eval-lambda-bak exp env)
   (let ((vars (cadr exp))
         (body (caddr exp)))
     (list 'function vars body env)))
 
+(define (eval-lambda exp env)
+  (cond [(eq? (car exp) 'slambda) (eval-slambda exp env)]
+        [(eq? (car exp) 'clambda) (eval-clambda exp env)]
+        [else (error 'unknown_lambda)]))
+
+(define (eval-slambda exp env)
+  (let ((vars (cadr exp))
+        (body (caddr exp)))
+    (list 'function vars body env)))
+
+(define (eval-clambda exp env)
+  (let ((vb (eval-clambda-helping-fun exp)))
+    ;; draw make-closure 
+    (list 'function (car vb) (cadr vb) env)))
+
+(define (eval-clambda-helping-fun exp)
+    (let ((vars (cadr exp))
+          (body (caddr exp)))
+        (list vars body)))
+
 (define (eval-application exp env)
-  
-  (let ((arg (map (lambda(x) (eval-application-arg x env)) (cdr exp)))
+  (let ((args (eval-application-args (cdr exp) env))
         (body (eval-application-body (car exp) env)))
-    ;(display (caddr body))(newline)
-    (eval-application-apply body arg env)))
-(define (eval-application-arg arg env) (exec arg env))
+    (eval-application-apply body args env)))
+
+(define (eval-application-args args env)
+  (reverse (map (lambda(x) (exec x env)) (reverse args))))
+
 (define (eval-application-body name env) (exec name env))
 
 (define (eval-application-apply func arguments env)
   (case (car func)
     ((primitive)
-     ;biwaschemeFunction
-     ;(send-arguments-to-js arguments arguments (cdr func) 0)
      (eval-application-apply-primitive func arguments))
     ((function)
-     ;biwaschemeFunction
-     ;(send-arguments-to-js (cadr func) arguments (caddr func) 1)
-     (exec (caddr func)
-           (eval-extend (cadddr func) (cadr func) arguments)))
+     (eval-application-apply-functional func arguments))
     (else (error "Not a function -- eval-application-apply"))))
+
+(define (eval-application-apply-functional func arguments)
+  (exec (caddr func)
+        (eval-extend (cadddr func) (cadr func) arguments)))
+
 (define (eval-application-apply-primitive func args)
   (apply (cdr func) args))
 
@@ -189,573 +594,446 @@
           (lambda-vals (getvals args '())))
     (cons (list 'lambda lambda-args body) lambda-vals))))
 
+(define (eval1 exp) (exec (preprocess exp #f) GE))
 
 
 
-;=========COMPILER=========
+;====macro======
 
-(define SS 30) ;stackSize 10
+(define (cc)
+  (call/cc
+   (lambda (quit)
+     (set! resume-meta quit)))) 
+;(cc)
 
-(define (compile exp env next)
-  (cond ((self-evaluating? exp) (compile-self-evaluating exp next))
-        ((quoted? exp) (compile-quoted exp next))
-        ((variable? exp) (compile-variable exp env next))
-        ((definition? exp) (compile-definition exp env next))
-        ((let? exp) (compile-let exp env next))
-        ((if? exp) (compile-if exp env next))
-        ((lambda? exp) (compile-lambda exp env next))
-        ((application? exp)
-         (compile-application exp env next))
-        (else (error "Unknown expression type -- COMPILE" exp))))
-
-(define (compile-self-evaluating exp next) (list 'constant exp next))
-(define (compile-quoted exp next) (list 'constant (cadr exp) next))
-(define (compile-variable exp env next)
-  (compile-lookup
-   exp env 
-   (lambda (n m)(compile-variable-local n m next))
-   (lambda (var)(compile-varable-global var next))))
-(define (compile-variable-local n m next)(list 'refer n m next))
-(define (compile-varable-global var next)(list 'refer-global var next))
-
-(define (compile-definition2 exp env next) ;definition
-  (if (null? env)
-            ;全局变量
-            (cond    
-              ((number? (caddr exp)) (set! GE (cons (cons (cadr exp)(cons 'constant (caddr exp))) GE)) (list 'ok))
-              ((symbol? (caddr exp)) (set! GE (cons (cons (cadr exp) (find-global (caddr exp))) GE)) (list 'ok))
-              (else  (set! GE (cons (cons (cadr exp) (cons 'function (list (compile (caddr exp) env (list 'return 0))))) GE)) (list 'ok)))
-            ;局部变量
-            (compile (caddr exp) 
-                     (begin (set-car! env (reverse (cons (cadr exp) (reverse (car env))))) env)
-                     (list 'argument next))))
-
-(define (compile-definition exp env next)
-  (let ((var (cadr exp))
-        (val (caddr exp)))
-   (compile val env (list 'definition var next))))
-
-(define (compile-if exp env next)
-  (let* ((test (cadr exp))
-         (then (caddr exp))
-         (else (cadddr exp))
-         (thenc (compile-if-then then env next))
-         (elsec (compile-if-else else env next)))
-    (compile-if-test test env next thenc elsec)))
-(define (compile-if-then then env next) (compile then env next))
-(define (compile-if-else else env next) (compile else env next))
-(define (compile-if-test test env next then else)
-  (compile test env (list 'test then else)))
-    
-(define (compile-lambda exp env next)
-  (let* ((vars (cadr exp))
-         (body (caddr exp))
-         (ret
-          (list 'functional
-                (compile body
-                         (extend-compiler env vars)
-                         (list 'return (+ (length vars) 1)))
-                next)))
-    ret))
-(define (compile-application exp env next)
-  (letrec ((loop (lambda (args c)
-                         (if (null? args)
-                             (compile-application-frame next c)
-                             (loop (cdr args)
-                                   (compile-application-argument (car args) env c))))))
-                                   ;;(compile (car args) env (list 'argument c))
-          (loop (cdr exp) (compile-application-name exp env next))))
-(define (compile-application-frame next c) (list 'frame next c))
-(define (compile-application-name exp env next) (compile (car exp) env (list 'apply (length (cdr exp)))))
-(define (compile-application-argument arg env c) (compile arg env (list 'argument c)))
-  
-(define (compile-lookup var e return-local return-global)
-  (letrec
-      ((nxtrib
-        (lambda(e rib)
-          (if (null? e)
-              (return-global var)
-              (begin 
-                (letrec
-                    ((nxtelt
-                      (lambda(vars elt)
-                        (cond
-                          [(null? vars) (nxtrib (cdr e) (+ rib 1))]
-                          [(eq? (car vars) var) (return-local rib elt)]
-                          [else (nxtelt (cdr vars) (+ elt 1))]))))
-                  (nxtelt (car e) 0)))))))
-    (nxtrib e 0)))
-
-(define (compile-let exp env next)
-  (let ((e (let->lambda exp)))
-    (compile e env next)))
-
-
-;==========new==========
-
-(define (compile-begin exp env next)
-  (letrec ((loop (lambda(exps)
-                   (if (null? (cdr exps))
-                       (compile (car exps) env next)
-                       (compile (car exps) env (loop (cdr exps)))))))
-    (loop (cdr exp))))
-
-
-
-
-;==========VM==========
-
-
-(define VM
-
-  (lambda (a x e s)
-    ;(display "a:")(display a)(newline)
-    ;(display "x:")(display x)(newline)
-    ;(display "e:")(display e)(newline)
-    ;(display "s:")(display s)(newline)
-    ;(display "s:")(display stack)(newline)(newline)
-    (case (car x)
-      [(halt)  (vm-halt a x e s)]
-      [(empty) (vm-empty a x e s)]
-      [(refer) (vm-refer a x e s)]
-      [(refer-global) (vm-refer-global a x e s)]
-      [(constant) (vm-constant a x e s)]
-      [(close) (vm-close a x e s)]
-      [(functional) (vm-functional a x e s)]
-      [(test) (vm-test a x e s)]
-      [(frame) (vm-frame a x e s)]
-      [(argument) (vm-argument a x e s)]
-      [(apply) (vm-apply a x e s)]
-      [(return) (vm-return a x e s)]
-      [else (vm-else a x e s)])))
-
-(define (vm-halt a x e s) a)
-(define (vm-empty a x e s) 'ok)
-
-(define (vm-refer a x e s)
-  (let ((n (cadr x))
-        (m (caddr x))
-        (x (cadddr x)))
-    (VM (index (find-link n e) m) x e s)))
-
-(define (vm-refer-global a x e s)
-  (let ((var (cadr x))
-        (x (caddr x)))
-    (VM (find-global var GE) x e s)))
-
-(define (vm-constant a x e s)
-  (let ((obj (cadr x))
-        (x (caddr x)))
-    (VM obj x e s)))
-
-;待修改
-(define (vm-close a x e s)
-  (let ((body (cadr x))
-        (x (caddr x)))
-    (VM (closure body e) x e s)))
-
-(define (vm-functional a x e s)
-  (let ((body (cadr x))
-        (x (caddr x)))
-    (VM (closure body e) x e s)))
-
-(define (vm-test a x e s)
-  (let ((then (cadr x))
-        (else (caddr x)))
-    (VM a (if a then else) e s)))
-
-(define (vm-frame a x e s)
-  (let ((ret (cadr x))
-        (x (caddr x)))
-    ;(display "frame") (newline)
-    ;(add-frame-counter)
-    (VM a x e (push ret (push e s)))))
-
-(define (vm-argument a x e s)
-  (if (pair? (car x))
-      (VM a (cadr x) e (push (cadr a) s))
-      (VM a (cadr x) e (push a s))))
-
-;未修改
-(define (vm-apply a x e s)
-    (cond
-      [(eq? 'primitive (car a))
-       ;(display "apply") (newline)
-       ;(sub-frame-counter) ;自动删除
-       (letrec ((loop (lambda(argl n)
-                        (cond
-                          [(= n 0) (VM (apply (cdr a) argl)
-                                       (index (- s  (cadr x)) 0)
-                                       (index (- s  (cadr x)) 1)
-                                       (- (- s (cadr x)) 2))]
-                          [else  (loop (cons (index s (- n 1)) argl) (- n 1))]))))
-         (loop '() (cadr x)))]
-
-      [(eq? 'function (car a))
-       (if (eq? 'frame (car (cadr a)))
-           (VM a (cadr a) e s)
-           (VM a (cadr (cadr a)) e (push e s)))]
-      [else
-       (VM a (car a) s (push (cadr a) s))]))
-
-(define (vm-return a x e s)
-  ;(display "return") (newline)
-  ;(sub-frame-counter) ;自动删除
-  (let ([s (- s (cadr x))])
-         (VM a (index s 0) (index s 1) (- s 2))))
-  
-
-
-;==========helping-function==========
-
-(define index ;找到s向下偏移i位置的元素
-  (lambda (s i)
-    (vector-ref stack (- (- s i) 1))))
-(define index-set!
-  (lambda (s i v)
-    (vector-set! stack (- (- s i) 1) v)))
-(define (find-link n e)
-  ;(display "n:   ")(display n)(newline)
-  ;(display "e:   ")(display e)(newline)
-  (if (= n 0) e
-      (find-link (- n 1) (index e -1))))
-(define closure
-  (lambda (body e)
-    (list body e)))
-(define extend-compiler
-  (lambda (e r)
-    (cons r e)))
-
-(define (primitive-apply fun n s)
-  (letrec ( (loop (lambda (num argl)
-                    (if (= num 0)
-                        (apply fun argl)
-                        (loop (- 1 num) (index s num))))))
-    (loop n '())))
-
-(define (find-global var env)
-  (define (env-loop env)
-    (define (scan vars vals)
-      (cond ((null? vars)
-             (env-loop (cdr env)))
-            ((eq? var (car vars))
-             (car vals))
-            (else (scan (cdr vars) (cdr vals)))))
-    (if (eq? env '())
-        (error "Unbound variable" var)
-        (let ((frame (car env)))
-          (scan (car frame)
-                (cdr frame)))))
-  (env-loop env))
-
-
-(define stack (make-vector SS))
-(define (push x s)
-  (vector-set! stack s x)
-  (+ s 1))
-
-(define (vm-else a x e s)
-  (error "Unknow instruction -- VM"))
-
-(define (vm-else-with-breakpoint a x e s)
-      (cond
-        ((eq? (car x) 'act-constant) (VM-info-output a x e s))
-        ((eq? (car x) 'act-refer) (VM-info-output a x e s))
-        ((eq? (car x) 'act-lambda) (VM-info-output a x e s))
-        ((eq? (car x) 'act-if) (VM-info-output a x e s))
-        ((eq? (car x) 'act-test) (VM-info-output a x e s))
-        ((eq? (car x) 'act-then) (VM-info-output a x e s))
-        ((eq? (car x) 'act-else) (VM-info-output a x e s))
-        ((eq? (car x) 'act-argument) (VM-info-output a x e s))
-        ((eq? (car x) 'act-function-call) (VM-info-output a x e s))
-        ((eq? (car x) 'act-body) (VM-info-output a x e s))
-        (else (error "Unknow instruction -- VM"))))
-(define (VM-info-output a x e s)
-  ;(display (car x)) (display " -- VM") (newline)
-  ;(display x) (newline)
-  ;(display stack) (newline)
-  ;(display a) (newline)(newline)(newline)
-  ;(send-stack stack s)
-  (make-breakpoint-vm)
-  (VM a (cadr x) e s))
-
-;==========entery==========
-
-(define run
-  (lambda (x)
-    (VM '() (compile x '() '(halt)) '()  0)))
-
-(define (sc x)
-  (compile x '() '(halt)))
-
-(define (eval exp) (exec exp GE))
-
-;==========控制程序==========
-
-(define (eval-output info)
-  (display info) (display "-- eval") (newline))
-
-(define (make-breakpoint-eval)
+(define (make-jumppoint-eval)
   (call/cc (lambda (breakpoint)
              (set! exec-k breakpoint)
              (resume-meta))))
 
-(define (make-breakpoint-vm)
+(define (make-jumppoint-vm)
   (call/cc (lambda (breakpoint)
              (set! vm-k breakpoint)
              (resume-meta))))
 
-(define (pause c)
-    (call/cc (lambda (k)
-             (set! resume-meta k)
-             (c))))
-
-(define (meta exp)
-  (define (small-step)
-    (call/cc
-     (lambda (halt)
-       (call/cc (lambda (k) (set! beginning k)))
-       
-       (call/cc (lambda (k) (set! resume-meta k)))
-       (display "new step -- meta") (newline)
-       (pause halt)
-       
-       (call/cc
-        (lambda (k)
-          (set! resume-meta k)
-          (if (eq? exec-k #f)
-              (exec exp '())
-              (exec-k))))
-       ;(display "exec -- meta")(newline)
-       ;(pause halt)
-       
-       (call/cc
-        (lambda (k)
-          (set! resume-meta k)
-          (if (eq? vm-k #f)
-              (run exp)
-              (vm-k))))
-       ;(display "VM -- meta")(newline)
-       ;(pause halt)
-       (display "generate graphic -- meta")(newline)
-       (set! resume-meta beginning))))
-  
-  (define (dispatch m)
-    (cond ((eq? m 'ini) (small-step))
-          ((eq? m 'nxt) (resume-meta))
-          (else (error "message error -- meta -- dispatch"))))
-  dispatch)
-
-(define p (meta '(if 1 2 3)) )
-;(p 'ini)
-
-;(f 'nxt)
-
-(define (debuger)
-  (call/cc
-   (lambda (quit)
-     (call/cc (lambda (k) (set! resume-meta k))))))    
-(debuger)
-
-
-
-;==========define-act-macro==========
 
 (define-macro define-act-eval
-  (lambda (fun inst)
+  (lambda (fun info act)
     `(let* ((org-fun ,fun))
        (set! ,fun
              (lambda (arg . restarg)
-               (eval-output ,inst)
-               ;(eval-update ,inst arg)
-               (make-breakpoint-eval)
-               (apply org-fun (cons arg restarg)))))))
+              (set! inte-info ,act)
+              (cond ((break? inte-info) (set! break #t)))
+              (make-jumppoint-eval)
+              (draw-interpreter-info ,info)
+              ;(display 'eval:)(display ,info)(newline)
+              (apply org-fun (cons arg restarg)))))))
 
-(define-macro define-act-compile
-  (lambda (fun inst)
+(define-macro define-act-compiler
+  (lambda (fun pseins)
     `(let* ((org-fun ,fun))
        (set! ,fun
              (lambda (arg . restarg)
-               (list ,inst
+               (list ,pseins
                      (apply org-fun (cons arg restarg))))))))
 
-(define-macro define-act-vm-1
-  (lambda (fun inst)
-    `(let* ((org-fun ,fun))
-       (set! ,fun
-             (lambda (arg . restarg)
 
-               (make-breakpoint-eval)
-               (apply org-fun (cons arg restarg)))))))
-
-(define-macro define-act-vm
+(define-macro define-vm-otherwise
   (lambda ()
-    `(set! vm-else
-           vm-else-with-breakpoint)))
+    `(let* ((org-fun VM-otherwise))
+       (set! VM-otherwise
+             (lambda (a x f c s)
+               (if (get-act (car x)) ;如果存在于acts的VECTOR里那么就执行,不然就报错
+                   (begin
+                    (set! vm-info (car x))
+                    (cond ((break? vm-info) (set! break #t)))
+                    (make-jumppoint-vm)
+                    (draw-VM-Info (car x))
+                    ;(display 'vm:)(display (car x)) (newline)
+                    (VM a (cadr x) f c s))
+                   (org-fun a x f c s)))))))
 
 
-;==========lst=================
+(define-macro define-vm-make-clo
+  (lambda ()
+    `(let* ((org-fun make-clo))
+       (set! make-clo
+             (lambda (body n s)
+              (let ((v (org-fun body n s)))
+                (test-fun v)
+                v
+              )
+               )))))
 
 
-(define (gen-vec ins proc)
-  (let ((v (make-vector 3)))
-    (vector-set! v 0 ins)
-    (vector-set! v 1 proc)
-    (vector-set! v 2 true)
-    (vector-set! lst lst-p v)
-    (set! lst-p (+ lst-p 1))))
+(define-macro define-eval-exec
+  (lambda ()
+    `(let* ((org-fun exec))
+       (set! exec
+             (lambda (exp env)
+              ;发送exp信息
+              (if (list? exp)
+                  (js-draw-expression (car exp))
+                  (js-draw-expression exp))
+              (org-fun exp env)
+ 
+               )))))
 
-(define (exist? ins p)
-  (if (< p lst-p)
-      (if (eq? (vector-ref (vector-ref lst p) 0) ins)
-          true
-          (exist? ins (+ 1 p)))
-      false))
+;eval-application
+(define-macro define-eval-application
+  (lambda ()
+    `(let* ((org-fun eval-application))
+       (set! eval-application
+             (lambda (exp env)
+              (js-call-frame-eval-add)
+              (js-call-frame-show)
+              (let ((res (org-fun exp env)))
+                (js-call-frame-eval-sub)
+                (js-call-frame-show)
+                res
+              )
+              
+ 
+               )))))
 
-(define (set-proc ins p)
-  (if (< p lst-p)
-      (if (eq? (vector-ref (vector-ref lst p) 0) ins)
-            (vector-set! (vector-ref lst p) 2 (not (vector-ref (vector-ref lst p) 2)))
-            ;(vector-ref (vector-ref lst p) 1)
-          (set-proc ins (+ 1 p)))
-      false))
 
-(define (get-vec ins p)
-  (if (< p lst-p)
-      (if (eq? (vector-ref (vector-ref lst p) 0) ins)
-          (vector-ref lst p)
-          (get-vec ins (+ 1 p)))
-      (error "no such ins")))
 
-(define-macro act-1 ;可变定义列表
-  (lambda (fun ins type)
-    `(if (exist? ,ins 0)
-         (if (vector-ref (get-vec ,ins 0) 2)
+
+
+;===============画面相关=================
+
+(define-macro embed-vm-draw-find-link
+  (lambda ()
+    `(let* ((org-fun find-link))
+       (set! find-link
+             (lambda (n e)
+              (draw-VM-Info "finding link")
+              (org-fun n e))))))
+
+(define-macro embed-eval-draw-frame-functional
+  (lambda ()
+    `(let* ((org-fun eval-application-apply-functional))
+       (set! eval-application-apply-functional
+             (lambda (func arguments)
+
+              (interpreter-new-frame arguments func)
+              (org-fun func arguments))))))
+
+(define-macro embed-vm-draw-frame 
+  (lambda ()
+    `(let* ((org-fun VM-frame))
+       (set! VM-frame
+             (lambda (a x f c s)
+              (js-call-frame-vm-add)
+              (js-call-frame-show)
+              (stack-createFrame)
+              (js-stack-push c "closure")
+              (js-stack-push f "frame")
+              (js-stack-push (cadr x) "return")
+              (org-fun a x f c s))))))
+
+(define-macro embed-vm-draw-arg-push 
+  (lambda ()
+    `(let* ((org-fun VM-argument))
+       (set! VM-argument
+             (lambda (a x f c s)
+              (js-stack-push a "argument")
+              (org-fun a x f c s))))))
+
+(define-macro embed-vm-draw-apply-functional 
+  (lambda ()
+    `(let* ((org-fun VM-apply-functional))
+       (set! VM-apply-functional
+             (lambda (a x f c s)
+              (js-stack-push (caddr a) "link")
+              (org-fun a x f c s))))))
+
+(define-macro embed-vm-draw-apply-primitive
+  (lambda ()
+    `(let* ((org-fun VM-apply-primitive))
+       (set! VM-apply-primitive
+             (lambda (a x f c s)
+              (js-stack-push 0 "empty")
+              (org-fun a x f c s))))))
+
+(define-macro embed-vm-draw-return 
+  (lambda ()
+    `(let* ((org-fun VM-return))
+       (set! VM-return
+             (lambda (a x f c s)
+              (js-call-frame-vm-sub)
+              (js-call-frame-show)
+              (loop (+ 3 (cadr x)) js-pop-element)
+              (stack-deleteFrame)
+              (org-fun a x f c s))))))
+
+(define-macro embed-vm-draw-prim-return 
+  (lambda ()
+    `(let* ((org-fun prim-return))
+       (set! prim-return
+             (lambda (retval s)
+              (js-call-frame-vm-sub)
+              (js-call-frame-show)
+              (loop 6 js-pop-element) ;3 + 3 c，f，x， arg1,arg2,link
+              (stack-deleteFrame)
+              (org-fun retval s))))))
+
+(define-macro embed-vm-draw-make-clo 
+  (lambda ()
+    `(let* ((org-fun make-clo))
+       (set! make-clo
+             (lambda (body n s)
+              (let ((v (org-fun body n s)))
+                (js-closure-createClosure v)
+                v
+              )
+               )))))
+
+(define-macro embed-eval-draw-clambda
+  (lambda ()
+    `(let* ((org-fun eval-clambda-helping-fun))
+       (set! eval-clambda-helping-fun
+             (lambda (exp)
+              (let ((vb (org-fun exp)))
+                (js-env-addClosure (list->vector (list (list->vector (car vb)) (cadr vb))))
+                vb
+              )
+               )))))
+
+(define-macro embed-vm-draw-close
+  (lambda ()
+    `(let* ((org-fun VM-close))
+       (set! VM-close
+             (lambda (a x f c s)
+              (loop (cadr x) js-pop-element)
+              (org-fun a x f c s))))))              
+
+
+(define (loop n fun)
+  (cond ((> n 0) (fun) (loop (- n 1) fun))))
+;定义伪指令
+
+;; 0 self-evaluating
+(define-act-compiler compile-self-evaluating 'act-constant)
+
+
+(define-act-eval eval-self-evaluating 'eval-self-evaluating 'act-constant)
+
+
+;; 1 quotation
+(define-act-compiler compile-quoted 'act-constant)
+
+
+(define-act-eval eval-quotation 'eval-quotation 'act-constant)
+
+
+;; 2 variable
+(define-act-compiler compile-variable 'act-variable)
+
+
+(define-act-eval eval-variable 'eval-variable 'act-variable)
+
+
+;; 3 if
+(define-act-compiler compile-if 'act-if)
+(define-act-compiler compile-test 'act-test)
+(define-act-compiler compile-then 'act-then)
+(define-act-compiler compile-else 'act-else)
+
+
+(define-act-eval eval-if 'eval-if 'act-if)
+(define-act-eval eval-if-test 'eval-test 'act-test)
+(define-act-eval eval-if-then 'eval-then 'act-then)
+(define-act-eval eval-if-else 'eval-else 'act-else)
+
+
+;; 4 lambda
+(define-act-compiler compile-lambda 'act-lambda)
+
+(define-act-eval eval-lambda 'eval-lambda 'act-lambda)
+
+
+;; 5 application
+(define-act-compiler compile-application 'act-application)
+(define-act-compiler compile-fun-body 'act-fun-body)
+(define-act-compiler compile-arg 'act-args)
+
+
+(define-act-eval eval-application 'eval-application 'act-application)
+(define-act-eval eval-application-args 'eval-arguments 'act-args)
+(define-act-eval eval-application-body 'eval-body 'act-fun-body)
+
+
+;; 6 others
+
+(define-vm-otherwise)
+
+(embed-eval-draw-frame-functional)
+(embed-vm-draw-frame)
+(embed-vm-draw-arg-push)
+(embed-vm-draw-apply-functional)
+(embed-vm-draw-return)
+
+(embed-vm-draw-apply-primitive)
+(embed-vm-draw-prim-return)
+
+(embed-vm-draw-make-clo) 
+
+(embed-eval-draw-clambda)
+
+(define-eval-exec)
+
+(define-eval-application)
+(embed-vm-draw-close)
+
+;====break===
+
+(define breakpoints (vector (vector 'act-constant #f)
+                            (vector 'act-variable #f)
+                            (vector 'act-if #f)
+                            (vector 'act-test #f)
+                            (vector 'act-then #f)
+                            (vector 'act-else #f)
+                            (vector 'act-lambda #f)
+                            (vector 'act-application #f)
+                            (vector 'act-args #f)
+                            (vector 'act-fun-body #f)))
+
+(define (get-breakpoint-pos name)
+  (let loop ((n 0))
+    (cond ((>= n 10) (error 'bad_name))
+          ((eq? (vector-ref (vector-ref breakpoints n) 0) name) n)
+          (else (loop (+ n 1))))))
+
+(define (breakpoint-switch name)
+  (let* ((n (get-breakpoint-pos name))
+         (v (vector-ref breakpoints n)))
+    (vector-set! v 1 (not (vector-ref v 1)))))
+
+(define (breakpoint-on)
+  (let ((len (vector-length breakpoints)))
+    (let loop ((n 0))
+      (cond ((>= n len) 'done)
+            (else
              (begin
-               (set! ,fun (vector-ref (get-vec ,ins 0) 1))
-               (set-proc ,ins 0) )
+               (vector-set! (vector-ref breakpoints n) 1 #t)
+               (loop (+ n 1))))))))
+
+(define (breakpoint-off)
+  (let ((len (vector-length breakpoints)))
+    (let loop ((n 0))
+      (cond ((>= n len) 'done)
+            (else
              (begin
-               (if (eq? ,type 'eval)
-                   (define-act-eval ,fun ,ins)
-                   (define-act-compile ,fun ,ins))
-               (set-proc ,ins 0)))
-         (begin 
-           (gen-vec ,ins ,fun)
-           (if (eq? ,type 'eval)
-                 (define-act-eval ,fun ,ins)
-                 (define-act-compile ,fun ,ins))))))
+               (vector-set! (vector-ref breakpoints n) 1 #f)
+               (loop (+ n 1))))))))
+
+(define (break? name)
+   (let* ((n (get-breakpoint-pos name))
+          (v (vector-ref breakpoints n)))
+     (vector-ref v 1)))
+
+;========meta======
 
 
-        
-;==========run define-act==========
+(define exec-k #f)
+(define vm-k #f)
+(define resume-meta #f)
 
 
+(define vm-info #f)
+(define inte-info #f)
+
+(define next #f)
+(define break #f)
+
+(define acts (vector (vector 'act-constant 0 0)
+                     (vector 'act-variable 0 0)
+                     (vector 'act-if 0 0)
+                     (vector 'act-test 0 0)
+                     (vector 'act-then 0 0)
+                     (vector 'act-else 0 0)
+                     (vector 'act-lambda 0 0)
+                     (vector 'act-application 0 0)
+                     (vector 'act-args 0 0)
+                     (vector 'act-fun-body 0 0)))
 
 
-;(act-1 eval-self-evaluating "eval-self-evaluating" 'eval)
-;(act-1 eval-quotation "eval-quotation" 'eval)
-;(act-1 eval-variable "eval-variable" 'eval)
-;(act-1 eval-if "eval-if" 'eval)
-;(act-1 eval-if-test "eval-if" 'eval)
-;(act-1 eval-if-then "eval-if-then" 'eval)
-;(act-1 eval-if-else "eval-if-else"   'eval)
-;(act-1 eval-lambda "eval-lambda" 'eval)
-;(act-1 eval-application "eval-application" 'eval)
-;(act-1 eval-application-arg "eval-application-arg" 'eval)
-;(act-1 eval-application-body "eval-application-body" 'eval)
+(define (get-act act-name)
+  (define (loop n)
+    (cond ((>= n (vector-length acts)) #f)
+          ((eq? (vector-ref (vector-ref acts n) 0) act-name) n)
+          (else (loop (+ n 1)))))
+  (loop 0))
 
+(define (get-target target)
+  (cond ((eq? target 'exec) 1)
+        ((eq? target 'vm) 2)
+        (else (error 'unknow_target))))
 
+(define (get-act-num act-name target)
+  (let ((t (get-target target))
+        (n (get-act act-name)))
+    (vector-ref (vector-ref acts n) t)))
 
+(define (act-add1 act-name target)
+  (let* ((t (get-target target))
+         (n (get-act act-name))
+         (v (vector-ref acts n))
+         (org (get-act-num act-name target)))
+    (vector-set! v t (+ org 1))))
 
-(define act
-  (lambda ()
-    (define-act-compile compile-self-evaluating 'act-constant)
-    (define-act-compile compile-quoted 'act-constant)
-    (define-act-compile compile-variable-local 'act-refer)
-    (define-act-compile compile-varable-global 'act-refer)
-    (define-act-compile compile-if-then 'act-then)
-    (define-act-compile compile-if-else 'act-else)
-    (define-act-compile compile-if-test 'act-if)
-    (define-act-compile compile-lambda 'act-lambda)
-    (define-act-compile compile-application-frame 'act-function-call)
-    (define-act-compile compile-application-argument 'act-argument)
-    (define-act-compile compile-application-name 'act-body)
-
-    (define-act-eval eval-self-evaluating "eval-self-evaluating")
-    (define-act-eval eval-quotation "eval-quotation")
-    (define-act-eval eval-variable "eval-variable")
-    (define-act-eval eval-if "eval-if")
-    (define-act-eval eval-if-test "eval-if")
-    (define-act-eval eval-if-then "eval-if-then")
-    (define-act-eval eval-if-else "eval-if-else")
-    (define-act-eval eval-lambda "eval-lambda")
-    (define-act-eval eval-application "eval-application")
-    (define-act-eval eval-application-arg "eval-application-arg")
-    (define-act-eval eval-application-body "eval-application-body")
-
-    (let ((org vm-halt))
-      (set! vm-halt
-            (lambda (a x e s)
-              (make-breakpoint-vm)
-              (org a x e s))))
-
-    (let ((org vm-apply))
-      (set! vm-apply
-            (lambda (a x e s)
-              ;;biwaschemeFunction
-              ;;(make-envrionment-frame)  
-              (org a x e s))))
-
-    (let ((org eval-application-apply))
-      (set! eval-application-apply
-            (lambda (func arguments env)
-              (org func arguments env)
-              ;(make-envrionment-frame)
-              )))
-
-    (let ((org vm-return))
-      (set! vm-return
-            (lambda (a x e s)
-              (make-breakpoint-vm)
-              (org a x e s))))
-
-    (let ((org vm-argument))
-      (set! vm-argument
-            (lambda (a x e s)
-              (make-breakpoint-vm)
-              (js-push-element-into-stack a)
-              (org a x e s))))
-
-          
-    (define-act-vm)))
-
-
-(define define-act-if
-  (lambda ()
-    (define-act-compile compile-if-then 'act-then)
-    (define-act-compile compile-if-else 'act-else)
-    (define-act-compile compile-if-test 'act-if)
-
-    (define-act-eval eval-if-test "eval-if")
-    (define-act-eval eval-if-then "eval-if-then")
-    (define-act-eval eval-if-else "eval-if-else")
-
-    (define-act-vm)))
-
-;(act)
+(define (is-same-position?)
+  (if (or (eq? vm-info #f)
+          (eq? inte-info #f))
+      #f
+      (and (eq? vm-info inte-info)
+           (eqv? (get-act-num vm-info 'vm)
+                 (get-act-num inte-info 'exec)))))
 
 
 
+(define (p t)
+  (display t) (newline))
+
+(define (meta program)
+  (call/cc
+   (lambda (break-meta)
+     (call/cc
+      (lambda (top)
+        (set! resume-meta top)))
+     
+     (call/cc
+      (lambda (c)
+        (cond ((eq? break #t)
+               (set! break #f)
+               (set! next c)
+               (break-meta 'ok')))))
+      
+         (cond ((eq? vm-k #f) (run program))
+               ((eq? exec-k #f) (resume-meta (eval1 program)))
+               ((is-same-position?)
+                (act-add1 inte-info 'exec)
+                (exec-k))
+               (else
+                (act-add1 vm-info 'vm)
+                (vm-k))))))
+         
+  
+
+;(breakpoint-switch 'act-if)
+;(meta4 '((lambda (a) (if a 99 0)) 1))
+
+;(breakpoint-on)
+;(breakpoint-off)
 
 
+;(run '(if 1 2 3))
+;(eval1 '(if 1 2 3))
 
+;(run '(+ 1 1))
+;(eval1 '(+ 1 1))
 
-
-
-
-
-
-
-
-
+;(run '1)
+;(eval1 '1)
 

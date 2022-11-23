@@ -82,11 +82,11 @@
 
 ;callFrame.evalReturn()
 (define (js-call-frame-eval-sub num)
-  (js-invoke (js-eval "callFrame") "evalReturn" num))
+  (js-invoke (js-eval "callFrame") "evalReturn") num)
 
 ;callFrame.vmCallFunc()
-(define (js-call-frame-vm-add num)
-  (js-invoke (js-eval "callFrame") "vmCallFunc" num))
+(define (js-call-frame-vm-add)
+  (js-invoke (js-eval "callFrame") "vmCallFunc"))
 
 ;callFrame.vmReturn()
 (define (js-call-frame-vm-sub)
@@ -827,7 +827,7 @@
     `(let* ((org-fun VM-frame))
        (set! VM-frame
              (lambda (a x f c s)
-              (js-call-frame-vm-add (trav-link f 1))
+              (js-call-frame-vm-add)
               (js-call-frame-show)
               (stack-createFrame)
               (js-stack-push c "closure")
@@ -914,11 +914,6 @@
 
 (define (loop n fun)
   (cond ((> n 0) (fun) (loop (- n 1) fun))))
-
-(define (trav-link f n)
-  (let ((ele (vector-ref stack f)))
-    (cond ((eq? f 0) n)
-          (else (trav-link ele (+ n 1))))))
 ;定义伪指令
 
 ;; 0 self-evaluating

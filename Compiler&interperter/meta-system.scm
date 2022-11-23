@@ -679,6 +679,28 @@
  
                )))))
 
+;eval-application　(length (cdr (reverse env)))
+(define-macro define-eval-application
+  (lambda ()
+    `(let* ((org-fun eval-application))
+       (set! eval-application
+             (lambda (exp env)
+              (js-call-frame-eval-add (length  env))
+              ;(js-call-frame-eval-add)
+              (js-call-frame-show)
+              (let ((res (org-fun exp env)))
+                (js-call-frame-eval-sub (length  env))
+                (js-call-frame-show)
+                res
+              )
+              
+ 
+               )))))
+
+
+
+
+
 ;===============画面相关=================
 
 (define-macro embed-vm-draw-find-link
@@ -689,13 +711,12 @@
               (draw-VM-Info "finding link")
               (org-fun n e))))))
 
-
-
 (define-macro embed-eval-draw-frame-functional
   (lambda ()
     `(let* ((org-fun eval-application-apply-functional))
        (set! eval-application-apply-functional
              (lambda (func arguments)
+
               (interpreter-new-frame arguments func)
               (org-fun func arguments))))))
 
@@ -704,10 +725,12 @@
     `(let* ((org-fun VM-frame))
        (set! VM-frame
              (lambda (a x f c s)
+              (js-call-frame-vm-add (trav-link f 1))
+              (js-call-frame-show)
               (stack-createFrame)
-              (js-push-element-into-stack c)
-              (js-push-element-into-stack f)
-              (js-push-element-into-stack (cadr x))
+              (js-stack-push c "closure")
+              (js-stack-push f "frame")
+              (js-stack-push (cadr x) "return")
               (org-fun a x f c s))))))
 
 (define-macro embed-vm-draw-arg-push 
@@ -715,7 +738,7 @@
     `(let* ((org-fun VM-argument))
        (set! VM-argument
              (lambda (a x f c s)
-              (js-push-argument a)
+              (js-stack-push a "argument")
               (org-fun a x f c s))))))
 
 (define-macro embed-vm-draw-apply-functional 
@@ -723,7 +746,7 @@
     `(let* ((org-fun VM-apply-functional))
        (set! VM-apply-functional
              (lambda (a x f c s)
-              (js-push-pushStaticLink (caddr a))
+              (js-stack-push (caddr a) "link")
               (org-fun a x f c s))))))
 
 (define-macro embed-vm-draw-apply-primitive
@@ -731,7 +754,7 @@
     `(let* ((org-fun VM-apply-primitive))
        (set! VM-apply-primitive
              (lambda (a x f c s)
-              (js-push-element-into-stack 0)
+              (js-stack-push 0 "empty")
               (org-fun a x f c s))))))
 
 (define-macro embed-vm-draw-return 
@@ -739,6 +762,8 @@
     `(let* ((org-fun VM-return))
        (set! VM-return
              (lambda (a x f c s)
+              (js-call-frame-vm-sub)
+              (js-call-frame-show)
               (loop (+ 3 (cadr x)) js-pop-element)
               (stack-deleteFrame)
               (org-fun a x f c s))))))
@@ -748,7 +773,9 @@
     `(let* ((org-fun prim-return))
        (set! prim-return
              (lambda (retval s)
-              (loop 3 js-pop-element)
+              (js-call-frame-vm-sub)
+              (js-call-frame-show)
+              (loop 6 js-pop-element) ;3 + 3 c，f，x， arg1,arg2,link
               (stack-deleteFrame)
               (org-fun retval s))))))
 
@@ -774,9 +801,22 @@
               )
                )))))
 
+(define-macro embed-vm-draw-close
+  (lambda ()
+    `(let* ((org-fun VM-close))
+       (set! VM-close
+             (lambda (a x f c s)
+              (loop (cadr x) js-pop-element)
+              (org-fun a x f c s))))))              
+
 
 (define (loop n fun)
   (cond ((> n 0) (fun) (loop (- n 1) fun))))
+
+(define (trav-link f n)
+  (let ((ele (vector-ref stack f)))
+    (cond ((eq? f 0) n)
+          (else (trav-link ele (+ n 1))))))
 ;定义伪指令
 
 ;; 0 self-evaluating
@@ -848,6 +888,10 @@
 (embed-eval-draw-clambda)
 
 (define-eval-exec)
+
+(define-eval-application)
+(embed-vm-draw-close)
+
 ;====break===
 
 (define breakpoints (vector (vector 'act-constant #f)
@@ -945,7 +989,7 @@
          (org (get-act-num act-name target)))
     (vector-set! v t (+ org 1))))
 
-(define (is-same-positon?)
+(define (is-same-position?)
   (if (or (eq? vm-info #f)
           (eq? inte-info #f))
       #f
@@ -974,7 +1018,7 @@
       
          (cond ((eq? vm-k #f) (run program))
                ((eq? exec-k #f) (resume-meta (eval1 program)))
-               ((is-same-positon?)
+               ((is-same-position?)
                 (act-add1 inte-info 'exec)
                 (exec-k))
                (else

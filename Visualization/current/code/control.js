@@ -219,6 +219,36 @@ document.onmouseout = function (e) {
     }
 }
 
+
+function menuFun() {
+    window.oncontextmenu = function (e) {
+        //取消默认的浏览器自带右键
+        // e.preventDefault();
+        // e.target //右键点击的元素
+        // let x = e.offsetX;                //触发点到页面窗口左边的距离
+        // let y = e.offsetY;
+        let x = e.x;                //触发点到页面窗口左边的距离
+        let y = e.y;
+        document.getElementById("menuItem2").innerHTML = e.target.getAttribute("type");
+
+        // let winWidth = window.innerWidth; //窗口的内部宽度（包括滚动条）
+        // let winHeight = window.innerHeight;
+        // let menuWidth = menu.offsetWidth; //菜单宽度
+        // let menuHeight = menu.offsetHeight;
+        //x = winWidth - menuWidth >= x ? x : winWidth - menuWidth;
+        //y = winHeight - menuHeight >= y ? y : winHeight - menuHeight;
+        menu.style.top = y + 'px';
+        menu.style.left = x + 'px';
+        // if (x > (winWidth - menuWidth)) {
+        //     submenu.style.left = '-200px';
+        // }
+        menu.classList.add('active');
+        window.oncontextmenu = function () { return false };
+    }
+
+}
+
+
 function testFun(a) {
     testArg = a;
 }

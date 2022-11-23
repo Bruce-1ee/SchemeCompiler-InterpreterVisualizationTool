@@ -44,6 +44,10 @@
 (define (js-push-element-into-stack val)
   (js-invoke (js-ref (js-eval "view") "stack") "push" val))
 
+  ; view.stack.push(val type)
+(define (js-stack-push val type)
+  (js-invoke (js-ref (js-eval "view") "stack") "push" val type))
+
 ; view.stack.pushArgument(val)
 (define (js-push-argument val)
   (js-invoke (js-ref (js-eval "view") "stack") "pushArgument" val))
@@ -70,6 +74,29 @@
 ;drawexpression(exp)
 (define (js-draw-expression exp)
   (js-call (js-eval "drawexpression") exp))
+
+
+;callFrame.evalCallFunc()
+(define (js-call-frame-eval-add num)
+  (js-invoke (js-eval "callFrame") "evalCallFunc" num))
+
+;callFrame.evalReturn()
+(define (js-call-frame-eval-sub num)
+  (js-invoke (js-eval "callFrame") "evalReturn" num))
+
+;callFrame.vmCallFunc()
+(define (js-call-frame-vm-add num)
+  (js-invoke (js-eval "callFrame") "vmCallFunc" num))
+
+;callFrame.vmReturn()
+(define (js-call-frame-vm-sub)
+  (js-invoke (js-eval "callFrame") "vmReturn"))
+
+;callFrame.showFrame()
+(define (js-call-frame-show)
+  (js-invoke (js-eval "callFrame") "showFrame"))
+
+
 
 (define (draw-interpreter-info info)
   (js-call (js-eval "drawInterpreterInfo") info))

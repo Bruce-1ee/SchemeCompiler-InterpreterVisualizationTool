@@ -53,6 +53,9 @@ function next() {
     nextComp();
 }
 
+
+
+
 /**
  * 用biwascheme执行文本框内的程序
  */

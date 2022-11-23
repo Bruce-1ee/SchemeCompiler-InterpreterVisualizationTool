@@ -15,47 +15,29 @@
 
 /* 环境模型 */
 .environment {
+
     margin: 3px;
-    width: 45%;
+    width: 500px;
     min-height: 90%;
     background-color: rgb(240, 240, 190);
     border-width: 1px;
     border-style: solid;
-    float: left;
-}
-
-
-
-/* .globalEnvironmentFrame::after {
-    display: block;
-    content: "";
-    clear: both;
-} */
-
-.globalEnvironmentName {
-
-    /* border-width: 2px;
-    border-color: rgb(0, 0, 0);
-    border-style: solid; */
-
-    margin-right: 5px;
-    line-height: 120px;
-    height: 124px;
+    text-align: center;
     float: left;
 }
 
 .globalEnvironmentFrame {
-    /* margin-top: 10px; */
+    text-align: left;
+    margin-top: 10px;
     margin-left: 50px;
-    /* width: 800px; */
-    height: 120px;
+    margin-right: 50px;
+    height: 110px;
     background-color: rgb(190, 236, 240);
     border-width: 2px;
     border-color: rgb(0, 0, 0);
     border-style: solid;
-    /* float: left; */
-}
 
+}
 
 .globalVariableFrame {
     margin-top: 10px;
@@ -74,22 +56,26 @@
 
 }
 
+
+/* .localEnvrionmenBox {
+
+} */
+
+
 .localEnvironmentFrame {
+
     margin-top: 10px;
     height: 120px;
 }
 
-/* .localEnvironmentFrame::after {
-    display: block;
-    content: "";
-    clear: both;
-} */
-
 .localEnvironmentName {
-    margin-top: 10px;
+    /* position: absolute; */
+    top: 50%;
+    margin-top: -10px;
+    /* margin-top: 10px;
     margin-right: 5px;
     line-height: 80px;
-    height: 84px;
+    height: 84px; */
     float: left;
 }
 
@@ -109,6 +95,7 @@
     border-width: 2px;
     border-color: rgb(0, 0, 0);
     border-style: solid;
+    overflow: scroll;
     /* float: left; */
     /* margin: 10px;
     width: 20%;
@@ -120,7 +107,7 @@
     border-width: 2px;
     border-color: rgb(0, 0, 0);
     border-style: solid;
-    overflow: hidden; */
+     */
 }
 
 .localEnvironmentFrameBESELECTED {
@@ -175,7 +162,7 @@
 
 .stack {
     margin: 3px;
-    width: 34%;
+    width: 300px;
     min-height: 90%;
     background-color: rgb(240, 240, 190);
     border-width: 1px;
@@ -196,16 +183,11 @@
     border-color: rgb(255, 0, 0);
 }
 
-.stackElementFrame {
-    /* margin-left: 140px; */
-    /* width: 70%; */
 
-    background-color: rgb(190, 236, 240);
-    /* border-style: solid; */
-    border-bottom: solid;
-}
 
 .stackElementFrame {
+    margin-left: 5px;
+    margin-right: 5px;
     /* margin: 10px;
     width: 90%;
     height: 80px; */
@@ -259,7 +241,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 83%;
+    width: 82.5%;
     height: 30px;
 
     background-color: rgb(174, 239, 171);
@@ -275,7 +257,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 83%;
+    width: 82.5%;
     height: 30px;
 
     background-color: rgb(117, 216, 112);

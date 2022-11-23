@@ -9,3 +9,48 @@
     /* width: 200px; */
     border-style: none;
 }
+
+/* 下拉菜单相关 */
+.menu {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    background: #fff;
+    border: 1px solid #dadce0;
+    visibility: hidden;
+}
+
+.active {
+    visibility: visible;
+}
+
+.menu__item,
+.submenu__item {
+    width: 200px;
+    height: 20px;
+}
+
+.menu__item:hover,
+.submenu__item:hover {
+    background-color: #dadce0;
+}
+
+.menu__item:hover .submenu {
+    opacity: 1;
+}
+
+.submenu {
+    position: relative;
+    top: -20px;
+    left: 200px;
+    opacity: 0;
+    background: #fff;
+    border: 1px solid #dadce0;
+}
+
+.icon {
+    position: absolute;
+    right: 3px;
+}
+
+/* 下拉菜单相关 */

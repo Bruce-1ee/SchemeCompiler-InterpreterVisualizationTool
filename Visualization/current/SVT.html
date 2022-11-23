@@ -21,8 +21,13 @@
             cols="50"> (meta '((lambda (arg1 arg2) (lambda () (+ arg1 arg2))) 11 22))
             
 
-            ;(meta '((lambda (a b c) (if a b c)) 11 22 33))
+;(meta '((lambda (a b c) (if a b c)) 11 22 33))
 
+;(meta '((lambda (a b c) ((lambda() c))) 11 22 33))
+;(meta '((lambda(a)((lambda() a))) ((lambda() 11))))
+
+;(meta '((lambda (a) ((lambda () ((lambda () a))))) 99)) 
+;(meta '((lambda (a b c) ((lambda () (+ a b)))) ((lambda () 11)) ((lambda () 22)) ((lambda () 33))))
          </textarea>
 
         <script>
@@ -39,6 +44,7 @@
 
             <input type="button" value="eval" onclick="javascript:biwac(); ">
             <input type="button" value="next" onclick="javascript:next(); ">
+            <input type="button" value="nextInte" onclick="javascript:nextInte(); ">
         </div>
     </div>
 
@@ -56,22 +62,39 @@
 
     </div>
 
+    <div id="menu" class="menu">
+        <div id="menuItem1" class="menu__item">This element represents:</div>
+        <div id="menuItem2" class="menu__item">menu2</div>
+        <div id="menuItem3" class="menu__item">more infomtion</div>
+        <!-- <div class="menu__item" onclick="log(5)">功能5</div> -->
+    </div>
 
 
-</body>
-</div>
-
-<script type="text/javascript" src="./code/lib/jsplumb.min.js"></script>
-<script type="text/javascript" src="./code/lib/biwascheme.js"></script>
-
-<script type="text/javascript" src="./code/draw.js"></script>
-<script type="text/javascript" src="./code/view.js"></script>
-<script type="text/javascript" src="./code/interface.js"></script>
-<script type="text/javascript" src="./code/control.js"></script>
-<script type="text/javascript" src="./code/meta-js/Definition.js"></script>
 
 
-<script type="text/javascript">evl(meta);</script>
+    <script type="text/javascript" src="./code/lib/jsplumb.min.js"></script>
+    <script type="text/javascript" src="./code/lib/biwascheme.js"></script>
+
+    <script type="text/javascript" src="./code/draw.js"></script>
+    <script type="text/javascript" src="./code/view.js"></script>
+    <script type="text/javascript" src="./code/interface.js"></script>
+    <script type="text/javascript" src="./code/control.js"></script>
+    <script type="text/javascript" src="./code/meta-js/Definition.js"></script>
+
+
+    <script type="text/javascript">evl(meta);</script>
+
+    <script>
+        window.onload = function () {
+            const menu = document.getElementById('menu');
+            const submenu = document.getElementById('submenu');
+            document.oncontextmenu = function () { return false };
+            window.addEventListener('click', function () {
+                menu.classList.remove('active');
+            })
+
+        }
+    </script>
 </body>
 
 </html>

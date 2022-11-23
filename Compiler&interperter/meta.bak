@@ -231,9 +231,7 @@
   (compile (preprocess exp #f) '(() . ()) '(halt)))
 
 (define VM
-  
   (lambda (a x f c s) ;; (a x e s)
-
     (case (car x)
       ((halt) a)
       ((refer) (VM-refer a x f c s))
@@ -312,9 +310,7 @@
     ((closure) ;;;
      (VM a (closure-body (cdr a)) s (cdr a) s)) ;;;
     ((primitive) ;;;
-     (let ((s (+ s 1)) ;; (push link s)
-           (primfun (cadr a)))
-       (primfun s)))
+(VM-apply-primitive a x f c s))
     (else
      (error "Not a function"))))
 
@@ -322,6 +318,11 @@
   (let ((body (cadr a))
         (link (caddr a)))
     (VM a body s c (push link s))))
+
+(define (VM-apply-primitive a x f c s)
+  (let ((s (+ s 1)) ;; (push link s)
+           (primfun (cadr a)))
+       (primfun s)))
 
 (define (VM-return a x f c s)
   (let ((n (cadr x)))
@@ -338,7 +339,7 @@
 (define (primitive-fun natfun) ;;;
   (list 'primitive natfun))
 
-(define stack (make-vector 100))
+(define stack (make-vector 1000))
 
 (define push
   (lambda (x s)
@@ -353,7 +354,7 @@
   (lambda (s i v)
     (vector-set! stack (- (- s i) 1) v)))
 
-(define closure
+(define closure-bak
   (lambda (body n s)
     (let ((v (make-vector (+ n 1))))
       (vector-set! v 0 body)
@@ -362,6 +363,20 @@
           (vector-set! v (+ i 1) (index s i))
           (f (+ i 1))))
       (cons 'closure v)))) ;;;
+
+(define closure
+  (lambda (body n s)
+    (let ((v (make-clo body n s)))
+      (cons 'closure v)))) ;;;
+  
+(define (make-clo body n s)
+  (let ((v (make-vector (+ n 1))))
+      (vector-set! v 0 body)
+      (let f ((i 0))
+        (unless (= i n)
+          (vector-set! v (+ i 1) (index s i))
+          (f (+ i 1))))
+    v))
 
 (define closure-body
   (lambda (c)
@@ -504,10 +519,30 @@
 (define (eval-if-test test env) (exec test env))
 (define (eval-if-then then env) (exec then env))
 (define (eval-if-else else env) (exec else env))
-(define (eval-lambda exp env)
+(define (eval-lambda-bak exp env)
   (let ((vars (cadr exp))
         (body (caddr exp)))
     (list 'function vars body env)))
+
+(define (eval-lambda exp env)
+  (cond [(eq? (car exp) 'slambda) (eval-slambda exp env)]
+        [(eq? (car exp) 'clambda) (eval-clambda exp env)]
+        [else (error 'unknown_lambda)]))
+
+(define (eval-slambda exp env)
+  (let ((vars (cadr exp))
+        (body (caddr exp)))
+    (list 'function vars body env)))
+
+(define (eval-clambda exp env)
+  (let ((vb (eval-clambda-helping-fun exp)))
+    ;; draw make-closure 
+    (list 'function (car vb) (cadr vb) env)))
+    
+(define (eval-clambda-helping-fun exp)
+  (let ((vars (cadr exp))
+        (body (caddr exp)))
+        (list vars body)))
 
 (define (eval-application exp env)
   (let ((args (eval-application-args (cdr exp) env))
@@ -515,22 +550,22 @@
     (eval-application-apply body args env)))
 
 (define (eval-application-args args env)
-  (map (lambda(x) (exec x env)) args))
+  (reverse (map (lambda(x) (exec x env)) (reverse args))))
 
 (define (eval-application-body name env) (exec name env))
 
 (define (eval-application-apply func arguments env)
   (case (car func)
     ((primitive)
-     ;biwaschemeFunction
-     ;(send-arguments-to-js arguments arguments (cdr func) 0)
      (eval-application-apply-primitive func arguments))
     ((function)
-     ;biwaschemeFunction
-     ;(send-arguments-to-js (cadr func) arguments (caddr func) 1)
+         (eval-application-apply-functional func arguments))
+    (else (error "Not a function -- eval-application-apply"))))
+
+(define (eval-application-apply-functional func arguments)
      (exec (caddr func)
            (eval-extend (cadddr func) (cadr func) arguments)))
-    (else (error "Not a function -- eval-application-apply"))))
+
 (define (eval-application-apply-primitive func args)
   (apply (cdr func) args))
 
@@ -559,7 +594,7 @@
           (lambda-vals (getvals args '())))
     (cons (list 'lambda lambda-args body) lambda-vals))))
 
-(define (eval1 exp) (exec exp GE))
+(define (eval1 exp) (exec (preprocess exp #f) GE))
 
 
 
@@ -587,7 +622,6 @@
     `(let* ((org-fun ,fun))
        (set! ,fun
              (lambda (arg . restarg)
-               ;(set! proc-name ,proc)
                (set! inte-info ,act)
                (cond ((break? inte-info) (set! break #t)))
                (make-jumppoint-eval)
@@ -797,26 +831,24 @@
 
 (define (meta program)
   (call/cc
-   (lambda (return)
+   (lambda (break-meta)
      (call/cc
       (lambda (top)
         (set! resume-meta top)))
-     ;(display acts) (newline)
+
      (call/cc
       (lambda (c)
         (cond ((eq? break #t)
                (set! break #f)
                (set! next c)
-               (return)))))
+               (break-meta 'ok')))))
       
          (cond ((eq? vm-k #f) (run program))
-               ((eq? exec-k #f) (eval1 program))
+               ((eq? exec-k #f) (resume-meta (eval1 program)))
                ((is-same-position?)
-                ;(p 'is-same-position)
                 (act-add1 inte-info 'exec)
                 (exec-k))
                (else
-                ;(p 'not-same)
                 (act-add1 vm-info 'vm)
                 (vm-k))))))
          

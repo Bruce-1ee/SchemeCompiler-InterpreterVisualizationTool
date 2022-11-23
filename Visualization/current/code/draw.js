@@ -98,7 +98,7 @@ function makeLocalEnvConnection(envName, envFrame) {
             target: 'globalEnvironmentFrame',
             endpoint: ['Dot', { radius: '0' }],
             overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
-            connector: ['Flowchart'],
+            connector: ['Bezier'],
             anchor: ['Right', 'Bottom']
         });
         conMap.set(envFrame, con);
@@ -108,10 +108,10 @@ function makeLocalEnvConnection(envName, envFrame) {
     connectEnvFrameAndGloEnv(envFrame);
 
     let lst = document.getElementsByTagName('path');
-    lst[lst.length - 1].setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1] + '_link');
+    lst[lst.length - 1].setAttribute('name', 'L' + callFrame.getVmFrame() + 'F' + callFrame.getVmCounter() + '_link');
     lst[lst.length - 1].setAttribute('syn', '1');
     lst[lst.length - 1].setAttribute('type', 'arrow');
-    lst[lst.length - 2].setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1] + '_link');
+    lst[lst.length - 2].setAttribute('name', 'L' + callFrame.getVmFrame() + 'F' + callFrame.getVmCounter() + '_link');
     lst[lst.length - 2].setAttribute('syn', '1');
     lst[lst.length - 2].setAttribute('type', 'line');
 
@@ -156,6 +156,38 @@ function makeCloConnection(cloName, cl, clp, crp, body) {
     connectclpToCloBody(clp, body);
     connectcrpToGlo(crp)
 
+}
+
+function connectAtoBRR(a, b) {
+
+    function connectLinkAndStackTag(a, b) {
+        jsPlumb.connect({
+            source: a,
+            target: b,
+            endpoint: ['Dot', { radius: '0' }],
+            overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
+            // connector: ['Flowchart'],
+            connector: ['Bezier'],
+            anchor: ['Right', 'Right']
+        });
+    }
+    connectLinkAndStackTag(a, b);
+}
+
+function connectAtoBLR(a, b) {
+
+    function connectLinkAndStackTag(a, b) {
+        jsPlumb.connect({
+            source: a,
+            target: b,
+            endpoint: ['Dot', { radius: '0' }],
+            overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
+            // connector: ['Flowchart'],
+            connector: ['Flowchart'],
+            anchor: ['Left', 'Right']
+        });
+    }
+    connectLinkAndStackTag(a, b);
 }
 
 

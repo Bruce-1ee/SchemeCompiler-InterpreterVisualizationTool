@@ -33,8 +33,8 @@
 ;(define (test-arg vals args)
 ;  (js-call (js-eval "newFrame") vals args))
 
-(define (interpreter-new-frame vals args)
-  (js-call (js-eval "interNewFrame") vals args))
+(define (interpreter-new-frame vals args frameNum targetNum)
+  (js-call (js-eval "interNewFrame") vals args frameNum targetNum))
 
 (define (stack-createFrame)
  (js-invoke (js-ref (js-eval "view") "stack") "createFrame" ))
@@ -68,8 +68,8 @@
   (js-invoke (js-ref (js-eval "view") "closure") "createClosure" val))
 
 ;view.environment.addClosure(l)
-(define (js-env-addClosure val)
-  (js-invoke (js-ref (js-eval "view") "environment") "addClosure" val))
+(define (js-env-addClosure val targetNum)
+  (js-invoke (js-ref (js-eval "view") "environment") "addClosure" val targetNum))
 
 ;drawexpression(exp)
 (define (js-draw-expression exp)

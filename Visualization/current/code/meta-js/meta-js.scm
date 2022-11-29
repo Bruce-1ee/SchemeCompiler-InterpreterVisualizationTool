@@ -33,8 +33,8 @@
 ;(define (test-arg vals args)
 ;  (js-call (js-eval "newFrame") vals args))
 
-(define (interpreter-new-frame vals args)
-  (js-call (js-eval "interNewFrame") vals args))
+(define (interpreter-new-frame vals args frameNum targetNum)
+  (js-call (js-eval "interNewFrame") vals args frameNum targetNum))
 
 (define (stack-createFrame)
  (js-invoke (js-ref (js-eval "view") "stack") "createFrame" ))
@@ -68,8 +68,8 @@
   (js-invoke (js-ref (js-eval "view") "closure") "createClosure" val))
 
 ;view.environment.addClosure(l)
-(define (js-env-addClosure val)
-  (js-invoke (js-ref (js-eval "view") "environment") "addClosure" val))
+(define (js-env-addClosure val targetNum)
+  (js-invoke (js-ref (js-eval "view") "environment") "addClosure" val targetNum))
 
 ;drawexpression(exp)
 (define (js-draw-expression exp)
@@ -637,9 +637,10 @@
     (list 'function vars body env)))
 
 (define (eval-clambda exp env)
-  (let ((vb (eval-clambda-helping-fun exp)))
+  (let ((vars (cadr exp))
+        (body (caddr exp))) ;vars-body list
     ;; draw make-closure 
-    (list 'function (car vb) (cadr vb) env)))
+    (list 'function vars body env)))
 
 (define (eval-clambda-helping-fun exp)
     (let ((vars (cadr exp))
@@ -661,16 +662,16 @@
     ((primitive)
      (eval-application-apply-primitive func arguments))
     ((function)
-     (eval-application-apply-functional func arguments))
+    (let ((f (caddr func))
+          (e (eval-extend (cadddr func) (cadr func) arguments)))
+      (eval-application-apply-functional f e func arguments)))
     (else (error "Not a function -- eval-application-apply"))))
 
-(define (eval-application-apply-functional func arguments)
-  (exec (caddr func)
-        (eval-extend (cadddr func) (cadr func) arguments)))
+(define (eval-application-apply-functional exp env func arguments)
+  (exec exp env))
 
 (define (eval-application-apply-primitive func args)
   (apply (cdr func) args))
-
 
 (define (eval-let exp env)
   (let ((e (let->lambda exp)))
@@ -694,11 +695,36 @@
           (body (caddr exp))
           (lambda-args (getargs args '()))
           (lambda-vals (getvals args '())))
-    (cons (list 'lambda lambda-args body) lambda-vals))))
+    (cons (list 'lambda
+                lambda-args
+                (if (eq? (car body) 'let)
+                    (let->lambda body)
+                    body))
+                    lambda-vals))))
 
 (define (eval1 exp) (exec (preprocess exp #f) GE))
 
+;结构
+;[
+;  [env , id]
+;  [env , id]
+;]
 
+; env是该函数的环境,(cadr env)是指向的环境
+
+(define env-table (list (cons GE 0)))
+
+(define (get-env-id env)
+  (define (loop table)
+    (cond ((null? table) -1)
+          ((eq? env (car (car table))) (cdr (car table)))
+          (else (loop (cdr table)))))
+  (loop env-table))
+
+(define (append-new-env env)
+  (set! env-table
+        (append env-table
+                (list (cons env (length env-table))))))
 
 ;====macro======
 
@@ -817,10 +843,14 @@
   (lambda ()
     `(let* ((org-fun eval-application-apply-functional))
        (set! eval-application-apply-functional
-             (lambda (func arguments)
+             (lambda (exp env func arguments)
 
-              (interpreter-new-frame arguments func)
-              (org-fun func arguments))))))
+              (append-new-env env)
+              ;因为interpreter-new-frame需要用到arguments 和 func两个参数，所以也将这两个参数传递
+              ;待修改
+              (interpreter-new-frame arguments func (get-env-id env) (get-env-id (cdr env)))
+
+              (org-fun exp env func arguments))))))
 
 (define-macro embed-vm-draw-frame 
   (lambda ()
@@ -893,6 +923,18 @@
                )))))
 
 (define-macro embed-eval-draw-clambda
+  (lambda ()
+    `(let* ((org-fun eval-clambda))
+       (set! eval-clambda
+             (lambda (exp env)
+              (let ((ret (org-fun exp env)))
+                (js-env-addClosure (list->vector (list (list->vector (car vb)) (cadr vb)))
+                                   (get-env-id env))
+                ret
+              )
+               )))))
+
+(define-macro embed-eval-draw-clambda-helping
   (lambda ()
     `(let* ((org-fun eval-clambda-helping-fun))
        (set! eval-clambda-helping-fun

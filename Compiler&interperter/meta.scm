@@ -8,7 +8,7 @@
         ((quoted? exp) (compile-quoted exp next))
         ((variable? exp) (compile-variable exp env next))
         ;((definition? exp) (compile-definition exp env next))
-        ;((let? exp) (compile-let exp env next))
+        ((let? exp) (compile-let exp env next))
         ((if? exp) (compile-if exp env next))
         ((lambda? exp) (compile-lambda exp env next))
         ((application? exp)
@@ -29,8 +29,8 @@
 ;  (tagged-list? exp 'set!))
 ;(define (definition? exp)
 ;  (tagged-list? exp 'define))
-;(define (let? exp)
-;  (tagged-list? exp 'let))
+(define (let? exp)
+  (tagged-list? exp 'let))
 (define (if? exp)
   (tagged-list? exp 'if))
 (define (lambda? exp)
@@ -110,6 +110,11 @@
                                    (list 'return
                                          (length vars)))
                           next)))))
+
+(define (compile-let exp env next)
+  (let ((e (let->lambda exp)))
+    (compile e env next)))
+
 (define (compile-application exp env next)
   (let loop ((args (cdr exp))
              (c (compile-fun-body exp env)))
@@ -170,6 +175,32 @@
         (collect-free (cdr vars) e
                       (compile-variable (car vars) e
                                         (list 'argument next))))))
+(define getargs
+  (lambda (args ret)
+    
+    (if (null? args)
+        ret
+        (getargs (cdr args) (append ret (list (car (car args))))))))
+(define getvals
+  (lambda (args ret)
+    (if (null? args)
+        ret
+        (getvals (cdr args) (append ret (list (cadr (car args))))))))
+(define let->lambda
+  (lambda (exp)
+    (let* ((args (cadr exp))
+          (body (caddr exp))
+           
+          (lambda-args (getargs args '()))
+          (lambda-vals (getvals args '())))
+
+    (cons (list 'lambda
+                lambda-args
+                (if (eq? (car body) 'let)
+                    (let->lambda body)
+                    body))
+                    lambda-vals))))
+;(cons (list 'lambda lambda-args body) lambda-vals))))
 
 (define set-member?
   (lambda (x s)
@@ -235,8 +266,6 @@
 ;c:closure pointer
 (define VM
   (lambda (a x f c s) ;; (a x e s)
-    (display s) (newline)
-    (display x) (newline)
     (case (car x)
       ((halt) a)
       ((refer) (VM-refer a x f c s))
@@ -494,7 +523,8 @@
 
 (define (eval-self-evaluating exp) exp)
 (define (eval-quotation) (cadr exp))
-(define (eval-variable exp env) (eval-lookup exp env))
+(define (eval-variable exp env)
+  (display exp) (newline) (eval-lookup exp env))
 (define (eval-assignment exp env) (let ((var (cadr exp))
                                         (val (caddr exp)))
                                     (set-car! (eval-lookup var env) (exec val env))))
@@ -541,6 +571,7 @@
 
 (define (eval-clambda exp env)
   (let ((vb (eval-clambda-helping-fun exp)))
+    (display vb)(newline)
     ;; draw make-closure 
     (list 'function (car vb) (cadr vb) env)))
     
@@ -549,12 +580,13 @@
         (body (caddr exp)))
     (list vars body)))
 
+
+
 (define (eval-application exp env)
 ;  (if (null? (cdr (reverse env)))
 ;      (display 'yes)
 ;      (display (cdr (reverse env))))
  (display (cdr (reverse env))) (newline)
-  (display (length  env)) (newline)
   (let ((args (eval-application-args (cdr exp) env))
         (body (eval-application-body (car exp) env)))
     (eval-application-apply body args env)))
@@ -570,12 +602,14 @@
     ((primitive)
      (eval-application-apply-primitive func arguments))
     ((function)
-     (eval-application-apply-functional func arguments))
+     (let ((e (eval-extend (cadddr func) (cadr func) arguments))
+           (f (caddr func)))
+     (eval-application-apply-functional f e)))
     (else (error "Not a function -- eval-application-apply"))))
 
-(define (eval-application-apply-functional func arguments)
-  (exec (caddr func)
-        (eval-extend (cadddr func) (cadr func) arguments)))
+(define (eval-application-apply-functional exp env)
+  (append-new-env env)
+  (exec exp env))
 
 (define (eval-application-apply-primitive func args)
   (apply (cdr func) args))
@@ -585,38 +619,41 @@
   (let ((e (let->lambda exp)))
     (exec e env)))
 
-;==========new==========
-(define getargs
-  (lambda (args ret)
-    (if (null? args)
-        ret
-        (getargs (cdr args) (append ret (list (car (car args))))))))
-(define getvals
-  (lambda (args ret)
-    (if (null? args)
-        ret
-        (getvals (cdr args) (append ret (list (cadr (car args))))))))
-
-(define let->lambda
-  (lambda (exp)
-    (let* ((args (cadr exp))
-           (body (caddr exp))
-           (lambda-args (getargs args '()))
-           (lambda-vals (getvals args '())))
-      (cons (list 'lambda lambda-args body) lambda-vals))))
-
 (define (eval1 exp) (exec (preprocess exp #f) GE))
 
+;((lambda (a) ((lambda () ((lambda () a))))) 99)
+;结构
+;[
+;  [env , id]
+;  [env , id]
+;]
 
+; env是该函数的环境,(cadr env)是指向的环境
+
+(define env-table (list (cons GE 0)))
+
+(define (get-env-id env)
+  (define (loop table)
+    (cond ((null? table) -1)
+          ((eq? env (car (car table))) (cdr (car table)))
+          (else (loop (cdr table)))))
+  (loop env-table))
+
+(define (get-env-by-id id)
+  (define (loop n table)
+    (cond ((null? table) -1)
+          ((= n 0) (car (car table)))
+          (else (loop (- n 1) (cdr table)))))
+  (loop id env-table))
+(define get get-env-by-id)
+                   
+
+(define (append-new-env env)
+  (set! env-table
+        (append env-table
+                (list (cons env (length env-table))))))
 
 ;====macro======
-
-(define (cc)
-  (call/cc
-   (lambda (quit)
-     (set! resume-meta quit)))) 
-;(cc)
-
 (define (make-jumppoint-eval)
   (call/cc (lambda (breakpoint)
              (set! exec-k breakpoint)
@@ -660,6 +697,7 @@
                      (cond ((break? vm-info) (set! break #t)))
                      (make-jumppoint-vm)
                      (display 'vm:)(display (car x)) (newline)
+                     (display 'exp:)(display (cadr x)) (newline)
                      (VM a (cadr x) f c s))
                    (org-fun a x f c s)))))))
 
@@ -865,6 +903,26 @@
            (else
             (act-add1 vm-info 'vm)
             (vm-k))))))
+
+(define-macro define-vm-otherwise1
+  (lambda ()
+    `(let* ((org-fun VM-otherwise))
+       (set! VM-otherwise
+             (lambda (a x f c s)
+                   (begin
+                     (set! vm-info (car x))
+                     ;(cond ((break? vm-info) (set! break #t)))
+                     (make-jumppoint-vm)
+                     (display 'vm:)(display (car x)) (newline)
+                     (VM a (cadr x) f c s))
+                   )))))
+
+(define (cc)
+  (call/cc
+   (lambda (quit)
+     (set! resume-meta quit))))
+(cc)
+
          
   
 

@@ -39,7 +39,7 @@ function popStackElement(frameLength, stackLength) {
 
 
 
-function drawClsure(closureCounter, l) {
+function drawClsure_bak(closureCounter, l) {
     //外侧的框
     let box = makeNewElement('', '', 'closureRightBox');
     //点对的绘制
@@ -62,7 +62,7 @@ function drawClsure(closureCounter, l) {
     //闭包本体
 
     let bodyBox = makeNewElement('', 'closureBodyBox_' + closureCounter, 'closureBodyBox');
-    let cloFrm = makeNewElement(l[1], 'closureFrame_' + closureCounter, 'closureFrame');
+    let cloFrm = makeNewElement(l[1], 'closureFrame_' + closureCounter, 'envClosureFrame');
 
     bodyBox.appendChild(cloFrm);
     box.appendChild(bodyBox);
@@ -70,6 +70,41 @@ function drawClsure(closureCounter, l) {
     return [box, 'c' + closureCounter + 'l', 'closure_' + closureCounter + "_l_p", 'closure_' + closureCounter + "_r_p", 'closureFrame_' + closureCounter]
 }
 
+function drawClsure(closureCounter, l) {
+    //外侧的框
+    let box = makeNewElement('', 'envClosureBox' + closureCounter, 'envClosureBox');
+    //点对的绘制
+
+
+    let leftPoint = makeNewElement('', 'c' + closureCounter + 'r', 'circle');
+
+
+
+    let cloBox = makeNewElement('', 'closure_' + closureCounter, 'doubleDotBox clearfix');
+
+    let c1 = makeNewElement('', 'c' + closureCounter + 'l', 'circle');
+    let c1p = makeNewElement('', 'closure_' + closureCounter + "_l_p", 'point');
+
+
+    let c2 = makeNewElement('', 'c' + closureCounter + 'r', 'circle');
+    let c2p = makeNewElement('', 'closure_' + closureCounter + "_r_p", 'point');
+
+    cloBox.appendChild(c1);
+    cloBox.appendChild(c2);
+    c1.appendChild(c1p);
+    c2.appendChild(c2p);
+
+    box.appendChild(cloBox);
+    //闭包本体
+
+    let bodyBox = makeNewElement('', 'closureBodyBox_' + closureCounter, 'closureBodyBox');
+    let cloFrm = makeNewElement(l[1], 'closureFrame_' + closureCounter, 'envClosureFrame');
+
+    bodyBox.appendChild(cloFrm);
+    box.appendChild(bodyBox);
+    //return box;
+    return [box, 'c' + closureCounter + 'l', 'closure_' + closureCounter + "_l_p", 'closure_' + closureCounter + "_r_p", 'closureFrame_' + closureCounter]
+}
 
 
 /**
@@ -205,6 +240,23 @@ function makeLinkConnection(link, stackTag) {
         conMap.set(link, con);
     }
     connectLinkAndStackTag(link, stackTag);
+}
+
+
+function connectATOB(a, b, aanchor, banchor) {
+
+
+    function connectLinkAndStackTag(a, b) {
+        jsPlumb.connect({
+            source: a,
+            target: b,
+            endpoint: ['Dot', { radius: '0' }],
+            overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
+            connector: ['Bezier'],
+            anchor: [aanchor, banchor]
+        });
+    }
+    connectLinkAndStackTag(a, b);
 }
 
 var inteCounter = 1;

@@ -161,18 +161,10 @@
     width: 20%;
     height: 80px;
 
-
-
-    background-color: rgb(240, 144, 144);
-    border-width: 2px;
-    border-color: rgb(0, 0, 0);
-    border-style: solid;
-    overflow: scroll;
-
 }
 
 .envClosureBody {
-    background-color: rgb(240, 144, 144);
+    background-color: rgb(190, 236, 240);
 }
 
 

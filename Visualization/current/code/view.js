@@ -166,8 +166,8 @@ class Environment {
 
     }
 
-    addFrame(varList = []) {
-        this.box.newFrame(this.frameCounter++, varList);
+    addFrame(varList = [], frameNum, targetNum) {
+        this.box.newFrame(this.frameCounter++, varList, frameNum, targetNum);
     }
 
     /**
@@ -176,8 +176,8 @@ class Environment {
      *                 vars
      *                 body  
      */
-    addClosure(l) {
-        this.box.newClosure(this.closureCounter++, l);
+    addClosure(l, targetNum) {
+        this.box.newClosure(this.closureCounter++, l, targetNum);
     }
 }
 
@@ -189,11 +189,11 @@ class EnvironmentFrame {
     constructor() {
 
         let globalEnvironmentFrame = makeNewElement('GLOBALENV', 'globalEnvironmentFrame', 'globalEnvironmentFrame');
-
+        globalEnvironmentFrame.setAttribute('frameNumber', 0);
         document.getElementById('environment').appendChild(globalEnvironmentFrame);
 
     }
-    newFrame(frameCounter, varList) {
+    newFrame(frameCounter, varList, frameNum, targetNum) {
         //外侧的框
         let box = makeNewElement('', 'localEnvrionmenBox_' + frameCounter, 'localEnvrionmenBox');
         document.getElementById('environment').appendChild(box);
@@ -208,24 +208,38 @@ class EnvironmentFrame {
         evnFrm.setAttribute('name', 'L' + callFrame.getEvalFrame() + 'F' + callFrame.getEvalCounter());
         evnFrm.setAttribute('EnvironmentFrame', 'L' + callFrame.getEvalFrame() + 'F' + callFrame.getEvalCounter());
         evnFrm.setAttribute('syn', '1');
+
+        evnFrm.setAttribute('frameNumber', frameNum);
         // document.getElementById('localEnvrionmenBox_' + frameCounter).appendChild(evnFrm);
         box.appendChild(evnFrm);
 
-        if (callFrame.evalPointer == 1) {
-            makeLocalEnvConnection('localEnvrionmenName_' + frameCounter, 'localEnvrionmenFrame_' + frameCounter);
 
+        connectAtoBLR(envName, evnFrm);
+        console.log(document.querySelector("div[framenumber = " + "'" + targetNum + "'" + " ]"))
+        let myself = document.querySelector("div[framenumber = " + "'" + frameNum + "'" + " ]").getAttribute("id");
+        let target = document.querySelector("div[framenumber = " + "'" + targetNum + "'" + " ]").getAttribute("id");
+
+        if (targetNum === 0) {
+            connectATOB(myself, target, 'Right', 'Bottom')
         } else {
-            let lst = document.getElementsByName('L' + (callFrame.evalPointer - 1) + 'F' + callFrame.getEvalCounter(2));
-            console.log(lst);
-            for (var i = 0; i < lst.length; i++) {
-                if (lst[i].getAttribute("environmentframe") != null) {
-                    parent = lst[i].getAttribute("id");
-                    connectAtoBLR(envName, evnFrm)
-                    connectAtoBRR(evnFrm, parent)
-                    break;
-                }
-            }
+            connectATOB(myself, target, 'Right', 'Right')
         }
+
+        // if (callFrame.evalPointer == 1) {
+        //     makeLocalEnvConnection('localEnvrionmenName_' + frameCounter, 'localEnvrionmenFrame_' + frameCounter);
+
+        // } else {
+        //     let lst = document.getElementsByName('L' + (callFrame.evalPointer - 1) + 'F' + callFrame.getEvalCounter(2));
+        //     console.log(lst);
+        //     for (var i = 0; i < lst.length; i++) {
+        //         if (lst[i].getAttribute("environmentframe") != null) {
+        //             parent = lst[i].getAttribute("id");
+        //             connectAtoBLR(envName, evnFrm)
+        //             connectAtoBRR(evnFrm, parent)
+        //             break;
+        //         }
+        //     }
+        // }
 
 
 
@@ -241,37 +255,60 @@ class EnvironmentFrame {
         }
     }
 
-    newClosure(closureCounter, l) {
+    newClosure(closureCounter, l, targetNum) {
         //外侧的框
         let box = makeNewElement('', 'closureBox_' + closureCounter, 'localEnvrionmenBox');
+
         document.getElementById('environment').appendChild(box);
         //闭包的名字
         let cloName = makeNewElement('clo' + closureCounter, 'closureName_' + closureCounter, 'localEnvironmentName');
         //document.getElementById('closureBox_' + closureCounter).appendChild(cloName);
         box.appendChild(cloName);
-        //     //闭包本体的框
-        //     let cloFrm = makeNewElement(l[1], 'closureFrame_' + closureCounter, 'localEnvironmentFrame');
 
-        //     // //同步用 待修改
-        //     // // L: level F:frame
-        //     // evnFrm.setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1]);
-        //     // evnFrm.setAttribute('syn', '1');
-        //     document.getElementById('closureBox_' + closureCounter).appendChild(cloFrm);
+        // let closureBox = makeNewElement('', 'c' + closureCounter + 'box', 'envClosureFrame');
 
-        //     makeCloConnection('closureName_' + closureCounter, 'closureFrame_' + closureCounter);
+        // let doubleDotBox = makeNewElement('', 'c' + closureCounter + 'db', 'doubleDotBox');
+        // let leftPoint = makeNewElement('', 'c' + closureCounter + 'lp', 'point');
+        // let leftCircle = makeNewElement('', 'c' + closureCounter + 'lc', 'circle');
 
-        //     //将所有变量插入
-        //     console.log(l);
-        //     for (var i = 0; i < l[0].length; i++) {
-        //         let v = makeNewElement(l[0][i], 'C' + closureCounter + ' A' + i, 'envVirable');
-        //         // v.setAttribute('syn', '1');
-        //         // v.setAttribute('name', 'L' + ast.current()[0] + 'F' + ast.current()[1] + 'A' + (varList.length - 1 - i));
-        //         document.getElementById('closureFrame_' + closureCounter).appendChild(v);
-        //     }
-        let lst = drawClsure(closureCounter, l);
-        box.appendChild(lst[0]);
+        // leftCircle.appendChild(leftPoint);
+        // doubleDotBox.appendChild(leftCircle);
 
-        makeCloConnection('closureName_' + closureCounter, lst[1], lst[2], lst[3], lst[4]);
+        // let rightPoint = makeNewElement('', 'c' + closureCounter + 'rp', 'point');
+        // let rightCircle = makeNewElement('', 'c' + closureCounter + 'rc', 'circle');
+
+        // rightCircle.appendChild(rightPoint);
+        // doubleDotBox.appendChild(rightCircle);
+
+        // let closureBody = makeNewElement(l[1], 'c' + closureCounter + 'bd', 'envClosureBody');
+
+        // let doubleDotBoxBox = makeNewElement('', '', 'clearfix');
+
+        // doubleDotBoxBox.appendChild(doubleDotBox)
+
+        // closureBox.appendChild(doubleDotBoxBox);
+        // closureBox.appendChild(closureBody);
+
+        //let lst = drawClsure(closureCounter, l);
+        //box.appendChild(lst[0]);
+
+        let closureFrame = makeNewElement('', 'closureFrame_' + closureCounter, 'envClosureFrame');
+        let closureElement = makeNewElement(l[1], 'closureElement', 'envClosureBody');
+        closureFrame.appendChild(closureElement);
+
+        box.appendChild(closureFrame);
+
+        connectAtoBLR(cloName, closureFrame);
+        let myself = closureFrame.getAttribute("id");
+        let target = document.querySelector("div[framenumber = " + "'" + targetNum + "'" + " ]").getAttribute("id");
+
+        if (targetNum === 0) {
+            connectATOB(myself, target, 'Right', 'Bottom')
+        } else {
+            connectATOB(myself, target, 'Right', 'Right')
+        }
+
+        //makeCloConnection('closureName_' + closureCounter, lst[1], lst[2], lst[3], lst[4]);
 
 
     }

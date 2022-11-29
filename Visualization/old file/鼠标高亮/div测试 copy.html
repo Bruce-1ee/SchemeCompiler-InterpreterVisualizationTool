@@ -3,6 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>设置div最小高度及高度自动伸展的实例</title>
+    <link rel="stylesheet" href="./visualizationBox.css">
     <style>
         .divHeight {
             width: auto;
@@ -24,6 +25,18 @@
             border-radius: 50%;
             margin: 10px;
 
+        }
+
+        .localEnvironmentName {
+            top: 50%;
+            margin-top: -10px;
+            float: left;
+        }
+
+        .localEnvironmentFrame {
+
+            margin-top: 10px;
+            height: 120px;
         }
 
         .clearfix::before,
@@ -52,24 +65,83 @@
             height: 100px;
             background-color: #bfa;
         }
+
+        .body {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 
 <body>
+    <!-- <div>
 
-    <!-- 定义点对 -->
-    <div class="clearfix">
-        <div id="definition_1" class="doubleDotBox ">
-            <div class="circle">
-                <div id="definition_1_l" class="point"></div>
+        <div class="clearfix">
+            <div id="definition_1" class="doubleDotBox ">
+                <div class="circle">
+                    <div id="definition_1_l" class="point"></div>
+                </div>
+                <div class="circle">
+                    <div id="definition_1_r" class="point"></div>
+                </div>
             </div>
-            <div class="circle">
-                <div id="definition_1_r" class="point"></div>
+        </div>
+        <div class="body"> body sdfjladjsf</div>
+    </div>
+
+    <div>
+
+        <div class="clearfix">
+            <div id="definition_1" class="doubleDotBox ">
+                <div class="circle">
+                    <div id="definition_1_l" class="point"></div>
+                </div>
+                <div class="circle">
+                    <div id="definition_1_r" class="point"></div>
+                </div>
+            </div>
+        </div>
+        <div> body sdfjladjsf</div>
+    </div>
+    <div class="box1"></div>
+
+
+    <div id="closureBox_1" class="localEnvrionmenBox">
+        <div id="closureName_1" class="localEnvironmentName">clo1</div>
+        <div id="c1box" class="localEnvironmentFrame">
+            <div id="c1db" class="doubleDotBox clearfix">
+                <div id="c1lc" class="circle">
+                    <div id="c1lp" class="point"></div>
+                </div>
+                <div id="c1rc" class="circle">
+                    <div id="c1rp" class="point"></div>
+                </div>
+            </div>
+            <div id="c1bd" class="envClosureBody">('+ 'arg1 'arg2)</div>
+        </div>
+    </div> -->
+
+    <div class="environment">
+        <div id="closureBox_1" class="localEnvrionmenBox">
+            <div id="closureName_1" class="localEnvironmentName">clo1</div>
+            <div id="c1box" class="envClosureFrame">
+                <div id="" class="clearfix">
+                    <div id="c1db" class="doubleDotBox ">
+                        <div class="clearfix">
+                            <div id="c1lc" class="circle">
+                                <div id="c1lp" class="point"></div>
+                            </div>
+                            <div id="c1rc" class="circle">
+                                <div id="c1rp" class="point"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="c1bd" class="envClosureBody">('+ 'arg1 'arg2)</div>
             </div>
         </div>
     </div>
 
-    <div class="box1"></div>
 </body>
 
 </html>

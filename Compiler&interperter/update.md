@@ -29,5 +29,39 @@ interpreter                         ->          VM
 
 
 
+((lambda () (let ((make-closure
+        (lambda (num)
+          (lambda () num))))
+  (let ((c1 (make-closure 10))
+       (c2 (make-closure 20)))
+  (c1)))))
+
+
+((lambda (f1 f2) ((lambda() (f2))) ) (lambda (arg) arg) (lambda() 999))
+
+(eval1 '((lambda (make-closure)
+   ((lambda (c1 c2) (c1))
+    (make-closure 10)
+    (make-closure 20)))
+ (lambda (num) (lambda () num))))
+
+'((lambda (make-closure)
+   ((lambda (c1 c2) (make-closure 999))
+    (make-closure 10)
+    (make-closure 20)))
+ (lambda (num) (lambda () num)))
+
+'((lambda (make-closure)
+   ((lambda (c1) (c1))
+    (make-closure 10)))
+ (lambda (num) (lambda () num)))
+
+
+((lambda (a) a) ((lambda() 99)))
+
+((lambda (c) (c))
+((lambda(num) (lambda() num)) 99))
+
+
 
 

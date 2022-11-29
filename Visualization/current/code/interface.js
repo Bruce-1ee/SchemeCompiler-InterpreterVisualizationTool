@@ -15,7 +15,7 @@ function testVal(val) {
  * @param {*} args  传入eval-application-apply的func参数
  * 可以得到 参数：值 的结果，显示在环境box中
  */
-function interNewFrame(vals, args) {
+function interNewFrame(vals, args, frameNum, targetNum) {
 
     var values = vals;
     var retVals = [];
@@ -37,7 +37,7 @@ function interNewFrame(vals, args) {
     } else if (argument.car.name == "primitive") {
         //tbd
     }
-    view.environment.addFrame(retVals);
+    view.environment.addFrame(retVals, frameNum, targetNum);
 }
 
 

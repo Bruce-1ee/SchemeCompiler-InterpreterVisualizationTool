@@ -8,7 +8,7 @@
         ((quoted? exp) (compile-quoted exp next))
         ((variable? exp) (compile-variable exp env next))
         ;((definition? exp) (compile-definition exp env next))
-        ;((let? exp) (compile-let exp env next))
+        ((let? exp) (compile-let exp env next))
         ((if? exp) (compile-if exp env next))
         ((lambda? exp) (compile-lambda exp env next))
         ((application? exp)
@@ -29,8 +29,8 @@
 ;  (tagged-list? exp 'set!))
 ;(define (definition? exp)
 ;  (tagged-list? exp 'define))
-;(define (let? exp)
-;  (tagged-list? exp 'let))
+(define (let? exp)
+  (tagged-list? exp 'let))
 (define (if? exp)
   (tagged-list? exp 'if))
 (define (lambda? exp)
@@ -110,6 +110,11 @@
                                    (list 'return
                                          (length vars)))
                           next)))))
+
+(define (compile-let exp env next)
+  (let ((e (let->lambda exp)))
+    (compile e env next)))
+
 (define (compile-application exp env next)
   (let loop ((args (cdr exp))
              (c (compile-fun-body exp env)))
@@ -170,6 +175,32 @@
         (collect-free (cdr vars) e
                       (compile-variable (car vars) e
                                         (list 'argument next))))))
+(define getargs
+  (lambda (args ret)
+    
+    (if (null? args)
+        ret
+        (getargs (cdr args) (append ret (list (car (car args))))))))
+(define getvals
+  (lambda (args ret)
+    (if (null? args)
+        ret
+        (getvals (cdr args) (append ret (list (cadr (car args))))))))
+(define let->lambda
+  (lambda (exp)
+    (let* ((args (cadr exp))
+          (body (caddr exp))
+           
+          (lambda-args (getargs args '()))
+          (lambda-vals (getvals args '())))
+
+    (cons (list 'lambda
+                lambda-args
+                (if (eq? (car body) 'let)
+                    (let->lambda body)
+                    body))
+                    lambda-vals))))
+;(cons (list 'lambda lambda-args body) lambda-vals))))
 
 (define set-member?
   (lambda (x s)
@@ -230,6 +261,9 @@
 (define (sc exp)
   (compile (preprocess exp #f) '(() . ()) '(halt)))
 
+
+;f:frame pointer
+;c:closure pointer
 (define VM
   (lambda (a x f c s) ;; (a x e s)
     (case (car x)
@@ -310,7 +344,7 @@
     ((closure) ;;;
      (VM a (closure-body (cdr a)) s (cdr a) s)) ;;;
     ((primitive) ;;;
-(VM-apply-primitive a x f c s))
+     (VM-apply-primitive a x f c s))
     (else
      (error "Not a function"))))
 
@@ -321,8 +355,8 @@
 
 (define (VM-apply-primitive a x f c s)
   (let ((s (+ s 1)) ;; (push link s)
-           (primfun (cadr a)))
-       (primfun s)))
+        (primfun (cadr a)))
+    (primfun s)))
 
 (define (VM-return a x f c s)
   (let ((n (cadr x)))
@@ -330,7 +364,7 @@
       (VM a (index s 0) (index s 1) (index s 2) (- s 3)))))
 
 (define (VM-otherwise a x f c s)
-      (error "unknow inst"))
+  (error "unknow inst"))
  
 (define functional
   (lambda (body e)
@@ -371,11 +405,11 @@
   
 (define (make-clo body n s)
   (let ((v (make-vector (+ n 1))))
-      (vector-set! v 0 body)
-      (let f ((i 0))
-        (unless (= i n)
-          (vector-set! v (+ i 1) (index s i))
-          (f (+ i 1))))
+    (vector-set! v 0 body)
+    (let f ((i 0))
+      (unless (= i n)
+        (vector-set! v (+ i 1) (index s i))
+        (f (+ i 1))))
     v))
 
 (define closure-body
@@ -489,15 +523,16 @@
 
 (define (eval-self-evaluating exp) exp)
 (define (eval-quotation) (cadr exp))
-(define (eval-variable exp env) (eval-lookup exp env))
+(define (eval-variable exp env)
+ (eval-lookup exp env))
 (define (eval-assignment exp env) (let ((var (cadr exp))
-        (val (caddr exp)))
-    (set-car! (eval-lookup var env) (exec val env))))
+                                        (val (caddr exp)))
+                                    (set-car! (eval-lookup var env) (exec val env))))
 
 (define (eval-definition exp env)
   (if (not (symbol? (cadr exp)))
       (error "Not a variable -- DEFINE"))
-      (define-variable! (cadr exp) (exec (caddr exp) env) env)
+  (define-variable! (cadr exp) (exec (caddr exp) env) env)
   'ok)
 (define (define-variable! var val env)
   (let ((frame (car env)))
@@ -542,9 +577,15 @@
 (define (eval-clambda-helping-fun exp)
   (let ((vars (cadr exp))
         (body (caddr exp)))
-        (list vars body)))
+    (list vars body)))
+
+
 
 (define (eval-application exp env)
+;  (if (null? (cdr (reverse env)))
+;      (display 'yes)
+;      (display (cdr (reverse env))))
+
   (let ((args (eval-application-args (cdr exp) env))
         (body (eval-application-body (car exp) env)))
     (eval-application-apply body args env)))
@@ -555,16 +596,19 @@
 (define (eval-application-body name env) (exec name env))
 
 (define (eval-application-apply func arguments env)
+  
   (case (car func)
     ((primitive)
      (eval-application-apply-primitive func arguments))
     ((function)
-         (eval-application-apply-functional func arguments))
+     (let ((e (eval-extend (cadddr func) (cadr func) arguments))
+           (f (caddr func)))
+     (eval-application-apply-functional f e)))
     (else (error "Not a function -- eval-application-apply"))))
 
-(define (eval-application-apply-functional func arguments)
-     (exec (caddr func)
-           (eval-extend (cadddr func) (cadr func) arguments)))
+(define (eval-application-apply-functional exp env)
+  (append-new-env env)
+  (exec exp env))
 
 (define (eval-application-apply-primitive func args)
   (apply (cdr func) args))
@@ -572,40 +616,43 @@
 
 (define (eval-let exp env)
   (let ((e (let->lambda exp)))
-        (exec e env)))
-
-;==========new==========
-(define getargs
-  (lambda (args ret)
-    (if (null? args)
-        ret
-        (getargs (cdr args) (append ret (list (car (car args))))))))
-(define getvals
-  (lambda (args ret)
-    (if (null? args)
-        ret
-        (getvals (cdr args) (append ret (list (cadr (car args))))))))
-
-(define let->lambda
-  (lambda (exp)
-    (let* ((args (cadr exp))
-          (body (caddr exp))
-          (lambda-args (getargs args '()))
-          (lambda-vals (getvals args '())))
-    (cons (list 'lambda lambda-args body) lambda-vals))))
+    (exec e env)))
 
 (define (eval1 exp) (exec (preprocess exp #f) GE))
 
+;((lambda (a) ((lambda () ((lambda () a))))) 99)
+;结构
+;[
+;  [env , id]
+;  [env , id]
+;]
 
+; env是该函数的环境,(cadr env)是指向的环境
+
+(define env-table (list (cons GE 0)))
+
+(define (get-env-id env)
+  (define (loop table)
+    (cond ((null? table) -1)
+          ((eq? env (car (car table))) (cdr (car table)))
+          (else (loop (cdr table)))))
+  (loop env-table))
+
+(define (get-env-by-id id)
+  (define (loop n table)
+    (cond ((null? table) -1)
+          ((= n 0) (car (car table)))
+          (else (loop (- n 1) (cdr table)))))
+  (loop id env-table))
+(define get get-env-by-id)
+                   
+
+(define (append-new-env env)
+  (set! env-table
+        (append env-table
+                (list (cons env (length env-table))))))
 
 ;====macro======
-
-(define (cc)
-  (call/cc
-   (lambda (quit)
-     (set! resume-meta quit)))) 
-;(cc)
-
 (define (make-jumppoint-eval)
   (call/cc (lambda (breakpoint)
              (set! exec-k breakpoint)
@@ -646,76 +693,91 @@
                (if (get-act (car x)) ;如果存在于acts的VECTOR里那么就执行,不然就报错
                    (begin
                      (set! vm-info (car x))
-                     (cond ((break? vm-info) (set! break #t)))
+                     ;(cond ((break? vm-info) (set! break #t)))
                      (make-jumppoint-vm)
-                     (display 'vm:)(display (car x)) (newline)
+                     (display "v m :")(display (car x)) (newline)
+                     ;(display 'exp:)(display (cadr x)) (newline)
                      (VM a (cadr x) f c s))
                    (org-fun a x f c s)))))))
 
 
 
-
+(define (trav-link f n)
+  (let ((ele (vector-ref stack f)))
+    (cond ((eq? f 0) n)
+          (else (trav-link ele (+ n 1))))))
 
 ;定义伪指令
 
 
-(define (define-all)
+(define (define-all) 
   
 
-;; 0 self-evaluating
-(define-act-compiler compile-self-evaluating 'act-constant)
+  ;; 0 self-evaluating
+  (define-act-compiler compile-self-evaluating 'act-constant)
 
 
-(define-act-eval eval-self-evaluating 'eval-self-evaluating 'act-constant)
+  ;(define-act-eval eval-self-evaluating 'eval-self-evaluating 'act-constant)
+  (define-act-eval eval-self-evaluating 'act-constant 'act-constant)
+
+  ;; 1 quotation
+  (define-act-compiler compile-quoted 'act-constant)
 
 
-;; 1 quotation
-(define-act-compiler compile-quoted 'act-constant)
+  ;(define-act-eval eval-quotation 'eval-quotation 'act-constant)
+  (define-act-eval eval-quotation 'act-constant 'act-constant)
 
 
-(define-act-eval eval-quotation 'eval-quotation 'act-constant)
+  ;; 2 variable
+  (define-act-compiler compile-variable 'act-variable)
 
 
-;; 2 variable
-(define-act-compiler compile-variable 'act-variable)
+  ;(define-act-eval eval-variable 'eval-variable 'act-variable)
+  (define-act-eval eval-variable 'act-variable 'act-variable)
+
+  ;; 3 if
+  (define-act-compiler compile-if 'act-if)
+  (define-act-compiler compile-test 'act-test)
+  (define-act-compiler compile-then 'act-then)
+  (define-act-compiler compile-else 'act-else)
 
 
-(define-act-eval eval-variable 'eval-variable 'act-variable)
+  ;(define-act-eval eval-if 'eval-if 'act-if)
+  ;(define-act-eval eval-if-test 'eval-test 'act-test)
+  ;(define-act-eval eval-if-then 'eval-then 'act-then)
+  ;(define-act-eval eval-if-else 'eval-else 'act-else)
+
+  (define-act-eval eval-if 'act-if 'act-if)
+  (define-act-eval eval-if-test 'act-test 'act-test)
+  (define-act-eval eval-if-then 'act-then 'act-then)
+  (define-act-eval eval-if-else 'act-else 'act-else)
 
 
-;; 3 if
-(define-act-compiler compile-if 'act-if)
-(define-act-compiler compile-test 'act-test)
-(define-act-compiler compile-then 'act-then)
-(define-act-compiler compile-else 'act-else)
+  ;; 4 lambda
+  (define-act-compiler compile-lambda 'act-lambda)
+
+  ;(define-act-eval eval-lambda 'eval-lambda 'act-lambda)
+  (define-act-eval eval-lambda 'act-lambda 'act-lambda)
 
 
-(define-act-eval eval-if 'eval-if 'act-if)
-(define-act-eval eval-if-test 'eval-test 'act-test)
-(define-act-eval eval-if-then 'eval-then 'act-then)
-(define-act-eval eval-if-else 'eval-else 'act-else)
+  ;; 5 application
+  (define-act-compiler compile-application 'act-application)
+  (define-act-compiler compile-fun-body 'act-fun-body)
+  (define-act-compiler compile-arg 'act-args)
 
 
-;; 4 lambda
-(define-act-compiler compile-lambda 'act-lambda)
-
-(define-act-eval eval-lambda 'eval-lambda 'act-lambda)
-
-
-;; 5 application
-(define-act-compiler compile-application 'act-application)
-(define-act-compiler compile-fun-body 'act-fun-body)
-(define-act-compiler compile-arg 'act-args)
+  ;(define-act-eval eval-application 'eval-application 'act-application)
+  ;(define-act-eval eval-application-args 'eval-arguments 'act-args)
+  ;(define-act-eval eval-application-body 'eval-body 'act-fun-body)
+  
+  (define-act-eval eval-application 'act-application 'act-application)
+  (define-act-eval eval-application-args 'act-args 'act-args)
+  (define-act-eval eval-application-body 'act-fun-body 'act-fun-body)
 
 
-(define-act-eval eval-application 'eval-application 'act-application)
-(define-act-eval eval-application-args 'eval-arguments 'act-args)
-(define-act-eval eval-application-body 'eval-body 'act-fun-body)
-
-
-;; 6 others
-;(define-act-create-frame)
-(define-vm-otherwise) )
+  ;; 6 others
+  ;(define-act-create-frame)
+  (define-vm-otherwise) )
 
 
 
@@ -762,9 +824,9 @@
                (loop (+ n 1))))))))
 
 (define (break? name)
-   (let* ((n (get-breakpoint-pos name))
-          (v (vector-ref breakpoints n)))
-     (vector-ref v 1)))
+  (let* ((n (get-breakpoint-pos name))
+         (v (vector-ref breakpoints n)))
+    (vector-ref v 1)))
 
 ;========meta======
 
@@ -836,21 +898,41 @@
       (lambda (top)
         (set! resume-meta top)))
 
-     (call/cc
-      (lambda (c)
-        (cond ((eq? break #t)
-               (set! break #f)
-               (set! next c)
-               (break-meta 'ok')))))
+     ;(call/cc
+     ; (lambda (c)
+     ;   (cond ((eq? break #t)
+     ;          (set! break #f)
+     ;          (set! next c)
+     ;          (break-meta)))))
       
-         (cond ((eq? vm-k #f) (run program))
-               ((eq? exec-k #f) (resume-meta (eval1 program)))
-               ((is-same-position?)
-                (act-add1 inte-info 'exec)
-                (exec-k))
-               (else
-                (act-add1 vm-info 'vm)
-                (vm-k))))))
+     (cond ((eq? vm-k #f) (run program))
+           ((eq? exec-k #f) (resume-meta (eval1 program)))
+           ((is-same-position?)
+            (act-add1 inte-info 'exec)
+            (exec-k))
+           (else
+            (act-add1 vm-info 'vm)
+            (vm-k))))))
+
+(define-macro define-vm-otherwise1
+  (lambda ()
+    `(let* ((org-fun VM-otherwise))
+       (set! VM-otherwise
+             (lambda (a x f c s)
+                   (begin
+                     (set! vm-info (car x))
+                     (cond ((break? vm-info) (set! break #t)))
+                     (make-jumppoint-vm)
+                     (display 'vm:)(display (car x)) (newline)
+                     (VM a (cadr x) f c s))
+                   )))))
+
+(define (cc)
+  (call/cc
+   (lambda (quit)
+     (set! resume-meta quit))))
+(cc)
+
          
   
 

@@ -183,7 +183,7 @@ class Environment {
 
 
 class EnvironmentFrame {
-
+    colCounter = 0;
     closureCounter = 0;
 
     constructor() {
@@ -191,12 +191,36 @@ class EnvironmentFrame {
         let globalEnvironmentFrame = makeNewElement('GLOBALENV', 'globalEnvironmentFrame', 'globalEnvironmentFrame');
         globalEnvironmentFrame.setAttribute('frameNumber', 0);
         document.getElementById('environment').appendChild(globalEnvironmentFrame);
+        // let box1 = makeNewElement('', "testbox", '');
+        // document.getElementById('environment').appendChild(box1);
 
     }
     newFrame(frameCounter, varList, frameNum, targetNum) {
+
+        if(targetNum === 0){
+            var col = makeNewElement('', "col" + this.colCounter++, 'localEnvironmentColumn');
+            document.getElementById('environment').appendChild(col);
+        }else{
+            console.log(frameNum)
+            console.log(document.querySelector("div[framenumber = " + "'" + targetNum + "'" + " ]"))
+            var col = document.querySelector("div[framenumber = " + "'" + targetNum + "'" + " ]").parentNode
+            
+        }
+
+
+
         //外侧的框
         let box = makeNewElement('', 'localEnvrionmenBox_' + frameCounter, 'localEnvrionmenBox');
-        document.getElementById('environment').appendChild(box);
+
+        col.appendChild(box)
+
+
+        // document.getElementById('environment').appendChild(box);
+
+        
+
+        //document.getElementById('environment').appendChild(box1);
+
         //环境的名字
         let envName = makeNewElement('env' + frameCounter, 'localEnvrionmenName_' + frameCounter, 'localEnvironmentName');
         // document.getElementById('localEnvrionmenBox_' + frameCounter).appendChild(envName);
@@ -220,7 +244,8 @@ class EnvironmentFrame {
         let target = document.querySelector("div[framenumber = " + "'" + targetNum + "'" + " ]").getAttribute("id");
 
         if (targetNum === 0) {
-            connectATOB(myself, target, 'Right', 'Bottom')
+            // connectATOB(myself, target, 'Right', 'Bottom')
+            connectATOB(myself, target, 'Right', 'BottomRight')
         } else {
             connectATOB(myself, target, 'Right', 'Right')
         }
@@ -256,10 +281,23 @@ class EnvironmentFrame {
     }
 
     newClosure(closureCounter, l, targetNum) {
+
+        if(targetNum === 0){
+            var col = makeNewElement('', "col" + this.colCounter++, 'localEnvironmentColumn');
+            document.getElementById('environment').appendChild(col);
+        }else{
+
+            var col = document.querySelector("div[framenumber = " + "'" + targetNum + "'" + " ]").parentNode
+            
+        }
+
+
+
+
         //外侧的框
         let box = makeNewElement('', 'closureBox_' + closureCounter, 'localEnvrionmenBox');
-
-        document.getElementById('environment').appendChild(box);
+        col.appendChild(box)
+        // document.getElementById('environment').appendChild(box);
         //闭包的名字
         let cloName = makeNewElement('clo' + closureCounter, 'closureName_' + closureCounter, 'localEnvironmentName');
         //document.getElementById('closureBox_' + closureCounter).appendChild(cloName);
@@ -303,7 +341,8 @@ class EnvironmentFrame {
         let target = document.querySelector("div[framenumber = " + "'" + targetNum + "'" + " ]").getAttribute("id");
 
         if (targetNum === 0) {
-            connectATOB(myself, target, 'Right', 'Bottom')
+            // connectATOB(myself, target, 'Right', 'Bottom')
+            connectATOB(myself, target, 'Right', 'BottomRight')
         } else {
             connectATOB(myself, target, 'Right', 'Right')
         }

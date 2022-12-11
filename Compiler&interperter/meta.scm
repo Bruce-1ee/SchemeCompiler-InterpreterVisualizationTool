@@ -2,6 +2,8 @@
 (require r5rs)
 (require compatibility/defmacro)
 
+(define counter 0)
+(set! counter 0)
 
 (define (compile exp env next)
   (cond ((self-evaluating? exp) (compile-self-evaluating exp next))
@@ -72,7 +74,7 @@
                          (return rib n)))
                     (else (nxtelt (cdr vars) (+ n 1) ccb)))))))))
 (define (compile-if exp env next)
-  (let ((test (cadr exp)) (then (caddr exp)) (else (caddr exp)))
+  (let ((test (cadr exp)) (then (caddr exp)) (else (cadddr exp)))
     (let ((thenc (compile-then then env next))
           (elsec (compile-else else env next)))
       (compile-test test env (list 'test thenc elsec)))))
@@ -101,15 +103,14 @@
 (define (compile-clambda exp env next)
   (let ((vars (cadr exp)) (body (caddr exp)))
     (let ((free (remove-global (car env) (find-free body vars))))
-      (collect-free free env
-                    (list 'close
-                          (length free)
-                          (compile body
-                                   (cons (compile-extend (compile-extend (car env) 'CB) vars) ;;;
-                                         free)
-                                   (list 'return
-                                         (length vars)))
-                          next)))))
+      (collect-free free env (list 'close
+            (length free)
+            (compile body
+                     (cons (compile-extend (compile-extend (car env) 'CB) vars) ;;;
+                           free)
+                     (list 'return
+                           (length vars)))
+            next)))))
 
 (define (compile-let exp env next)
   (let ((e (let->lambda exp)))
@@ -266,6 +267,8 @@
 ;c:closure pointer
 (define VM
   (lambda (a x f c s) ;; (a x e s)
+    (p x)
+    ;(display "f: ") (display f) (newline)
     (case (car x)
       ((halt) a)
       ((refer) (VM-refer a x f c s))
@@ -346,7 +349,7 @@
     ((primitive) ;;;
      (VM-apply-primitive a x f c s))
     (else
-     (error "Not a function"))))
+     (error "Not a function -- VM-apply"))))
 
 (define (VM-apply-functional a x f c s)
   (let ((body (cadr a))
@@ -444,6 +447,38 @@
     (- . ,(primitive-fun (lambda (s)
                            (let ((ans (- (index s 1)
                                          (index s 2))))
+                             (prim-return ans (- s 3))))))
+    (* . ,(primitive-fun (lambda (s)
+                           (let ((ans (* (index s 1)
+                                         (index s 2))))
+                             (prim-return ans (- s 3))))))
+    (/ . ,(primitive-fun (lambda (s)
+                           (let ((ans (/ (index s 1)
+                                         (index s 2))))
+                             (prim-return ans (- s 3))))))                             
+    (= . ,(primitive-fun (lambda (s)
+                           (let ((ans (= (index s 1)
+                                         (index s 2))))
+                             (prim-return ans (- s 3))))))
+    (eq? . ,(primitive-fun (lambda (s)
+                           (let ((ans (eq? (index s 1)
+                                         (index s 2))))
+                             (prim-return ans (- s 3))))))
+    (< . ,(primitive-fun (lambda (s)
+                           (let ((ans (< (index s 1)
+                                         (index s 2))))
+                             (prim-return ans (- s 3))))))
+    (<= . ,(primitive-fun (lambda (s)
+                           (let ((ans (<= (index s 1)
+                                         (index s 2))))
+                             (prim-return ans (- s 3))))))
+    (> . ,(primitive-fun (lambda (s)
+                           (let ((ans (> (index s 1)
+                                         (index s 2))))
+                             (prim-return ans (- s 3))))))
+    (>= . ,(primitive-fun (lambda (s)
+                           (let ((ans (>= (index s 1)
+                                         (index s 2))))
                              (prim-return ans (- s 3))))))))
 
 (define (refer-global-var var) ;;;
@@ -500,9 +535,10 @@
 (define GE
   (eval-extend
    '()
-   '(+ - * = display) ; <- ( + - * / )
+   '(+ - * / = eq? < <= > >= display) ; <- ( + - * / )
    (map (lambda (f) (cons 'primitive f))
-        (list + - * = display))))  ; <- ( + - * / )
+        (list + - * / = eq? < <= > >= display))))  ; <- ( + - * / )
+
 
 
 ;==========new==========
@@ -523,8 +559,7 @@
 
 (define (eval-self-evaluating exp) exp)
 (define (eval-quotation) (cadr exp))
-(define (eval-variable exp env)
-  (display exp) (newline) (eval-lookup exp env))
+(define (eval-variable exp env) (eval-lookup exp env))
 (define (eval-assignment exp env) (let ((var (cadr exp))
                                         (val (caddr exp)))
                                     (set-car! (eval-lookup var env) (exec val env))))
@@ -571,7 +606,6 @@
 
 (define (eval-clambda exp env)
   (let ((vb (eval-clambda-helping-fun exp)))
-    (display vb)(newline)
     ;; draw make-closure 
     (list 'function (car vb) (cadr vb) env)))
     
@@ -586,7 +620,7 @@
 ;  (if (null? (cdr (reverse env)))
 ;      (display 'yes)
 ;      (display (cdr (reverse env))))
- (display (cdr (reverse env))) (newline)
+
   (let ((args (eval-application-args (cdr exp) env))
         (body (eval-application-body (car exp) env)))
     (eval-application-apply body args env)))
@@ -695,9 +729,11 @@
                    (begin
                      (set! vm-info (car x))
                      (cond ((break? vm-info) (set! break #t)))
+                     (display counter)(display ": ")(newline) (set! counter (+ 1 counter))
+                     (display "v m :")(display (car x)) (newline)
                      (make-jumppoint-vm)
-                     (display 'vm:)(display (car x)) (newline)
-                     (display 'exp:)(display (cadr x)) (newline)
+                     
+                     ;(display 'exp:)(display (cadr x)) (newline)
                      (VM a (cadr x) f c s))
                    (org-fun a x f c s)))))))
 
@@ -705,35 +741,38 @@
 
 (define (trav-link f n)
   (let ((ele (vector-ref stack f)))
-    (cond ((eq? f 0) n)
+    (cond ((not (number? ele)) n )
+          ((eq? f 0) n)
           (else (trav-link ele (+ n 1))))))
+
 
 ;定义伪指令
 
 
-(define (define-all)
+(define (define-all) 
   
 
   ;; 0 self-evaluating
   (define-act-compiler compile-self-evaluating 'act-constant)
 
 
-  (define-act-eval eval-self-evaluating 'eval-self-evaluating 'act-constant)
-
+  ;(define-act-eval eval-self-evaluating 'eval-self-evaluating 'act-constant)
+  (define-act-eval eval-self-evaluating 'act-constant 'act-constant)
 
   ;; 1 quotation
   (define-act-compiler compile-quoted 'act-constant)
 
 
-  (define-act-eval eval-quotation 'eval-quotation 'act-constant)
+  ;(define-act-eval eval-quotation 'eval-quotation 'act-constant)
+  (define-act-eval eval-quotation 'act-constant 'act-constant)
 
 
   ;; 2 variable
-  (define-act-compiler compile-variable 'act-variable)
+  ;(define-act-compiler compile-variable 'act-variable)
 
 
-  (define-act-eval eval-variable 'eval-variable 'act-variable)
-
+  ;(define-act-eval eval-variable 'eval-variable 'act-variable)
+  ;(define-act-eval eval-variable 'act-variable 'act-variable)
 
   ;; 3 if
   (define-act-compiler compile-if 'act-if)
@@ -742,16 +781,22 @@
   (define-act-compiler compile-else 'act-else)
 
 
-  (define-act-eval eval-if 'eval-if 'act-if)
-  (define-act-eval eval-if-test 'eval-test 'act-test)
-  (define-act-eval eval-if-then 'eval-then 'act-then)
-  (define-act-eval eval-if-else 'eval-else 'act-else)
+  ;(define-act-eval eval-if 'eval-if 'act-if)
+  ;(define-act-eval eval-if-test 'eval-test 'act-test)
+  ;(define-act-eval eval-if-then 'eval-then 'act-then)
+  ;(define-act-eval eval-if-else 'eval-else 'act-else)
+
+  (define-act-eval eval-if 'act-if 'act-if)
+  (define-act-eval eval-if-test 'act-test 'act-test)
+  (define-act-eval eval-if-then 'act-then 'act-then)
+  (define-act-eval eval-if-else 'act-else 'act-else)
 
 
   ;; 4 lambda
   (define-act-compiler compile-lambda 'act-lambda)
 
-  (define-act-eval eval-lambda 'eval-lambda 'act-lambda)
+  ;(define-act-eval eval-lambda 'eval-lambda 'act-lambda)
+  (define-act-eval eval-lambda 'act-lambda 'act-lambda)
 
 
   ;; 5 application
@@ -760,9 +805,13 @@
   (define-act-compiler compile-arg 'act-args)
 
 
-  (define-act-eval eval-application 'eval-application 'act-application)
-  (define-act-eval eval-application-args 'eval-arguments 'act-args)
-  (define-act-eval eval-application-body 'eval-body 'act-fun-body)
+  ;(define-act-eval eval-application 'eval-application 'act-application)
+  ;(define-act-eval eval-application-args 'eval-arguments 'act-args)
+  ;(define-act-eval eval-application-body 'eval-body 'act-fun-body)
+  
+  (define-act-eval eval-application 'act-application 'act-application)
+  (define-act-eval eval-application-args 'act-args 'act-args)
+  (define-act-eval eval-application-body 'act-fun-body 'act-fun-body)
 
 
   ;; 6 others
@@ -888,12 +937,12 @@
       (lambda (top)
         (set! resume-meta top)))
 
-     (call/cc
-      (lambda (c)
-        (cond ((eq? break #t)
-               (set! break #f)
-               (set! next c)
-               (break-meta)))))
+     ;(call/cc
+     ; (lambda (c)
+     ;   (cond ((eq? break #t)
+     ;          (set! break #f)
+     ;          (set! next c)
+     ;          (break-meta)))))
       
      (cond ((eq? vm-k #f) (run program))
            ((eq? exec-k #f) (resume-meta (eval1 program)))
@@ -911,7 +960,7 @@
              (lambda (a x f c s)
                    (begin
                      (set! vm-info (car x))
-                     ;(cond ((break? vm-info) (set! break #t)))
+                     (cond ((break? vm-info) (set! break #t)))
                      (make-jumppoint-vm)
                      (display 'vm:)(display (car x)) (newline)
                      (VM a (cadr x) f c s))
@@ -943,3 +992,22 @@
 ;(eval1 '1)
 ;(define-all)
 ;(breakpoint-on)
+
+; '((lambda (make-closure)
+;    ((lambda (c1 c2) (c2))
+;     (make-closure 10)
+;     (make-closure 20)))
+;  (lambda (num) (lambda () num)))
+
+; '((lambda (make-closure)
+;    ((lambda (c1 c2) (c2))
+;     (make-closure 10)
+;     (make-closure 20)))
+;  (lambda (n1 n2 n3) (lambda () (if n1 n2 n3))))
+
+'((lambda (f n) (f f n))
+ (lambda (self n)
+   (if (= n 0)
+       1
+       (* n (self self (- n 1)))))
+ 5)

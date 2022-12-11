@@ -8,7 +8,7 @@
         ((quoted? exp) (compile-quoted exp next))
         ((variable? exp) (compile-variable exp env next))
         ;((definition? exp) (compile-definition exp env next))
-        ;((let? exp) (compile-let exp env next))
+        ((let? exp) (compile-let exp env next))
         ((if? exp) (compile-if exp env next))
         ((lambda? exp) (compile-lambda exp env next))
         ((application? exp)
@@ -29,8 +29,8 @@
 ;  (tagged-list? exp 'set!))
 ;(define (definition? exp)
 ;  (tagged-list? exp 'define))
-;(define (let? exp)
-;  (tagged-list? exp 'let))
+(define (let? exp)
+  (tagged-list? exp 'let))
 (define (if? exp)
   (tagged-list? exp 'if))
 (define (lambda? exp)
@@ -72,7 +72,7 @@
                          (return rib n)))
                     (else (nxtelt (cdr vars) (+ n 1) ccb)))))))))
 (define (compile-if exp env next)
-  (let ((test (cadr exp)) (then (caddr exp)) (else (caddr exp)))
+  (let ((test (cadr exp)) (then (caddr exp)) (else (cadddr exp)))
     (let ((thenc (compile-then then env next))
           (elsec (compile-else else env next)))
       (compile-test test env (list 'test thenc elsec)))))
@@ -101,15 +101,19 @@
 (define (compile-clambda exp env next)
   (let ((vars (cadr exp)) (body (caddr exp)))
     (let ((free (remove-global (car env) (find-free body vars))))
-      (collect-free free env
-                    (list 'close
+      (collect-free free env (list 'close
                           (length free)
                           (compile body
                                    (cons (compile-extend (compile-extend (car env) 'CB) vars) ;;;
                                          free)
                                    (list 'return
-                                         (length vars)))
-                          next)))))
+                           (length vars)))
+            next)))))
+
+(define (compile-let exp env next)
+  (let ((e (let->lambda exp)))
+    (compile e env next)))
+
 (define (compile-application exp env next)
   (let loop ((args (cdr exp))
              (c (compile-fun-body exp env)))
@@ -170,6 +174,32 @@
         (collect-free (cdr vars) e
                       (compile-variable (car vars) e
                                         (list 'argument next))))))
+(define getargs
+  (lambda (args ret)
+    
+    (if (null? args)
+        ret
+        (getargs (cdr args) (append ret (list (car (car args))))))))
+(define getvals
+  (lambda (args ret)
+    (if (null? args)
+        ret
+        (getvals (cdr args) (append ret (list (cadr (car args))))))))
+(define let->lambda
+  (lambda (exp)
+    (let* ((args (cadr exp))
+          (body (caddr exp))
+           
+          (lambda-args (getargs args '()))
+          (lambda-vals (getvals args '())))
+
+    (cons (list 'lambda
+                lambda-args
+                (if (eq? (car body) 'let)
+                    (let->lambda body)
+                    body))
+                    lambda-vals))))     
+;(cons (list 'lambda lambda-args body) lambda-vals))))                                   
 
 (define set-member?
   (lambda (x s)
@@ -230,6 +260,9 @@
 (define (sc exp)
   (compile (preprocess exp #f) '(() . ()) '(halt)))
 
+
+;f:frame pointer
+;c:closure pointer
 (define VM
   (lambda (a x f c s) ;; (a x e s)
     (case (car x)
@@ -312,7 +345,7 @@
     ((primitive) ;;;
      (VM-apply-primitive a x f c s))
     (else
-     (error "Not a function"))))
+     (error "Not a function -- VM-apply"))))
 
 (define (VM-apply-functional a x f c s)
   (let ((body (cadr a))
@@ -410,6 +443,38 @@
     (- . ,(primitive-fun (lambda (s)
                            (let ((ans (- (index s 1)
                                          (index s 2))))
+                             (prim-return ans (- s 3))))))
+    (* . ,(primitive-fun (lambda (s)
+                           (let ((ans (* (index s 1)
+                                         (index s 2))))
+                             (prim-return ans (- s 3))))))
+    (/ . ,(primitive-fun (lambda (s)
+                           (let ((ans (/ (index s 1)
+                                         (index s 2))))
+                             (prim-return ans (- s 3))))))
+    (= . ,(primitive-fun (lambda (s)
+                           (let ((ans (= (index s 1)
+                                         (index s 2))))
+                             (prim-return ans (- s 3))))))
+    (eq? . ,(primitive-fun (lambda (s)
+                           (let ((ans (eq? (index s 1)
+                                         (index s 2))))
+                             (prim-return ans (- s 3))))))
+    (< . ,(primitive-fun (lambda (s)
+                           (let ((ans (< (index s 1)
+                                         (index s 2))))
+                             (prim-return ans (- s 3))))))
+    (<= . ,(primitive-fun (lambda (s)
+                           (let ((ans (<= (index s 1)
+                                         (index s 2))))
+                             (prim-return ans (- s 3))))))
+    (> . ,(primitive-fun (lambda (s)
+                           (let ((ans (> (index s 1)
+                                         (index s 2))))
+                             (prim-return ans (- s 3))))))
+    (>= . ,(primitive-fun (lambda (s)
+                           (let ((ans (>= (index s 1)
+                                         (index s 2))))
                              (prim-return ans (- s 3))))))))
 
 (define (refer-global-var var) ;;;
@@ -466,9 +531,10 @@
 (define GE
   (eval-extend
    '()
-   '(+ - * = display) ; <- ( + - * / )
+   '(+ - * / = eq? < <= > >= display) ; <- ( + - * / )
    (map (lambda (f) (cons 'primitive f))
-        (list + - * = display))))  ; <- ( + - * / )
+        (list + - * / = eq? < <= > >= display))))  ; <- ( + - * / )
+
 
 
 ;==========new==========
@@ -556,6 +622,7 @@
 (define (eval-application-body name env) (exec name env))
 
 (define (eval-application-apply func arguments env)
+
   (case (car func)
     ((primitive)
      (eval-application-apply-primitive func arguments))
@@ -857,7 +924,8 @@
 
 (define (trav-link f n)
   (let ((ele (vector-ref stack f)))
-    (cond ((eq? f 0) n)
+    (cond ((not (number? ele)) n )
+          ((eq? f 0) n)
           (else (trav-link ele (+ n 1))))))
 ;定义伪指令
 
@@ -876,10 +944,10 @@
 
 
 ;; 2 variable
-(define-act-compiler compile-variable 'act-variable)
+;(define-act-compiler compile-variable 'act-variable)
 
 
-(define-act-eval eval-variable 'eval-variable 'act-variable)
+;(define-act-eval eval-variable 'eval-variable 'act-variable)
 
 
 ;; 3 if

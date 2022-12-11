@@ -64,5 +64,28 @@ interpreter                         ->          VM
 
 
 
+;3.2.2  Applying Simple Procedures
+'((lambda (square)
+   ((lambda (sum-of-squares)
+      ((lambda(a)
+         (sum-of-squares (+ a 1) (* a 2))) 5))
+      (lambda(x y) (+ (square x) (square y)))))
+ (lambda(x) (* x x)))
 
+;3.2.3  Frames as the Repository of Local State
+'((lambda(make-withdraw) ((make-withdraw 100) 99))
+(lambda(balance)
+  (lambda (amount)
+    (if (>= balance amount)
+        (- balance amount)
+        "Insufficient funds"))))
+
+'((lambda (fact n)
+   (fact fact n))
+ (lambda (self n)
+   (if (= n 0)
+       1
+       (* n (self self (- n 1)))))
+ 5)
+ 
 因为闭包的实现方式是讲参数再次插入到

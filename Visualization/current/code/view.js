@@ -520,7 +520,7 @@ class Closure {
     createClosure(eleList) {
         let eleCoutner = 0;
         //let body = eleList[0];
-        let closureFrame = makeNewElement("", "C" + this.closureCounter++, 'closureFrame');
+        let closureFrame = makeNewElement("", "C" + this.closureCounter++, 'closureFrame clearfix');
         for (let i = 0; i < eleList.length; i++) {
             let closureElement = makeNewElement(eleList[i], "C" + this.closureCounter + "E" + eleCoutner++, 'closureElement');
             closureFrame.appendChild(closureElement);

@@ -32,19 +32,48 @@
             display: table;
             clear: both;
         }
+
+        .box1{
+
+            border: 3px solid rgb(83, 154, 247);
+            float: left;
+
+        }
+        .box2{
+            margin: 5px;
+            width: 100px;
+            height: 100px;
+            background: #bfa;
+            float: left; 
+        }
+
+        .box3{
+            width:250px;
+            height: 800px;
+            border: 3px solid rgb(255, 0, 0);
+            background-color: rgba(0, 0, 0, 0);
+        }
     </style>
 </head>
 
 <body>
-    <div class="divcss5">
-        <div class="divcss5-lf"></div>
-        <div class="divcss5-rt"></div>
+
+
+    <div class="box3 clearfix">
+        <div class="box1 ">
+            <div class="box2"></div>
+            <div class="box2"></div>
+        </div>
+        <div class="box1 ">
+            <div class="box2"></div>
+            <div class="box2"></div>
+        </div>
+
     </div>
 
-    <div class="divcss5">
-        <div class="divcss5-lf"></div>
-        <div class="divcss5-rt"></div>
-    </div>
+    <div class="box2"></div>
+    <div class="box2"></div>
+
 </body>
 
 </html>

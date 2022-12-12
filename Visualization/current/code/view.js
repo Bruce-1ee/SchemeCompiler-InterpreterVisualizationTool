@@ -12,14 +12,6 @@ class CallFrame {
     vmLevel = [];
     vmPointer = 0;
 
-    // evalCallFunc() { //解释器调用新的函数的时候等级上升
-    //     this.evalPointer++;
-    //     if (this.evalPointer >= this.evalFrame.length) {
-    //         this.evalFrame.push(0);
-    //     }
-    //     this.evalFrame[this.evalPointer - 1]++;
-    // }
-
     evalCallFunc(num) { //解释器调用新的函数的时候等级上升
         this.evalPointer = num;
         this.evalLevel.push(num);
@@ -28,9 +20,7 @@ class CallFrame {
         }
         this.evalFrame[num - 1].push(1);  //1代表活着的函数
     }
-    // evalReturn(num) { //return的时候等级下降
-    //     this.evalPointer--;
-    // }
+
     evalReturn(num) { //return的时候等级下降
         let l = this.evalFrame[num - 1].length;
         for (var i = 0; i < l; i++) {
@@ -46,9 +36,7 @@ class CallFrame {
         return this.evalPointer;
     }
 
-    // getEvalCounter() {
-    //     return this.evalFrame[this.evalPointer - 1];
-    // }
+
     getEvalCounter(mode = 1) {
         let num;
         if (mode === 1) {
@@ -66,13 +54,6 @@ class CallFrame {
         }
     }
 
-    // vmCallFunc() { //同上
-    //     this.vmPointer++;
-    //     if (this.vmPointer >= this.vmFrame.length) {
-    //         this.vmFrame.push(0);
-    //     }
-    //     this.vmFrame[this.vmPointer - 1]++;
-    // }
     vmCallFunc(num) { //同上
         this.vmPointer = num;
         this.vmLevel.push(num);
@@ -81,9 +62,7 @@ class CallFrame {
         }
         this.vmFrame[num - 1].push(1);
     }
-    // vmReturn() {
-    //     this.vmPointer--;
-    // }
+
     vmReturn() {
         let num = this.vmLevel.pop();
         let l = this.vmFrame[num - 1].length;
@@ -100,9 +79,6 @@ class CallFrame {
         return this.vmPointer;
     }
 
-    // getVmCounter() {
-    //     return this.vmFrame[this.vmPointer - 1];
-    // }
     getVmCounter(mode = 1) {
         let num;
         if (mode === 1) {
@@ -360,37 +336,46 @@ class EnvironmentFrame {
  * 栈
  */
 class Stack {
+
+    /**
+     * stackLength 是存放栈长度的变量，
+     * frameLength 是存放frame长度的变量，用于设定新生成的frame的属性
+     * frameList 中存放着StackFrame类的对象
+     */
     stackLength = 0;
     frameLength = 0;
     frameList = [];
 
+    //实例化View的是会调用一次这个构造方法
+    //其作用是创建一个div并将其id、style、和name都设置为stack
+    //然后将其插入到view节点之中
     constructor() {
         let stack = makeNewElement('stack', 'stack', 'stack');
         document.getElementById('view').appendChild(stack);
-        //document.getElementsByTagName("body")[0].appendChild(stack);
+        //document.getElementsByTagName("body")[0].appendChild(stack); //已经弃用，当前通过寻找view元素来确定插入点
     }
 
+    /**
+     * 插入stack元素之前需要先生成一个frame去容纳它们
+     * 其中frame是另一个名叫StackFrame的类
+     * frame的编号是自动维护的
+     */
     createFrame() {
         let newFrame = new StackFrame(this.frameLength);
         this.frameLength += 1;
         this.frameList.push(newFrame);
+        //为了和环境模型生成相同编号所引入的变量
         stackArgumentCounter.push(0);
     }
 
+    /**
+     * 当函数return的时候这个方法将会被调用
+     * frame的编号是自动维护的
+     */
     deleteFrame() {
         this.frameList.pop().delete(this.frameLength - 1);
         this.frameLength--;
         stackArgumentCounter.pop();
-    }
-
-    pushArgument(ele) {
-        this.frameList[this.frameLength - 1].pushArgument(ele, this.stackLength, this.frameLength - 1);
-        this.stackLength += 1;
-    }
-
-    pushStaticLink(ele) {
-        this.frameList[this.frameLength - 1].pushStaticLink(ele, this.stackLength, this.frameLength - 1);
-        this.stackLength += 1;
     }
 
     push(ele, type) {
@@ -418,30 +403,6 @@ class StackFrame {
 
     delete(frameLength) {
         popStackFrame(frameLength)
-    }
-
-    //为了同步显示新加入的方法，可以和pushElement合并成同一个，待修改
-    pushArgument(ele, number, frameNumber) {
-        let newElement = new StackElementFrame(ele, number, frameNumber);
-        this.elementList.push(newElement);
-        this.frameLength += 1;
-        let t = document.getElementById('StackElementFrameContent_' + number);
-        t.setAttribute('syn', '1');
-        t.setAttribute("name", 'L' + callFrame.getVmFrame() + 'F' + callFrame.getVmCounter() + "A" + stackArgumentCounter[stackArgumentCounter.length - 1]);
-        stackArgumentCounter[stackArgumentCounter.length - 1]++;
-    }
-
-    pushStaticLink(ele, number, frameNumber) {
-        let newElement = new StackElementFrame(ele, number, frameNumber);
-        this.elementList.push(newElement);
-        this.frameLength += 1;
-
-        let t = document.getElementById('StackElementFrameContent_' + number);
-        t.setAttribute('syn', '1');
-        t.setAttribute('name', 'L' + callFrame.getVmFrame() + 'F' + callFrame.getVmCounter() + '_link')
-
-
-
     }
 
     pushElement(ele, number, frameNumber, type) {

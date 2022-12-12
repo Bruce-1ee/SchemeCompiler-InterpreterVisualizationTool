@@ -8,73 +8,50 @@
     (display exp))
   (newline))
 
-(define (send-stack stack s)
-  (js-call (js-eval "updateStack") stack s))
-
-(define (eval-update name expr)
-    (js-call (js-eval "updateEvalInfo") name expr))
-
-(define (add-frame-counter)
-  (js-call (js-eval "addFrameCounter")))
-
-(define (sub-frame-counter)
-  (js-call (js-eval "subFrameCounter")))
-
-(define (make-envrionment-frame)
-  (js-call (js-eval "makeEnvrionmentFrame")))
-
-(define (send-arguments-to-js args vals body type)
-  (js-call (js-eval "getArgumentsFromScheme") args vals body type))
-
-
+;测试用函数，可以将参数val传给js中的testArg
 (define (test-fun val)
   (js-call (js-eval "testFun") val))
 
-;(define (test-arg vals args)
-;  (js-call (js-eval "newFrame") vals args))
-
+;绘制新的环境时使用，待修改
 (define (interpreter-new-frame vals args frameNum targetNum)
   (js-call (js-eval "interNewFrame") vals args frameNum targetNum))
 
-(define (stack-createFrame)
+;view.stack.createFrame()
+;插入新的stackFrame
+(define (view-stack-createFrame)
  (js-invoke (js-ref (js-eval "view") "stack") "createFrame" ))
 
 
-; view.stack.push(val)
-(define (js-push-element-into-stack val)
-  (js-invoke (js-ref (js-eval "view") "stack") "push" val))
-
-  ; view.stack.push(val type)
-(define (js-stack-push val type)
+;view.stack.push(val type)
+;新版push，type为该element的类型
+(define (view-stack-push val type)
   (js-invoke (js-ref (js-eval "view") "stack") "push" val type))
 
-; view.stack.pushArgument(val)
-(define (js-push-argument val)
-  (js-invoke (js-ref (js-eval "view") "stack") "pushArgument" val))
-
-(define (js-pop-element)
+;view.stack.pop()
+(define (view-stack-pop)
   (js-invoke (js-ref (js-eval "view") "stack") "pop"))
 
-; view.stack.pushStaticLink(val)
-(define (js-push-pushStaticLink val)
-  (js-invoke (js-ref (js-eval "view") "stack") "pushStaticLink" val))
-
-(define (stack-deleteFrame)
+;view.stack.deleteFrame()
+(define (view-stack-deleteframe)
  (js-invoke (js-ref (js-eval "view") "stack") "deleteFrame" ))
 
 
 ;view.closure.createClosure(l)
-(define (js-closure-createClosure val)
+(define (view-closure-createclosure val)
   (js-invoke (js-ref (js-eval "view") "closure") "createClosure" val))
 
 ;view.environment.addClosure(l)
-(define (js-env-addClosure val targetNum)
+(define (view-environment-addclosure val targetNum)
   (js-invoke (js-ref (js-eval "view") "environment") "addClosure" val targetNum))
 
 ;drawexpression(exp)
 (define (js-draw-expression exp)
   (js-call (js-eval "drawexpression") exp))
 
+
+;;;
+;;; 这些函数用来保持环境和栈的编号的统一
+;;;
 
 ;callFrame.evalCallFunc()
 (define (js-call-frame-eval-add num)

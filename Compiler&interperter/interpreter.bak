@@ -136,12 +136,8 @@
 (define (eval-application-apply func arguments env)
   (case (car func)
     ((primitive)
-     ;biwaschemeFunction
-     ;(send-arguments-to-js arguments arguments (cdr func) 0)
      (eval-application-apply-primitive func arguments))
     ((function)
-     ;biwaschemeFunction
-     ;(send-arguments-to-js (cadr func) arguments (caddr func) 1)
      (exec (caddr func)
            (eval-extend (cadddr func) (cadr func) arguments)))
     (else (error "Not a function -- eval-application-apply"))))

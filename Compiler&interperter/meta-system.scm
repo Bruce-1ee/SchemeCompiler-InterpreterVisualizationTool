@@ -824,10 +824,10 @@
              (lambda (a x f c s)
               (js-call-frame-vm-add (trav-link f 1))
               (js-call-frame-show)
-              (stack-createFrame)
-              (js-stack-push c "closure")
-              (js-stack-push f "frame")
-              (js-stack-push (cadr x) "return")
+              (view-stack-createFrame)
+              (view-stack-push c "closure")
+              (view-stack-push f "frame")
+              (view-stack-push (cadr x) "return")
               (org-fun a x f c s))))))
 
 (define-macro embed-vm-draw-arg-push 
@@ -835,7 +835,7 @@
     `(let* ((org-fun VM-argument))
        (set! VM-argument
              (lambda (a x f c s)
-              (js-stack-push a "argument")
+              (view-stack-push a "argument")
               (org-fun a x f c s))))))
 
 (define-macro embed-vm-draw-apply-functional 
@@ -843,7 +843,7 @@
     `(let* ((org-fun VM-apply-functional))
        (set! VM-apply-functional
              (lambda (a x f c s)
-              (js-stack-push (caddr a) "link")
+              (view-stack-push (caddr a) "link")
               (org-fun a x f c s))))))
 
 (define-macro embed-vm-draw-apply-primitive
@@ -851,7 +851,7 @@
     `(let* ((org-fun VM-apply-primitive))
        (set! VM-apply-primitive
              (lambda (a x f c s)
-              (js-stack-push 0 "empty")
+              (view-stack-push 0 "empty")
               (org-fun a x f c s))))))
 
 (define-macro embed-vm-draw-return 
@@ -861,8 +861,8 @@
              (lambda (a x f c s)
               (js-call-frame-vm-sub)
               (js-call-frame-show)
-              (loop (+ 3 (cadr x)) js-pop-element)
-              (stack-deleteFrame)
+              (loop (+ 3 (cadr x)) view-stack-pop)
+              (view-stack-deleteframe)
               (org-fun a x f c s))))))
 
 (define-macro embed-vm-draw-prim-return 
@@ -872,8 +872,8 @@
              (lambda (retval s)
               (js-call-frame-vm-sub)
               (js-call-frame-show)
-              (loop 6 js-pop-element) ;3 + 3 c，f，x， arg1,arg2,link
-              (stack-deleteFrame)
+              (loop 6 view-stack-pop) ;3 + 3 c，f，x， arg1,arg2,link
+              (view-stack-deleteframe)
               (org-fun retval s))))))
 
 (define-macro embed-vm-draw-make-clo 
@@ -882,7 +882,7 @@
        (set! make-clo
              (lambda (body n s)
               (let ((v (org-fun body n s)))
-                (js-closure-createClosure v)
+                (view-closure-createclosure v)
                 v
               )
                )))))
@@ -893,20 +893,9 @@
        (set! eval-clambda
              (lambda (exp env)
               (let ((ret (org-fun exp env)))
-                (js-env-addClosure (list->vector (list (list->vector (cadr exp)) (caddr exp)))
+                (view-environment-addclosure (list->vector (list (list->vector (cadr exp)) (caddr exp)))
                                    (get-env-id env))
                 ret
-              )
-               )))))
-
-(define-macro embed-eval-draw-clambda-helping
-  (lambda ()
-    `(let* ((org-fun eval-clambda-helping-fun))
-       (set! eval-clambda-helping-fun
-             (lambda (exp)
-              (let ((vb (org-fun exp)))
-                (js-env-addClosure (list->vector (list (list->vector (car vb)) (cadr vb))))
-                vb
               )
                )))))
 
@@ -915,7 +904,7 @@
     `(let* ((org-fun VM-close))
        (set! VM-close
              (lambda (a x f c s)
-              (loop (cadr x) js-pop-element)
+              (loop (cadr x) view-stack-pop)
               (org-fun a x f c s))))))              
 
 

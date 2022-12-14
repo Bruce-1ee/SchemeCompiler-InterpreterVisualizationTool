@@ -71,7 +71,6 @@ var breakpointOff = function () { evl('(breakpoint-off)'); }
 
 
 var backtar = [];
-var g;
 document.onmouseover = function (e) {
     // console.log("in");
     var e = e ? e : window.event;

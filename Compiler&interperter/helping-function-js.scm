@@ -93,3 +93,17 @@
 ;drawVMExp(exp)
 (define (draw-draw-VM-exp exp)
   (js-call (js-eval "drawVMExp") exp))
+
+;addIndent()
+(define (add-indent)
+  (js-call (js-eval "addIndent")))
+
+;subIndent()
+(define (sub-indent)
+  (js-call (js-eval "subIndent")))
+
+
+(lambda (make)
+  (lambda (c1 c2) 
+    (((lambda (a1 a2)
+      a2) (c1) (c1) ))))

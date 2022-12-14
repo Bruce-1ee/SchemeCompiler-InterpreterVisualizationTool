@@ -260,10 +260,30 @@ function connectATOB(a, b, aanchor, banchor) {
 }
 
 var inteCounter = 1;
+var inteSubCounter = 1;
+var inteIndent = 0;
+var indentString = " \u00A0 \u00A0";
+
+function addIndent() {
+    inteIndent++;
+}
+
+function subIndent() {
+    inteIndent--;
+}
+
 function drawInterpreterInfo(info) {
-    let e = makeNewElement(inteCounter + ". " + info, "inteInfo" + inteCounter, "null");
+    var indentSpace = "";
+    for (var i = 0; i < inteIndent; i++) {
+        indentSpace += indentString;
+    }
+    info = info.toString();
+    if (info.indexOf("'eval-") === -1) { //不包含
+        var e = makeNewElement(indentSpace + info, "inteInfo" + inteSubCounter++, "null");
+    } else { //包含
+        var e = makeNewElement(indentSpace + inteCounter + ". " + info, "inteInfo" + inteCounter++, "null");
+    }
     document.getElementById('interpreterInfo').appendChild(e);
-    inteCounter++;
 }
 
 var VMCounter = 1;

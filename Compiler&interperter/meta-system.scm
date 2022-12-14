@@ -749,12 +749,17 @@
     `(let* ((org-fun ,fun))
        (set! ,fun
              (lambda (arg . restarg)
+              (add-indent)
               (set! inte-info ,act)
               (cond ((break? inte-info) (set! break #t)))
               (make-jumppoint-eval)
               (draw-interpreter-info ,info)
               ;(display 'eval:)(display ,info)(newline)
-              (apply org-fun (cons arg restarg)))))))
+              (let ((ret (apply org-fun (cons arg restarg))))
+                
+                ret
+                (sub-indent))
+              )))))
 
 (define-macro define-act-compiler
   (lambda (fun pseins)
@@ -853,7 +858,7 @@
     `(let* ((org-fun eval-application-apply-functional))
        (set! eval-application-apply-functional
              (lambda (exp env func arguments)
-
+              (draw-interpreter-info "environment extended")
               (append-new-env env)
               ;因为interpreter-new-frame需要用到arguments 和 func两个参数，所以也将这两个参数传递
               ;待修改

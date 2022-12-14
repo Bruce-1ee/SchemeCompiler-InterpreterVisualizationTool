@@ -94,14 +94,6 @@
 (define (draw-draw-VM-exp exp)
   (js-call (js-eval "drawVMExp") exp))
 
-;addIndent()
-(define (add-indent)
-  (js-call (js-eval "addIndent")))
-
-;subIndent()
-(define (sub-indent)
-  (js-call (js-eval "drawVMExp")))
-
 (define (compile exp env next)
   (cond ((self-evaluating? exp) (compile-self-evaluating exp next))
         ((quoted? exp) (compile-quoted exp next))
@@ -848,16 +840,12 @@
     `(let* ((org-fun ,fun))
        (set! ,fun
              (lambda (arg . restarg)
-              (add-indent)
               (set! inte-info ,act)
               (cond ((break? inte-info) (set! break #t)))
               (make-jumppoint-eval)
               (draw-interpreter-info ,info)
               ;(console-log 'eval:)(console-log ,info)(newline)
-              (let ((ret (apply org-fun (cons arg restarg))))
-                (sub-indent)
-                ret)
-              )))))
+              (apply org-fun (cons arg restarg)))))))
 
 (define-macro define-act-compiler
   (lambda (fun pseins)
@@ -936,7 +924,7 @@
              (lambda (a x f c s)
 
                (draw-draw-VM-exp (make-inte-str x '()))
-               (org-fun a x f c s)
+               (org-fun (a x f c s))
                )))))
 
 
@@ -956,7 +944,7 @@
     `(let* ((org-fun eval-application-apply-functional))
        (set! eval-application-apply-functional
              (lambda (exp env func arguments)
-              (draw-interpreter-info "environment extended")
+
               (append-new-env env)
               ;因为interpreter-new-frame需要用到arguments 和 func两个参数，所以也将这两个参数传递
               ;待修改

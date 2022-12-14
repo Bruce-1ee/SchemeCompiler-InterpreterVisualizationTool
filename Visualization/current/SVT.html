@@ -14,17 +14,25 @@
 <body>
 
 
+    <div class="interpreterRunningExp">
+        <span>inteExp:</span>
+        <div id="inteExp" class="inteExp"></div>
+    </div>
+    <div class="VMRunningExp">
+        <span>VMExp:</span>
+        <div id="VMExp" class="VMExp"></div>
+    </div>
 
     <div id="inputBox" class="inputBox">this is inputBox
 
         <textarea style=" position: absolute1; left: 200px; top: 10px;" name="content" id="programInput" rows="8"
-            cols="50"> 
+            cols="50">
 ;3.2.2  Applying Simple Procedures            
 (meta '((lambda (square) ((lambda (sum-of-squares) ((lambda(a) (sum-of-squares (+ a 1) (* a 2))) 5)) (lambda(x y) (+ (square x) (square y))))) (lambda(x) (* x x))))
 ;3.2.3  Frames as the Repository of Local State (without set!)
 ;(meta '((lambda(make-withdraw) ((make-withdraw 100) 99)) (lambda(balance) (lambda (amount) (if (>= balance amount) (- balance amount) "Insufficient funds")))))
 ;再帰の例 fact
-(meta '((lambda (fact n) (fact fact n)) (lambda (self n) (if (= n 0) 1 (* n (self self (- n 1))))) 5))
+;(meta '((lambda (fact n) (fact fact n)) (lambda (self n) (if (= n 0) 1 (* n (self self (- n 1))))) 5))
 
 
 ;(meta '((lambda (arg1 arg2) (lambda () (+ arg1 arg2))) 11 22))
@@ -39,7 +47,7 @@
 ;(meta '((lambda (a b c) ((lambda () (+ a b)))) ((lambda () 11)) ((lambda () 22)) ((lambda () 33))))
          </textarea>
 
-<!-- ;3.2.2  Applying Simple Procedures
+        <!-- ;3.2.2  Applying Simple Procedures
 (meta '((lambda (square)
    ((lambda (sum-of-squares)
       ((lambda(a)

@@ -498,6 +498,7 @@
 ;; ===============================================
 (define exec
   (lambda (exp env)
+    (display (make-inte-str exp '())) (newline)
     (call/cc
      (lambda (quit)
        (cond ((self-evaluating? exp)(eval-self-evaluating exp))
@@ -687,6 +688,32 @@
         (append env-table
                 (list (cons env (length env-table))))))
 
+
+
+;创建一个a-list存放 （闭包.编号）
+(define closure-table (list))
+
+;向a-list中追加新元素，编号自动维护
+(define (create-closure-pair c)
+  (let ((ret (cons c (length closure-table))))
+    (set! closure-table (append closure-table (list ret)))))
+
+;获取编号
+(define (get-closure-number c table)
+  (cond ((null? table) -1)
+        ((eq? (car (car table)) c) (cdr (car table)))
+        (else (get-closure-number c (cdr table)))))
+
+        
+(define (make-inte-str exp ret)
+  (define (any->string any)
+    (cond ((list? any) (make-inte-str any '()))
+          ((symbol? any) (symbol->string any))
+          ((number? any) (number->string any))
+          (else (error "unknow type -- any->string"))))
+  (cond ((not (list? exp)) (any->string exp))
+        ((null? exp) ret)
+        (else (make-inte-str (cdr exp) (append ret (list (any->string (car exp))))))))
 ;====macro======
 (define (make-jumppoint-eval)
   (call/cc (lambda (breakpoint)

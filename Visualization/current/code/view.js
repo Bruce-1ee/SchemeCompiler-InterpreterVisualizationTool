@@ -133,6 +133,7 @@ class View {
  */
 class Environment {
 
+    currentEnv = [];
     constructor() {
         let environment = makeNewElement('environment', 'environment', 'environment');
         document.getElementById('view').appendChild(environment); //控制其生成的位置
@@ -155,6 +156,26 @@ class Environment {
     addClosure(l, targetNum) {
         this.box.newClosure(this.closureCounter++, l, targetNum);
     }
+
+    highlightFrame(frameNumber) {
+        if (this.currentEnv.length > 0) {
+            let old = this.currentEnv.pop();
+            let oldClassName = old.className;
+            oldClassName = oldClassName.split(" ");
+            for (let i = 0; i < oldClassName.length; i++) {
+                if (oldClassName[i] === "localEnvironmentFrameCURRENT") {
+                    oldClassName.splice(i, 1);
+                    oldClassName = oldClassName.join(" ");
+                    old.className = oldClassName;
+                    break;
+                }
+            }
+
+        }
+        let cur = document.querySelector("div[framenumber = " + "'" + frameNumber + "'" + " ]");
+        this.currentEnv.push(cur);
+        cur.className += " localEnvironmentFrameCURRENT";
+    }
 }
 
 
@@ -173,14 +194,14 @@ class EnvironmentFrame {
     }
     newFrame(frameCounter, varList, frameNum, targetNum) {
 
-        if(targetNum === 0){
+        if (targetNum === 0) {
             var col = makeNewElement('', "col" + this.colCounter++, 'localEnvironmentColumn');
             document.getElementById('environment').appendChild(col);
-        }else{
+        } else {
             console.log(frameNum)
             console.log(document.querySelector("div[framenumber = " + "'" + targetNum + "'" + " ]"))
             var col = document.querySelector("div[framenumber = " + "'" + targetNum + "'" + " ]").parentNode
-            
+
         }
 
 
@@ -193,7 +214,7 @@ class EnvironmentFrame {
 
         // document.getElementById('environment').appendChild(box);
 
-        
+
 
         //document.getElementById('environment').appendChild(box1);
 
@@ -219,10 +240,15 @@ class EnvironmentFrame {
         let myself = document.querySelector("div[framenumber = " + "'" + frameNum + "'" + " ]").getAttribute("id");
         let target = document.querySelector("div[framenumber = " + "'" + targetNum + "'" + " ]").getAttribute("id");
 
+
         if (targetNum === 0) {
             // connectATOB(myself, target, 'Right', 'Bottom')
             connectATOB(myself, target, 'Right', 'BottomRight')
-        } else {
+        } else
+        //  if (frameNum - 1 === targetNum) {
+        //     connectATOB(myself, target, 'Top', 'Bottom')
+        // } else 
+        {
             connectATOB(myself, target, 'Right', 'Right')
         }
 
@@ -258,13 +284,13 @@ class EnvironmentFrame {
 
     newClosure(closureCounter, l, targetNum) {
 
-        if(targetNum === 0){
+        if (targetNum === 0) {
             var col = makeNewElement('', "col" + this.colCounter++, 'localEnvironmentColumn');
             document.getElementById('environment').appendChild(col);
-        }else{
+        } else {
 
             var col = document.querySelector("div[framenumber = " + "'" + targetNum + "'" + " ]").parentNode
-            
+
         }
 
 

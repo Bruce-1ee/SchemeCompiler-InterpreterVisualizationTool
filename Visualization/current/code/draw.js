@@ -279,3 +279,20 @@ function drawexpression(exp) {
     e.innerHTML = exp;
 }
 
+
+function drawInterpreterExp(exp) {
+    let e = document.getElementById("inteExp");
+    exp = exp.toString();
+    lst = exp.split('"');
+    t = lst.join("");
+    e.innerText = t;
+}
+
+function drawVMExp(exp) {
+    let e = document.getElementById("VMExp");
+    exp = exp.toString();
+    lst = exp.split('"');
+    t = lst.join("");
+    e.innerText = t;
+}
+

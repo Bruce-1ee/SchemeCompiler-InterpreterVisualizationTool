@@ -81,3 +81,15 @@
 (define (draw-VM-Info info)
   (js-call (js-eval "drawVMInfo") info))
 
+
+;view.environment.highlightFrame(frameNumber)
+(define (view-environment-highlightframe frameNumber)
+  (js-invoke (js-ref (js-eval "view") "environment") "highlightFrame" frameNumber))
+
+;drawInterpreterExp(exp)
+(define (draw-interpreter-exp exp)
+  (js-call (js-eval "drawInterpreterExp") exp))
+
+;drawVMExp(exp)
+(define (draw-draw-VM-exp exp)
+  (js-call (js-eval "drawVMExp") exp))

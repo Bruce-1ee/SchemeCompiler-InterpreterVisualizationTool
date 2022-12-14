@@ -136,8 +136,12 @@
     overflow: hidden; */
 }
 
+.localEnvironmentFrameCURRENT {
+    background-color: rgb(98, 140, 255);
+}
+
 .envVirable {
-    background-color: rgb(190, 236, 240);
+    background-color: rgba(190, 236, 240, 0);
 }
 
 .envVirableBESELECTED {
@@ -193,6 +197,7 @@
 }
 
 .stackFrame {
+    margin-bottom: 5px;
     border-style: solid;
     border-width: 0px;
     border-color: rgb(255, 0, 0);
@@ -291,6 +296,33 @@
 }
 
 
+.interpreterRunningExp {
+    position: absolute;
+    top: 0px;
+    left: 600px;
+
+}
+
+.inteExp {
+    width: 400px;
+    height: 70px;
+    overflow: scroll;
+}
+
+.VMRunningExp {
+    position: absolute;
+    top: 80px;
+    left: 600px;
+}
+
+.VMExp {
+    width: 400px;
+    height: 70px;
+    overflow: scroll;
+}
+
+
+
 .closure {
     margin: 3px;
     width: 15%;
@@ -305,7 +337,7 @@
     width: 100px;
     border-width: 1px;
     border-style: solid;
- 
+
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

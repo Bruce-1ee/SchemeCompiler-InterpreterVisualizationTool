@@ -3,90 +3,16 @@
 1. define-act: 定义想要被插入断点的函数 eg: (define-act eval-if)
 2. 手动加入了所有可被插入断点的函数的定义
 
-
-
-# 2022年8月10日
-## 函数对应记录
-
-interpreter                         ->          VM
-
-(eval-self-evaluating exp)          ->          'act-constant
-(eval-quotation exp)                ->          'act-constant
-(eval-variable exp env)             ->          'act-variable    
-(eval-if exp env)                   ->          'act-if
-(eval-if-test test env)             ->          'act-test
-(eval-if-then then env)             ->          'act-then
-(eval-if-else else env)             ->          'act-else
-(eval-lambda exp env)               ->          'act-lambda
-(eval-application exp env)          ->          'act-application
-(eval-application-args args env)    ->          'act-args
-(eval-application-body name env)    ->          'act-fun-body
-                                                'act-apply
-                                                'act-return
+## todo
+1. 参数为闭包的时候，显示错误 （完成）
+2. 高亮显示当前的环境边框 （完成）
+3. 环境方框用箭头连接的时候，如果正好在正上方，那么箭头就从头顶出发，如果有间隔再从右侧出发 (失败)
+      因为有可能有的箭头会穿过闭包，所以目前没有办法在短时间内快速解决。
+4. 将stack的每一个frame都分开表现 边框加粗。 (完成)
+5. 在合适的时间点加入eval-extend的动画，当前的时间点并不合适
+6. 加入对执行信息的缩进，用来表示从属关系。
+7. 加入更多的说明,例如当前解释器正在执行什么，虚拟机正在执行什么之类 （完成）
 
 
 
 
-
-
-((lambda () (let ((make-closure
-        (lambda (num)
-          (lambda () num))))
-  (let ((c1 (make-closure 10))
-       (c2 (make-closure 20)))
-  (c1)))))
-
-
-((lambda (f1 f2) ((lambda() (f2))) ) (lambda (arg) arg) (lambda() 999))
-
-(eval1 '((lambda (make-closure)
-   ((lambda (c1 c2) (c1))
-    (make-closure 10)
-    (make-closure 20)))
- (lambda (num) (lambda () num))))
-
-'((lambda (make-closure)
-   ((lambda (c1 c2) (make-closure 999))
-    (make-closure 10)
-    (make-closure 20)))
- (lambda (num) (lambda () num)))
-
-'((lambda (make-closure)
-   ((lambda (c1) (c1))
-    (make-closure 10)))
- (lambda (num) (lambda () num)))
-
-
-((lambda (a) a) ((lambda() 99)))
-
-((lambda (c) (c))
-((lambda(num) (lambda() num)) 99))
-
-
-
-;3.2.2  Applying Simple Procedures
-(meta '((lambda (square)
-   ((lambda (sum-of-squares)
-      ((lambda(a)
-         (sum-of-squares (+ a 1) (* a 2))) 5))
-      (lambda(x y) (+ (square x) (square y)))))
- (lambda(x) (* x x))))
-
-;3.2.3  Frames as the Repository of Local State
-(meta '((lambda(make-withdraw) ((make-withdraw 100) 99))
-(lambda(balance)
-  (lambda (amount)
-    (if (>= balance amount)
-        ;set! ......
-        (- balance amount)
-        "Insufficient funds")))))
-
-(meta '((lambda (fact n)
-   (fact fact n))
- (lambda (self n)
-   (if (= n 0)
-       1
-       (* n (self self (- n 1)))))
- 5))
- 
-因为闭包的实现方式是讲参数再次插入到

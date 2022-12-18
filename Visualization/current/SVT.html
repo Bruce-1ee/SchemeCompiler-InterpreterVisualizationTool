@@ -28,7 +28,7 @@
 
             (meta '((lambda(arg1)
             arg1)
-          ((lambda() 88))))            
+          ((lambda(a) 88) 11)))            
 ;(meta '((lambda (a b c) (if a b c)) 11 22 33))
 ;(meta '((lambda (square) ((lambda (sum-of-squares) ((lambda(a) (sum-of-squares (+ a 1) (* a 2))) 5)) (lambda(x y) (+ (square x) (square y))))) (lambda(x) (* x x))))
 ;(glo-define '(define make-withdraw (lambda (balance) (lambda (amount) (if (>= balance amount) ((lambda (dum) balance) (set! balance (- balance amount))) "Insufficient funds")))))

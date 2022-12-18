@@ -16,7 +16,6 @@ function testVal(val) {
  * 可以得到 参数：值 的结果，显示在环境box中
  */
 function interNewFrame(vals, args, frameNum, targetNum, syn) {
-    console.log(syn)
     var values = vals;
     var retVals = [];
     while (values.car != null) {
@@ -37,7 +36,7 @@ function interNewFrame(vals, args, frameNum, targetNum, syn) {
     } else if (argument.car.name == "primitive") {
         //tbd
     }
-    view.environment.addFrame(retVals, frameNum, targetNum);
+    view.environment.addFrame(retVals, frameNum, targetNum, syn);
 }
 
 

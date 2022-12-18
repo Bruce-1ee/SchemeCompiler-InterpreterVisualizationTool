@@ -96,12 +96,6 @@ class CallFrame {
         }
     }
 
-    showFrame() {
-        ;
-        //console.log("eval frame:" + this.evalPointer + " eval func:" + this.evalFrame[this.evalPointer - 1])
-        //console.log("vm frame:" + this.vmPointer + " vm func:" + this.vmFrame[this.vmPointer - 1])
-    }
-
 }
 
 var callFrame = new CallFrame();
@@ -179,8 +173,8 @@ class Environment {
         let glo = document.getElementById("globalEnvironmentFrame");
         glo.appendChild(box);
     }
-    addFrame(varList = [], frameNum, targetNum) {
-        this.box.newFrame(this.frameCounter++, varList, frameNum, targetNum);
+    addFrame(varList = [], frameNum, targetNum, syn) {
+        this.box.newFrame(this.frameCounter++, varList, frameNum, targetNum, syn);
     }
 
     /**
@@ -229,7 +223,7 @@ class EnvironmentFrame {
 
     }
 
-    newFrame(frameCounter, varList, frameNum, targetNum) {
+    newFrame(frameCounter, varList, frameNum, targetNum, syn) {
 
         if (targetNum === 0) {
             var col = makeNewElement('', "col" + this.colCounter++, 'localEnvironmentColumn');
@@ -264,6 +258,7 @@ class EnvironmentFrame {
         evnFrm.setAttribute('name', 'L' + callFrame.getEvalFrame() + 'F' + callFrame.getEvalCounter());
         evnFrm.setAttribute('EnvironmentFrame', 'L' + callFrame.getEvalFrame() + 'F' + callFrame.getEvalCounter());
         evnFrm.setAttribute('syn', '1');
+        evnFrm.setAttribute('synframenumber', syn);
 
         evnFrm.setAttribute('frameNumber', frameNum);
         // document.getElementById('localEnvrionmenBox_' + frameCounter).appendChild(evnFrm);
@@ -306,11 +301,12 @@ class EnvironmentFrame {
 
 
 
-        //将所有变量插入
+        //将所有参数插入
         for (var i = 0; i < varList.length; i++) {
             let v = makeNewElement(varList[i], 'frame' + frameCounter + ' variable' + i, 'envVirable');
             v.setAttribute('syn', '1');
-            v.setAttribute('name', 'L' + callFrame.getEvalFrame() + 'F' + callFrame.getEvalCounter() + 'A' + (varList.length - 1 - i));
+            // v.setAttribute('name', 'L' + callFrame.getEvalFrame() + 'F' + callFrame.getEvalCounter() + 'A' + (varList.length - 1 - i));
+            v.setAttribute('name', 'F' + syn + 'A' + (varList.length - 1 - i));
             // document.getElementById('localEnvrionmenFrame_' + frameCounter).appendChild(v);
             evnFrm.appendChild(v);
         }
@@ -409,6 +405,8 @@ class Stack {
     frameLength = 0;
     frameList = [];
 
+    stackCounter = 1;
+
     //实例化View的是会调用一次这个构造方法
     //其作用是创建一个div并将其id、style、和name都设置为stack
     //然后将其插入到view节点之中
@@ -424,7 +422,7 @@ class Stack {
      * frame的编号是自动维护的
      */
     createFrame() {
-        let newFrame = new StackFrame(this.frameLength);
+        let newFrame = new StackFrame(this.frameLength, this.stackCounter++);
         this.frameLength += 1;
         this.frameList.push(newFrame);
         //为了和环境模型生成相同编号所引入的变量
@@ -442,7 +440,7 @@ class Stack {
     }
 
     push(ele, type) {
-        this.frameList[this.frameLength - 1].pushElement(ele, this.stackLength, this.frameLength - 1, type);
+        this.frameList[this.frameLength - 1].pushElement(ele, this.stackLength, this.frameLength - 1, type, this.stackCounter);
         this.stackLength += 1;
     }
 
@@ -456,36 +454,84 @@ class StackFrame {
 
     elementList = [];
 
-    constructor(number) {
+    linkNodeList = [];
+
+    frameNodeList = [];
+
+    constructor(number, stackCounter) {
         let stackFrame = makeNewElement('', 'stackFrame_' + number, 'stackFrame');
         //为了同步显示新加入的全局变量
         stackFrame.setAttribute('syn', '1');
         stackFrame.setAttribute('name', 'L' + callFrame.getVmFrame() + 'F' + callFrame.getVmCounter());
+
+        stackFrame.setAttribute('synframenumber', stackCounter);
+
         document.getElementById('stack').appendChild(stackFrame);
+
     }
 
     delete(frameLength) {
         popStackFrame(frameLength)
     }
 
-    pushElement(ele, number, frameNumber, type) {
+    pushElement(ele, number, frameNumber, type, stackCounter) {
         let newElement = new StackElementFrame(ele, number, frameNumber, type);
         this.elementList.push(newElement);
         this.frameLength += 1;
         if (type === 'argument') {
             let t = document.getElementById('StackElementFrameContent_' + number);
             t.setAttribute('syn', '1');
-            t.setAttribute("name", 'L' + callFrame.getVmFrame() + 'F' + callFrame.getVmCounter() + "A" + stackArgumentCounter[stackArgumentCounter.length - 1]);
+            t.setAttribute("name", 'F' + (stackCounter - 1) + "A" + stackArgumentCounter[stackArgumentCounter.length - 1]);
             stackArgumentCounter[stackArgumentCounter.length - 1]++;
         }
         if (type === 'link') {
             let t = document.getElementById('StackElementFrameContent_' + number);
             t.setAttribute('syn', '1');
             t.setAttribute('name', 'L' + callFrame.getVmFrame() + 'F' + callFrame.getVmCounter() + '_link')
+
+            makeStaticLinkConnection(t.id, 'stackElementFrameNumber_' + t.textContent)
+
+            let self = document.getElementsByTagName("path");
+            self = self[self.length - 1];
+            let p = self.parentElement
+            self = p;
+            p = self.parentElement;
+            this.linkNodeList.push([p, self])
+        }
+        if (type === 'frame') {
+            let t = document.getElementById('StackElementFrameContent_' + number);
+            t.setAttribute('syn', '1');
+            t.setAttribute('name', 'L' + callFrame.getVmFrame() + 'F' + callFrame.getVmCounter() + '_link')
+
+            makedynamicLinkConnection(t.id, 'StackElementFrameContent_' + t.textContent)
+
+            let self = document.getElementsByTagName("path");
+            self = self[self.length - 1];
+            let p = self.parentElement
+            self = p;
+            p = self.parentElement;
+            this.frameNodeList.push([p, self])
         }
     }
 
     popElement(frameLength, stackLength) {
+
+        let currentNode = document.getElementById("stackElementFrame_" + stackLength);
+        let contentNode = currentNode.children[1];
+
+        let type = contentNode.getAttribute('type');
+        if (type === 'link') {
+
+            var l = this.linkNodeList.pop();
+            console.log(l)
+            l[0].removeChild(l[1])
+        }
+        if (type === 'frame') {
+
+            var l = this.frameNodeList.pop();
+            console.log(l)
+            l[0].removeChild(l[1])
+        }
         this.elementList.pop().delete(frameLength, stackLength);
     }
 }
@@ -501,6 +547,7 @@ class StackElementFrame {
     }
 
     delete(frameLength, stackLength) {
+
         popStackElement(frameLength, stackLength);
     }
 

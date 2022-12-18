@@ -820,6 +820,20 @@
 
 ;==========new==========
 
+(define box-table (list))
+
+(define (add-box b)
+  (set! box-table (append box-table (list (list b (length box-table))))))
+
+(define (get-box-num b table)
+  (cond ((null? b) -1)
+        ((eq? b (car (car table))) (cadr (car table)))
+        (else (get-box-num b (cdr table) ))))
+
+
+
+
+
 ;这个变量是用来存放标签序号的
 ;( (标签名(act-...) 序号) ... )
 ;eg. ( (act-if 33) (act-then 22) )
@@ -1335,6 +1349,7 @@
                         "Insufficient funds")))))
 
 (glo-define   '(define w1 (make-withdraw 100)))
+(glo-define   '(define w1 (make-withdraw 100 222 333)))
 (glo-define   '(define var1 100))
 
 (breakpoint-off)

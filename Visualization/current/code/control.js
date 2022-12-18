@@ -69,7 +69,7 @@ var breakpointOff = function () { evl('(breakpoint-off)'); }
  * 同步闪烁程序
  */
 
-
+var t;
 var backtar = [];
 document.onmouseover = function (e) {
     // console.log("in");
@@ -86,7 +86,7 @@ document.onmouseover = function (e) {
 
             eleList = document.getElementsByName(tagname);
 
-
+            t = eleList;
             for (let i = 0; i < eleList.length; i++) {
                 switch (eleList[i].getAttribute('type')) {
                     case 'line':
@@ -104,7 +104,7 @@ document.onmouseover = function (e) {
                         var nClass = n.className;
                         n.className = nClass + 'BESELECTED';
 
-                        makeLinkConnection(eleList[i].id, 'stackElementFrameNumber_' + eleList[i].textContent)
+                        makeStaticLinkConnection(eleList[i].id, 'stackElementFrameNumber_' + eleList[i].textContent)
 
 
                 }

@@ -235,18 +235,32 @@ function connectAtoBLR(a, b) {
 }
 
 
-function makeLinkConnection(link, stackTag) {
+function makeStaticLinkConnection(link, stackTag) {
 
     function connectLinkAndStackTag(link, stackTag) {
-        let con = jsPlumb.connect({
+        jsPlumb.connect({
             source: link,
             target: stackTag,
             endpoint: ['Dot', { radius: '0' }],
             overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
-            connector: ['Bezier'],
+            connector: ['Bezier', { curviness: 75 }],
             anchor: ['Left', 'Left']
         });
-        conMap.set(link, con);
+    }
+    connectLinkAndStackTag(link, stackTag);
+}
+
+function makedynamicLinkConnection(link, stackTag) {
+
+    function connectLinkAndStackTag(link, stackTag) {
+        jsPlumb.connect({
+            source: link,
+            target: stackTag,
+            endpoint: ['Dot', { radius: '0' }],
+            overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
+            connector: ['Bezier', { curviness: 75 }],
+            anchor: ['Right', 'Right']
+        });
     }
     connectLinkAndStackTag(link, stackTag);
 }

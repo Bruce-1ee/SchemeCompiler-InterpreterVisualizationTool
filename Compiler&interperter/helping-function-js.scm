@@ -73,12 +73,6 @@
 (define (js-call-frame-vm-sub)
   (js-invoke (js-eval "callFrame") "vmReturn"))
 
-;callFrame.showFrame()
-(define (js-call-frame-show)
-  (js-invoke (js-eval "callFrame") "showFrame"))
-
-
-
 (define (draw-interpreter-info info)
   (js-call (js-eval "drawInterpreterInfo") info))
 

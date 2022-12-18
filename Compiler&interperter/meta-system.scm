@@ -754,49 +754,49 @@
           (body (caddr exp)))
         (list vars body)))
 
-(define (eval-application exp env)
-  (let ((args (eval-application-args (cdr exp) env))
-        (body (eval-application-body (car exp) env)))
-    (eval-application-apply body args env)))
-
-; (define syn-counter-inte 1)
-; (define (eval-application exp env) ;为了同步，在原函数上进行了修改
+; (define (eval-application exp env)
 ;   (let ((args (eval-application-args (cdr exp) env))
-;         (body (eval-application-body (car exp) env))
-;         (syn syn-counter-inte))
-;         (set! syn-counter-inte (+ 1 syn-counter-inte))
-;         (console-log "syn-counter-inte: ")(console-log syn-counter-inte)
-;     (eval-application-apply body args env syn)))
+;         (body (eval-application-body (car exp) env)))
+;     (eval-application-apply body args env)))
+
+(define syn-counter-inte 1)
+(define (eval-application exp env) ;为了同步，在原函数上进行了修改
+  (let ((syn syn-counter-inte))
+    (set! syn-counter-inte (+ 1 syn-counter-inte))
+    (let ((args (eval-application-args (cdr exp) env))
+        (body (eval-application-body (car exp) env)))
+    (eval-application-apply body args env syn))))
 
 (define (eval-application-args args env)
   (reverse (map (lambda(x) (exec x env)) (reverse args))))
 
 (define (eval-application-body name env) (exec name env))
 
-(define (eval-application-apply func arguments env) ;
-  (case (car func)
-    ((primitive)
-     (eval-application-apply-primitive func arguments))
-    ((function)
-    (let ((f (caddr func))
-          (e (eval-extend (cadddr func) (cadr func) arguments)))
-      (eval-application-apply-functional f e func arguments)))
-    (else (error "Not a function -- eval-application-apply"))))
-
-; (define (eval-application-apply func arguments env syn) ;;为了同步，在原函数上进行了修改
+; (define (eval-application-apply func arguments env) ;
 ;   (case (car func)
 ;     ((primitive)
 ;      (eval-application-apply-primitive func arguments))
 ;     ((function)
 ;     (let ((f (caddr func))
 ;           (e (eval-extend (cadddr func) (cadr func) arguments)))
-;       (eval-application-apply-functional f e func arguments syn)))
+;       (eval-application-apply-functional f e func arguments)))
 ;     (else (error "Not a function -- eval-application-apply"))))
 
-(define (eval-application-apply-functional exp env func arguments)
-  (exec exp env))
-; (define (eval-application-apply-functional exp env func arguments syn)
+(define (eval-application-apply func arguments env syn) ;;为了同步，在原函数上进行了修改
+  (console-log "eval-application-apply: ")(console-log syn)
+  (case (car func)
+    ((primitive)
+     (eval-application-apply-primitive func arguments))
+    ((function)
+    (let ((f (caddr func))
+          (e (eval-extend (cadddr func) (cadr func) arguments)))
+      (eval-application-apply-functional f e func arguments syn)))
+    (else (error "Not a function -- eval-application-apply"))))
+
+; (define (eval-application-apply-functional exp env func arguments)
 ;   (exec exp env))
+(define (eval-application-apply-functional exp env func arguments syn)
+  (exec exp env))
 
 (define (eval-application-apply-primitive func args)
   (apply (cdr func) args))
@@ -1083,34 +1083,34 @@
               (draw-VM-Info "finding link")
               (org-fun n e))))))
 
-(define-macro embed-eval-draw-frame-functional
-  (lambda ()
-    `(let* ((org-fun eval-application-apply-functional))
-       (set! eval-application-apply-functional
-             (lambda (exp env func arguments)
-
-                (append-new-env env)
-                ;因为interpreter-new-frame需要用到arguments 和 func两个参数，所以也将这两个参数传递
-                ;待修改
-                (interpreter-new-frame (inplace-arg-by-number arguments '()) func (get-env-id env) (get-env-id (cdr env)) 99)
-
-                (org-fun exp env func arguments)
-
-              )))))
 ; (define-macro embed-eval-draw-frame-functional
 ;   (lambda ()
 ;     `(let* ((org-fun eval-application-apply-functional))
 ;        (set! eval-application-apply-functional
-;              (lambda (exp env func arguments syn)
+;              (lambda (exp env func arguments)
 
 ;                 (append-new-env env)
 ;                 ;因为interpreter-new-frame需要用到arguments 和 func两个参数，所以也将这两个参数传递
 ;                 ;待修改
-;                 (interpreter-new-frame (inplace-arg-by-number arguments '()) func (get-env-id env) (get-env-id (cdr env)) syn)
+;                 (interpreter-new-frame (inplace-arg-by-number arguments '()) func (get-env-id env) (get-env-id (cdr env)) 99)
 
-;                 (org-fun exp env func arguments syn)
+;                 (org-fun exp env func arguments)
 
 ;               )))))
+(define-macro embed-eval-draw-frame-functional
+  (lambda ()
+    `(let* ((org-fun eval-application-apply-functional))
+       (set! eval-application-apply-functional
+             (lambda (exp env func arguments syn)
+
+                (append-new-env env)
+                ;因为interpreter-new-frame需要用到arguments 和 func两个参数，所以也将这两个参数传递
+                ;待修改
+                (interpreter-new-frame (inplace-arg-by-number arguments '()) func (get-env-id env) (get-env-id (cdr env)) syn)
+
+                (org-fun exp env func arguments syn)
+
+              )))))
 
 (define-macro embed-vm-draw-frame 
   (lambda ()
@@ -1118,7 +1118,6 @@
        (set! VM-frame
              (lambda (a x f c s)
               (js-call-frame-vm-add (trav-link f 1))
-              (js-call-frame-show)
               (view-stack-createFrame)
               (view-stack-push c "closure")
               (view-stack-push f "frame")

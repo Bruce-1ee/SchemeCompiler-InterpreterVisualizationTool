@@ -3,6 +3,15 @@
  */
 
 
+function makeNewSpanElement(content, id, style) {
+    let newElement = document.createElement('span');
+    let newContent = document.createTextNode(content);
+    newElement.setAttribute('id', id);
+    newElement.setAttribute('class', style);
+    newElement.appendChild(newContent);
+    return newElement;
+}
+
 /**
  * 新建一个标签
  * @param {String} content 标签的内容
@@ -315,4 +324,163 @@ function drawVMExp(exp) {
     t = lst.join("");
     e.innerText = t;
 }
+
+
+
+
+
+var str = `("L7" ('if ("L6" ("L5" 'a)) ("L4" ("L3" 'b)) ("L2" ("L1" 'c))))`;
+
+var str2 = "('act-application 1 ('frame ('halt) ('act-args 1 ('act-constant 3 ('constant 33 ('argument ('act-constant 2 ('constant 22 ('argument ('act-constant 1 ('constant 11 ('argument ('act-fun-body 1 ('act-lambda 1 ('functional ('act-if 1 ('act-test 1 ('refer 0 0 ('test ('act-then 1 ('refer 0 1 ('return 4))) ('act-else 1 ('refer 0 2 ('return 4))))))) ('apply))))))))))))))))"
+/**
+ * 将代码中的L1 L2替换成dom的标签
+ * @param {*} program 输入的程序
+ * @returns 格式化好的html
+ */
+function parseCode(program) {
+
+    //传入去掉标签之后的代码，然后获得需要替换的反括号的位置
+    function getPosition(str) {
+        var num = 1;
+        for (var i = 0; i < str.length; i++) {
+            if (str[i] === '(') {
+                num++;
+            } else if (str[i] === ')') {
+                num--;
+            } else {
+                continue;
+            }
+
+            if (num === 0) {
+                return i;
+            }
+        }
+    }
+
+    /**
+     * 
+     * @param {*} str 待修改的字符串
+     * @param {*} index 修改的位置
+     * @param {*} char 待替换的字符串
+     * @returns 
+     */
+    function replace(str, index, char) {
+        const strAry = str.split('');
+        strAry[index] = char;
+        return strAry.join('');
+    }
+
+    function main() {
+
+        var lList = program.match(/L\d*/g);
+
+        for (var i = 0; i < lList.length; i++) {
+            var label = '"' + lList[i] + '"';
+            var strList = program.split(label);
+            var pos = getPosition(strList[1]);
+            strList[0] = replace(strList[0], strList[0].length - 1, '<span id=' + label + '>')
+            strList[1] = replace(strList[1], pos, '</span>');
+            program = strList.join("");
+        }
+        return program;
+    }
+    return main();
+}
+
+/**
+ * 将代码中的L1 L2替换成dom的标签
+ * @param {*} program 输入的程序
+ * @returns 格式化好的html
+ */
+function parseCodeVM(program) {
+
+    //传入去掉标签之后的代码，然后获得需要替换的反括号的位置
+    function getPosition(str) {
+        var num = 1;
+        for (var i = 0; i < str.length; i++) {
+            if (str[i] === '(') {
+                num++;
+            } else if (str[i] === ')') {
+                num--;
+            } else {
+                continue;
+            }
+
+            if (num === 0) {
+                return i;
+            }
+        }
+    }
+
+    /**
+     * 
+     * @param {*} str 待修改的字符串
+     * @param {*} index 修改的位置
+     * @param {*} char 待替换的字符串
+     * @returns 
+     */
+    function replace(str, index, char) {
+        const strAry = str.split('');
+        strAry[index] = char;
+        return strAry.join('');
+    }
+    function makeNewLabel(label) {
+        var lst = label.split(' ');
+        return lst.join("_");
+    }
+    function main() {
+        var lList = program.match(/'act[-[a-zA-Z]+]*[\s][0-9]+/g);
+        for (var i = 0; i < lList.length; i++) {
+            var label = lList[i];
+            var strList = program.split(label);
+            var pos = getPosition(strList[1]);
+            strList[0] = replace(strList[0], strList[0].length - 1, '<span id="' + makeNewLabel(label) + '">')
+            strList[1] = replace(strList[1], pos, '</span>');
+            program = strList.join("");
+        }
+        return program;
+    }
+    return main();
+}
+
+var oldLabel = "";
+function getInteLabel(label) {
+
+    if (oldLabel !== "") {
+        let old = document.getElementById(oldLabel);
+        old.style.backgroundColor = "";
+    }
+    console.log(label);
+
+    let newEle = document.getElementById(label);
+    if (newEle === null) return;
+    newEle.style.backgroundColor = "#bfa";
+    oldLabel = label;
+
+}
+var oldLabelVM = "";
+function getVMLabel(actName, number) {
+
+    if (oldLabelVM !== "") {
+        let old = document.getElementById(oldLabelVM);
+        old.style.backgroundColor = "";
+    }
+    let newEle = document.getElementById(actName + "_" + number);
+    if (newEle === null) return;
+    newEle.style.backgroundColor = "#bfa";
+    oldLabelVM = actName + "_" + number;
+
+}
+
+var code;
+function getProgram(inteCode, VMCode) {
+    code = VMCode.toString();
+    var icode = inteCode.toString();
+    let e = document.getElementById("code");
+    let evm = document.getElementById("VMcode");
+    var codeEle = parseCode(icode);
+    e.innerHTML = codeEle;
+    evm.innerHTML = parseCodeVM(VMCode.toString());
+}
+
 

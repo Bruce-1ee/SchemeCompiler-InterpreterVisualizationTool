@@ -12,8 +12,6 @@
 </head>
 
 <body>
-
-
     <div class="interpreterRunningExp">
         <span>inteExp:</span>
         <div id="inteExp" class="inteExp"></div>
@@ -27,7 +25,21 @@
 
         <textarea style=" position: absolute1; left: 200px; top: 10px;" name="content" id="programInput" rows="8"
             cols="50">
-;3.2.2  Applying Simple Procedures            
+
+            (meta '((lambda(arg1)
+            arg1)
+          ((lambda() 88))))            
+;(meta '((lambda (a b c) (if a b c)) 11 22 33))
+;(meta '((lambda (square) ((lambda (sum-of-squares) ((lambda(a) (sum-of-squares (+ a 1) (* a 2))) 5)) (lambda(x y) (+ (square x) (square y))))) (lambda(x) (* x x))))
+;(glo-define '(define make-withdraw (lambda (balance) (lambda (amount) (if (>= balance amount) ((lambda (dum) balance) (set! balance (- balance amount))) "Insufficient funds")))))
+;(glo-define '(define w1 (make-withdraw 100)))
+;(glo-define '(define var1 100))
+;(meta '(w1 50))
+;(meta '((lambda() (set! var1 88))))
+         </textarea>
+
+        <!-- 
+ ;3.2.2  Applying Simple Procedures            
 (meta '((lambda (square) ((lambda (sum-of-squares) ((lambda(a) (sum-of-squares (+ a 1) (* a 2))) 5)) (lambda(x y) (+ (square x) (square y))))) (lambda(x) (* x x))))
 ;3.2.3  Frames as the Repository of Local State (without set!)
 ;(meta '((lambda(make-withdraw) ((make-withdraw 100) 99)) (lambda(balance) (lambda (amount) (if (>= balance amount) (- balance amount) "Insufficient funds")))))
@@ -45,9 +57,12 @@
 
 ;(meta '((lambda (a) ((lambda () ((lambda () a))))) 99)) 
 ;(meta '((lambda (a b c) ((lambda () (+ a b)))) ((lambda () 11)) ((lambda () 22)) ((lambda () 33))))
-         </textarea>
-
-        <!-- ;3.2.2  Applying Simple Procedures
+;(cc)
+;(eval1 '((lambda (a b c) (if a b c)) 11 22 33))
+;(exec-k 'next)           
+            
+            
+            ;3.2.2  Applying Simple Procedures
 (meta '((lambda (square)
    ((lambda (sum-of-squares)
       ((lambda(a)
@@ -90,6 +105,11 @@
             <input type="button" value="nextInte" onclick="javascript:nextInte(); ">
         </div>
     </div>
+
+
+    <div id="code"></div>
+
+    <div id="VMcode"></div>
 
     <div id="view" class="clearfix"></div>
 
@@ -138,6 +158,17 @@
 
         }
     </script>
+
+
+    <!-- <span id="L7"> ('if <span id="L6"> <span id="L5"> 'a</span></span> <span id="L4"> <span id="L3"> 'b</span></span>
+        <span id="L2"> <span id="L1"> 'c</span></span>)</span>
+
+
+    <span id="L16"> (<span id="L15"> <span id="L14"> ('lambda ('f) <span id="L13"> (<span id="L12"> <span id="L11">
+                            ('lambda ('a) <span id="L10"> (<span id="L9"> <span id="L8"> 'f</span></span> <span id="L7">
+                                    <span id="L6"> 'a</span></span>)</span>)</span></span> <span id="L5"> <span id="L4">
+                            99</span></span>)</span>)</span></span> <span id="L3"> <span id="L2"> ('lambda ('num) <span
+                    id="L1"> 'num</span>)</span></span>)</span> -->
 </body>
 
 </html>

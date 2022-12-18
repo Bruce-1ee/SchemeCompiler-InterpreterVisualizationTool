@@ -97,8 +97,9 @@ class CallFrame {
     }
 
     showFrame() {
-        console.log("eval frame:" + this.evalPointer + " eval func:" + this.evalFrame[this.evalPointer - 1])
-        console.log("vm frame:" + this.vmPointer + " vm func:" + this.vmFrame[this.vmPointer - 1])
+        ;
+        //console.log("eval frame:" + this.evalPointer + " eval func:" + this.evalFrame[this.evalPointer - 1])
+        //console.log("vm frame:" + this.vmPointer + " vm func:" + this.vmFrame[this.vmPointer - 1])
     }
 
 }
@@ -143,6 +144,41 @@ class Environment {
 
     }
 
+    changeGlobalVariable(frameNumber, varName, val) {
+        function makeStr(str) {
+            let varname = varName + " : ";
+            let start = str.indexOf(varname);
+            let end = str.indexOf("</div>", start + varname.length);
+            let oldVal = str.substring(start + varname.length, end);
+            let lst = str.split(oldVal);
+            lst = lst.join(val);
+            return lst;
+        }
+
+        if (frameNumber === 0) { //全局变量
+            let ele = document.getElementById("Variable:" + varName + "_varval");
+            ele.innerText = val;
+        } else {
+            let env = document.querySelector("div[framenumber = " + "'" + frameNumber + "'" + " ]");
+            let str = env.innerHTML;
+            env.innerHTML = makeStr(str)
+        }
+
+
+    }
+
+    addGlobalVariable(varname, varval) {
+        let box = makeNewElement("", 'Variable:' + varname, '');
+        let varnameBox = makeNewSpanElement(varname, 'Variable:' + varname + '_varname', '');
+        let con = makeNewSpanElement(" : ", '', '');
+        let varvalBox = makeNewSpanElement(varval, 'Variable:' + varname + '_varval', '');
+        //let varnameBox = makeNewElement(varname + " : " + varval, 'Variable:' + varname + '_varname', '');
+        box.appendChild(varnameBox);
+        box.appendChild(con);
+        box.appendChild(varvalBox);
+        let glo = document.getElementById("globalEnvironmentFrame");
+        glo.appendChild(box);
+    }
     addFrame(varList = [], frameNum, targetNum) {
         this.box.newFrame(this.frameCounter++, varList, frameNum, targetNum);
     }
@@ -192,14 +228,13 @@ class EnvironmentFrame {
         // document.getElementById('environment').appendChild(box1);
 
     }
+
     newFrame(frameCounter, varList, frameNum, targetNum) {
 
         if (targetNum === 0) {
             var col = makeNewElement('', "col" + this.colCounter++, 'localEnvironmentColumn');
             document.getElementById('environment').appendChild(col);
         } else {
-            console.log(frameNum)
-            console.log(document.querySelector("div[framenumber = " + "'" + targetNum + "'" + " ]"))
             var col = document.querySelector("div[framenumber = " + "'" + targetNum + "'" + " ]").parentNode
 
         }
@@ -236,7 +271,6 @@ class EnvironmentFrame {
 
 
         connectAtoBLR(envName, evnFrm);
-        console.log(document.querySelector("div[framenumber = " + "'" + targetNum + "'" + " ]"))
         let myself = document.querySelector("div[framenumber = " + "'" + frameNum + "'" + " ]").getAttribute("id");
         let target = document.querySelector("div[framenumber = " + "'" + targetNum + "'" + " ]").getAttribute("id");
 
@@ -333,7 +367,10 @@ class EnvironmentFrame {
         //box.appendChild(lst[0]);
 
         let closureFrame = makeNewElement('', 'closureFrame_' + closureCounter, 'envClosureFrame');
-        let closureElement = makeNewElement(l[1], 'closureElement', 'envClosureBody');
+        let code = parseCode(l[1].toString())
+        //let closureElement = makeNewElement(l[1], 'closureElement', 'envClosureBody');
+        let closureElement = makeNewElement("", 'closureElement', 'envClosureBody');
+        closureElement.innerHTML = code;
         closureFrame.appendChild(closureElement);
 
         box.appendChild(closureFrame);
@@ -480,7 +517,7 @@ class StackElementFrameNumber {
 
 class StackElementFrameContent {
     constructor(ele, number, type) {
-        console.log(type)
+        //console.log(type)
         let elementContent = makeNewElement(ele, 'StackElementFrameContent_' + number, 'StackElementFrameContent');
         elementContent.setAttribute('oncontextmenu', 'menuFun()');
 

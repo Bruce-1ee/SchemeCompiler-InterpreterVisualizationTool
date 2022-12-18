@@ -13,8 +13,8 @@
   (js-call (js-eval "testFun") val))
 
 ;绘制新的环境时使用，待修改
-(define (interpreter-new-frame vals args frameNum targetNum)
-  (js-call (js-eval "interNewFrame") vals args frameNum targetNum))
+(define (interpreter-new-frame vals args frameNum targetNum syn)
+  (js-call (js-eval "interNewFrame") vals args frameNum targetNum syn))
 
 ;view.stack.createFrame()
 ;插入新的stackFrame
@@ -43,6 +43,10 @@
 ;view.environment.addClosure(l)
 (define (view-environment-addclosure val targetNum)
   (js-invoke (js-ref (js-eval "view") "environment") "addClosure" val targetNum))
+
+;view.environment.addGlobalVariable(varname varval)
+(define (view-environment-addglobalvariable var val)
+  (js-invoke (js-ref (js-eval "view") "environment") "addGlobalVariable" var val))
 
 ;drawexpression(exp)
 (define (js-draw-expression exp)
@@ -86,6 +90,10 @@
 (define (view-environment-highlightframe frameNumber)
   (js-invoke (js-ref (js-eval "view") "environment") "highlightFrame" frameNumber))
 
+;view.environment.changeGlobalVariable(frameNumber, varName, val)
+(define (view-environment-changeglobalvariable frameNumber varName val)
+  (js-invoke (js-ref (js-eval "view") "environment") "changeGlobalVariable" frameNumber varName val))
+
 ;drawInterpreterExp(exp)
 (define (draw-interpreter-exp exp)
   (js-call (js-eval "drawInterpreterExp") exp))
@@ -100,18 +108,32 @@
 
 ;subIndent()
 (define (sub-indent)
-  (js-call (js-eval "drawVMExp")))
+  (js-call (js-eval "subIndent")))
 
-(define (compile exp env next)
+
+;getInteLabel
+(define (send-label label)
+  (js-call (js-eval "getInteLabel") label))
+;getVMLabel
+(define (send-label-vm act num)
+  (js-call (js-eval "getVMLabel") act num))
+
+;向js发送加入label的代码
+;getProgram
+(define (send-program inte-p vm-p)
+  (js-call (js-eval "getProgram") inte-p vm-p))
+
+(define (compile exp env set next)
   (cond ((self-evaluating? exp) (compile-self-evaluating exp next))
         ((quoted? exp) (compile-quoted exp next))
-        ((variable? exp) (compile-variable exp env next))
-        ;((definition? exp) (compile-definition exp env next))
+        ((assignment? exp) (compile-assignment exp env set next))
+        ((variable? exp) (compile-variable exp env set next))
+        ((definition? exp) (compile-definition exp))
         ((let? exp) (compile-let exp env next))
-        ((if? exp) (compile-if exp env next))
-        ((lambda? exp) (compile-lambda exp env next))
+        ((if? exp) (compile-if exp env set next)) 
+        ((lambda? exp) (compile-lambda exp env set next))
         ((application? exp)
-         (compile-application exp env next))
+         (compile-application exp env set next))
         (else (error "Unknown expression type -- COMPILE" exp))))
 
 ;=============tagged-list========================
@@ -124,10 +146,10 @@
   (tagged-list? exp 'quote))
 (define (variable? exp)
   (symbol? exp))
-;(define (assignment? exp)
-;  (tagged-list? exp 'set!))
-;(define (definition? exp)
-;  (tagged-list? exp 'define))
+(define (assignment? exp)
+  (tagged-list? exp 'set!))
+(define (definition? exp)
+  (tagged-list? exp 'define))
 (define (let? exp)
   (tagged-list? exp 'let))
 (define (if? exp)
@@ -151,11 +173,19 @@
 (define (compile-quoted exp next)
   (list 'constant (cadr exp) next))
 (define compile-variable
+  (lambda (exp env set next)
+    (compile-refer exp env (if (set-member? exp set)
+                             (list 'indirect next)
+                             next))))
+
+(define compile-refer
   (lambda (exp env next)
     (compile-lookup exp env
                     (lambda (n m) (list 'refer n m next))
                     (lambda (n) (list 'refer-free n next))
                     (lambda () (list 'refer-global exp next)))))
+
+
 (define compile-lookup
   (lambda (x e return return-free return-global)
     (let ((free (cdr e)))
@@ -170,52 +200,78 @@
                          (return-free (- (length free) (length (memq x free))))
                          (return rib n)))
                     (else (nxtelt (cdr vars) (+ n 1) ccb)))))))))
-(define (compile-if exp env next)
+(define (compile-if exp env set next)
   (let ((test (cadr exp)) (then (caddr exp)) (else (cadddr exp)))
-    (let ((thenc (compile-then then env next))
-          (elsec (compile-else else env next)))
-      (compile-test test env (list 'test thenc elsec)))))
+    (let ((thenc (compile-then then env set next))
+          (elsec (compile-else else env set next)))
+      (compile-test test env set (list 'test thenc elsec)))))
 
-(define (compile-test test env next)
-  (compile test env next))
+(define (compile-test test env set next)
+  (compile test env set next))
 
-(define (compile-then then env next)
-  (compile then env next))
+(define (compile-then then env set next)
+  (compile then env set next))
 
-(define (compile-else else env next)
-  (compile else env next))
+(define (compile-else else env set next)
+  (compile else env set next))
 
-(define (compile-lambda exp env next)
-  (cond [(eq? (car exp) 'slambda) (compile-slambda exp env next)]
-        [(eq? (car exp) 'clambda) (compile-clambda exp env next)]
+(define (compile-definition exp)
+  (let ((c (run (caddr exp))))
+    (cond ((assq (cadr exp) the-global-environment)
+           => (lambda (p) (set-cdr! p c)) )
+          (else
+           (set! the-global-environment (cons (cons (cadr exp) c)
+                                              the-global-environment))
+           ))))
+(define (compile-assignment exp env set next)
+  (let ((var (cadr exp)) (exp (caddr exp)))
+    (compile-lookup var env
+                    (lambda (n m)
+                      (compile  exp env set (list 'assign n m next)))
+                    (lambda (n)
+                      (compile  exp env set (list 'assign-free n next)))
+                    ;;;
+                    (lambda ()
+                      (compile  exp env set (list 'assign-global var next))))))
+
+(define (compile-lambda exp env set next)
+  (cond [(eq? (car exp) 'slambda) (compile-slambda exp env set next)]
+        [(eq? (car exp) 'clambda) (compile-clambda exp env set next)]
         [else (error 'unknown_lambda)]))
-(define (compile-slambda exp env next)
+(define (compile-slambda exp env set next)
   (let ((vars (cadr exp)) (body (caddr exp)))
-    (list 'functional
-          (compile body
-                   (cons (compile-extend (car env) vars)
-                         (cdr env))
-                   (list 'return (+ (length vars) 1)))
-          next)))
-(define (compile-clambda exp env next)
+    (let ((free (remove-global (car env) (find-free body vars)))
+          (sets (find-sets body vars))) 
+      (list 'functional
+            (make-boxes sets `(*link* ,@vars) 
+                        (compile body
+                                 (cons (compile-extend (car env) vars)
+                                       (cdr env))
+                                 (set-union sets (set-intersect set free))
+                                 (list 'return (+ (length vars) 1))))
+            next))))
+(define (compile-clambda exp env set next)
   (let ((vars (cadr exp)) (body (caddr exp)))
-    (let ((free (remove-global (car env) (find-free body vars))))
+    (let ((free (remove-global (car env) (find-free body vars)))
+          (sets (find-sets body vars)))
       (collect-free free env (list 'close
-                          (length free)
-                          (compile body
-                                   (cons (compile-extend (compile-extend (car env) 'CB) vars) ;;;
-                                         free)
-                                   (list 'return
-                           (length vars)))
-            next)))))
+                                   (length free)
+                                   (make-boxes sets vars
+                                               (compile body
+                                                        (cons (compile-extend (compile-extend (car env) 'CB) vars) ;;;
+                                                              free)
+                                                        (set-union sets (set-intersect set free))
+                                                        (list 'return
+                                                              (length vars))))
+                                   next)))))
 
-(define (compile-let exp env next)
+(define (compile-let exp env set next)
   (let ((e (let->lambda exp)))
-    (compile e env next)))
+    (compile e env set next)))
 
-(define (compile-application exp env next)
+(define (compile-application exp env set next)
   (let loop ((args (cdr exp))
-             (c (compile-fun-body exp env)))
+             (c (compile-fun-body exp env set)))
     (if (null? args)
         (list 'frame
               next
@@ -223,10 +279,11 @@
         (loop (cdr args)
               (compile (car args)
                        env
+                       set
                        (list 'argument c))))))
 
-(define (compile-fun-body exp env)
-  (compile (car exp) env '(apply)))
+(define (compile-fun-body exp env set)
+  (compile (car exp) env set '(apply)))
 (define (compile-arg c) c)
 
 ;==========helping-function=========================
@@ -271,8 +328,47 @@
     (if (null? vars)
         next
         (collect-free (cdr vars) e
-                      (compile-variable (car vars) e
+                      (compile-refer (car vars) e
                                         (list 'argument next))))))
+(define find-sets
+  (lambda (x v)
+    (cond
+      ((symbol? x) '())
+      ((pair? x)
+       (case (car x)
+         ((quote) '())
+         ((lambda slambda clambda)
+          (let ((vars (cadr x))
+                (body (caddr x)))
+            (find-sets body (set-minus v vars))))
+         ((if)
+          (let ((test (cadr x))
+                (then (caddr x))
+                (els (cadddr x)))
+            (set-union (find-sets test v)
+                       (set-union (find-sets then v)
+                                  (find-sets els v)))))
+         ((set!)
+          (let ((var (cadr x))
+                (x (caddr x)))
+            (set-union (if (set-member? var v) (list var) '())
+                       (find-sets x v))))
+         ;((call/cc)
+         ; (let ((exp (cadr x))) (find-sets exp b)))
+         (else
+          (let next ((x x))
+            (if (null? x)
+                '()
+                (set-union (find-sets (car x) v)
+                           (next (cdr x))))))))
+      (else '()))))
+(define (make-boxes sets vars next)
+  (let f ((vars vars) (n 0))
+    (if (null? vars)
+        next
+        (if (set-member? (car vars) sets)
+            (list 'box n (f (cdr vars) (+ n 1)))
+            (f (cdr vars) (+ n 1))))))
 (define getargs
   (lambda (args ret)
     
@@ -357,7 +453,7 @@
         (else x)))
 
 (define (sc exp)
-  (compile (preprocess exp #f) '(() . ()) '(halt)))
+  (compile (preprocess exp #f) '(() . ()) '() '(halt)))
 
 
 ;f:frame pointer
@@ -368,31 +464,21 @@
       ((halt) a)
       ((refer) (VM-refer a x f c s))
       ((refer-free) (VM-refer-free a x f c s))
-      ((refer-global) (VM-refer-global a x f c s))
+      ((refer-global) (VM-refer-global a x f c s))      
+      ((indirect) (VM-refer-indirect a x f c s))
       ((constant) (VM-constant a x f c s))
       ((functional) (VM-functional a x f c s))
-      ((close) (VM-close a x f c s))
+      ((close) (VM-close a x f c s)) 
+      ((box) (VM-box a x f c s))
       ((test) (VM-test a x f c s))
-      
-      ;((assign) 
-      ;(let ((n (cadr x))
-      ;      (m (caddr x))
-      ;      (x (cadddr x)))
-      ;  (index-set! (find-link n f) m a)
-      ;  (VM a x f c s)))
-      ;((assign-global) ;;;
-      ; (error "not yot implemented"))
-      
+      ((assign) (VM-assign a x f c s))
+      ((assign-free) (VM-assign-free a x f c s))
+      ((assign-global) (VM-assign-global a x f c s))
       ((frame) (VM-frame a x f c s))
       ((argument) (VM-argument a x f c s))
       ((apply) (VM-apply a x f c s))
       ((return) (VM-return a x f c s))
       (else (VM-otherwise a x f c s)))))
-
-(define (VM-constant a x f c s)
-  (let ((obj (cadr x))
-        (x (caddr x)))
-    (VM obj x f c s)))
 
 (define (VM-refer a x f c s)
   (let ((n (cadr x))
@@ -410,10 +496,14 @@
         (x (caddr x)))
     (VM (refer-global-var var) x f c s)))
 
-(define (VM-test a x f c s)
-  (let ((then (cadr x))
-        (els (caddr x)))
-    (VM a (if a then els) f c s)))
+(define (VM-refer-indirect a x f c s)
+  (let ((x (cadr x)))
+    (VM (unbox a) x f c s)))
+
+(define (VM-constant a x f c s)
+  (let ((obj (cadr x))
+        (x (caddr x)))
+    (VM obj x f c s)))   
 
 (define (VM-functional a x f c s)
   (let ((body (cadr x))
@@ -425,6 +515,37 @@
         (body (caddr x))
         (x (cadddr x)))
     (VM (closure body n s) x f c (- s n))))
+
+(define (VM-box a x f c s)
+  (let ((n (cadr x))
+        (x (caddr x)))
+    (console-log (index s n))(newline)
+    (index-set! s n (box (index s n)))
+    (VM a x f c s)))
+
+(define (VM-test a x f c s)
+  (let ((then (cadr x))
+        (els (caddr x)))
+    (VM a (if a then els) f c s)))
+
+(define (VM-assign a x f c s)
+  (let ((n (cadr x))
+        (m (caddr x))
+        (x (cadddr x)))
+    (console-log (index (find-link n f) m))(newline)
+    (set-box! (index (find-link n f) m) a)
+    (VM a x f c s)))
+
+(define (VM-assign-free a x f c s)
+  (let ((n (cadr x))
+        (x (caddr x)))
+    (set-box! (index-closure c n) a)
+    (VM a x f c s)))
+
+(define (VM-assign-global a x f c s)
+  (let ((var (cadr x))
+        (x (caddr x)))
+    (VM (assign-global-var var a) x f c s)))
 
 (define (VM-frame a x f c s)
   (let ((ret (cadr x))
@@ -453,8 +574,8 @@
 
 (define (VM-apply-primitive a x f c s)
   (let ((s (+ s 1)) ;; (push link s)
-           (primfun (cadr a)))
-       (primfun s)))
+        (primfun (cadr a)))
+    (primfun s)))
 
 (define (VM-return a x f c s)
   (let ((n (cadr x)))
@@ -462,7 +583,7 @@
       (VM a (index s 0) (index s 1) (index s 2) (- s 3)))))
 
 (define (VM-otherwise a x f c s)
-      (error "unknow inst"))
+  (error "unknow inst"))
  
 (define functional
   (lambda (body e)
@@ -470,6 +591,18 @@
 
 (define (primitive-fun natfun) ;;;
   (list 'primitive natfun))
+
+(define (box obj) (cons obj '()))
+
+(define (unbox box) (car box))
+
+(define (set-box! box obj) (set-car! box obj))
+
+(define (assign-global-var var a)
+  (cond ((assq var the-global-environment)
+         => (lambda (p) (set-cdr! p a)))
+        (else
+         (error "Unbound variable"))))
 
 (define stack (make-vector 1000))
 
@@ -582,8 +715,12 @@
         (else
          (error "unbound symbol"))))
 
-
-
+(define run
+  (lambda (exp)
+    (VM '() (compile (preprocess exp #f) '(() . ()) '() '(halt)) 0 '() 0)))
+(define run-vm
+  (lambda (exp)
+    (VM '() exp 0 '() 0)))
 ;; ===============================================
 ;; ===============================================
 ;; ===============================================
@@ -593,11 +730,12 @@
   (lambda (exp env)
     (call/cc
      (lambda (quit)
-       (cond ((self-evaluating? exp)(eval-self-evaluating exp))
-             ((variable? exp)(eval-variable exp env))
+       (cond ((label? exp) (eval-label exp env))
+             ((self-evaluating? exp) (eval-self-evaluating exp))
+             ((variable? exp) (eval-variable exp env))
              ((quoted? exp) (eval-quotation exp))
-             ;((assignment? exp) (eval-assignment exp env))
-             ;((definition? exp) (eval-definition exp env))
+             ((assignment? exp) (eval-assignment exp env))
+             ((definition? exp) (eval-definition exp env))
              ;((let? exp) (eval-let exp env))
              ((if? exp) (eval-if exp env))
              ((lambda? exp) (eval-lambda exp env))
@@ -605,6 +743,12 @@
              ((application? exp) (eval-application exp env))
              (else (error "Unknown expression type -- EXEC" exp)))))))
 
+(define (label? exp)
+  (and (list? exp)
+       (string? (car exp))))
+(define (eval-label exp env)
+  (send-label (car exp))
+  (exec (cadr exp) env))
 
 (define eval-extend 
   (lambda (env vars vals)
@@ -653,22 +797,44 @@
 (define (eval-self-evaluating exp) exp)
 (define (eval-quotation) (cadr exp))
 (define (eval-variable exp env) (eval-lookup exp env))
-(define (eval-assignment exp env) (let ((var (cadr exp))
+(define (eval-assignmen1t exp env)
+  (let ((var (cadr exp))
         (val (caddr exp)))
     (set-car! (eval-lookup var env) (exec val env))))
 
-(define (eval-definition exp env)
-  (if (not (symbol? (cadr exp)))
+(define (eval-assignment exp env) ;处理标签版
+  (let ((var (cadr (cadr exp))) ;外侧的cadr是用来去掉标签的
+        (val (exec (caddr exp) env)))
+    (eval-assignment-set-env! var val env)))
+
+(define (eval-assignment-set-env! var val env)
+  (define (loop-env env)
+    (cond ((null? env) (error 'var_not_found))
+          (else (loop-frame (car (car env)) (cdr (car env)) env))))
+  (define (loop-frame vars vals env)
+    (cond ((null? vars) (loop-env (cdr env) ))
+          ((eq? (car vars) var) (eval-assignment-set-env!-helping vals val var env))
+          (else (loop-frame (cdr vars) (cdr vals) env))))
+  (loop-env env))
+
+(define (eval-assignment-set-env!-helping vals val var env)
+  (console-log (get-env-id env))
+  (view-environment-changeglobalvariable (get-env-id env) (symbol->string var) val)
+  (set-car! vals val))
+
+(define (eval-definition exp env) ;处理标签版
+  (if (not (symbol? (cadr (cadr exp)))) ;使用cadr去掉外侧的标签
       (error "Not a variable -- DEFINE"))
-      (define-variable! (cadr exp) (exec (caddr exp) env) env)
-  'ok)
-(define (define-variable! var val env)
-  (let ((frame (car env)))
-    (define (scan vars vals)
-      (cond ((null? vals) (set-car! frame (cons var (car frame))) (set-cdr! frame (cons val (cdr frame))))
-            ((eq? var (car vars)) (set-car! vals val))
-            (else (scan (cdr vars) (cdr vals)))))
-    (scan (car frame) (cdr frame))))
+  (define-variable! (cadr  (cadr exp)) (exec (caddr exp) env)))
+;默认这个define是全局变量的定义
+
+(define (define-variable! var val)
+
+  (let ((glo-var (car (car GE)))
+        (glo-val (cdr (car GE))))
+    (let ((new-glo-var (append glo-var (list var)))
+          (new-glo-val (append glo-val (list val))))
+      (set-car! GE (cons new-glo-var new-glo-val)))))
 
 (define (eval-if exp env)
   (let ((test (cadr exp))
@@ -713,13 +879,21 @@
         (body (eval-application-body (car exp) env)))
     (eval-application-apply body args env)))
 
+; (define syn-counter-inte 1)
+; (define (eval-application exp env) ;为了同步，在原函数上进行了修改
+;   (let ((args (eval-application-args (cdr exp) env))
+;         (body (eval-application-body (car exp) env))
+;         (syn syn-counter-inte))
+;         (set! syn-counter-inte (+ 1 syn-counter-inte))
+;         (console-log "syn-counter-inte: ")(console-log syn-counter-inte)
+;     (eval-application-apply body args env syn)))
+
 (define (eval-application-args args env)
   (reverse (map (lambda(x) (exec x env)) (reverse args))))
 
 (define (eval-application-body name env) (exec name env))
 
-(define (eval-application-apply func arguments env)
-
+(define (eval-application-apply func arguments env) ;
   (case (car func)
     ((primitive)
      (eval-application-apply-primitive func arguments))
@@ -729,8 +903,20 @@
       (eval-application-apply-functional f e func arguments)))
     (else (error "Not a function -- eval-application-apply"))))
 
+; (define (eval-application-apply func arguments env syn) ;;为了同步，在原函数上进行了修改
+;   (case (car func)
+;     ((primitive)
+;      (eval-application-apply-primitive func arguments))
+;     ((function)
+;     (let ((f (caddr func))
+;           (e (eval-extend (cadddr func) (cadr func) arguments)))
+;       (eval-application-apply-functional f e func arguments syn)))
+;     (else (error "Not a function -- eval-application-apply"))))
+
 (define (eval-application-apply-functional exp env func arguments)
   (exec exp env))
+; (define (eval-application-apply-functional exp env func arguments syn)
+;   (exec exp env))
 
 (define (eval-application-apply-primitive func args)
   (apply (cdr func) args))
@@ -739,32 +925,43 @@
   (let ((e (let->lambda exp)))
         (exec e env)))
 
+(define (glo-define exp)
+  (let ((cur-v VM-break-switch)
+        (cur-i interpreter-break-switch))
+    (set-vm-break #f)
+    (sc exp)
+    (set-vm-break cur-v)
+    (set-inte-break #f)
+    (eval1 exp)
+    (set-inte-break cur-i)))
+
+
+;(define (eval1 exp) (exec (preprocess exp #f) GE))
+(define (eval code) (exec code GE))
+(define (eval1 exp) (exec (make-label (preprocess exp #f)) GE))
+
 ;==========new==========
-(define getargs
-  (lambda (args ret)
-    (if (null? args)
-        ret
-        (getargs (cdr args) (append ret (list (car (car args))))))))
-(define getvals
-  (lambda (args ret)
-    (if (null? args)
-        ret
-        (getvals (cdr args) (append ret (list (cadr (car args))))))))
 
-(define let->lambda
-  (lambda (exp)
-    (let* ((args (cadr exp))
-          (body (caddr exp))
-          (lambda-args (getargs args '()))
-          (lambda-vals (getvals args '())))
-    (cons (list 'lambda
-                lambda-args
-                (if (eq? (car body) 'let)
-                    (let->lambda body)
-                    body))
-                    lambda-vals))))
+;这个变量是用来存放标签序号的
+;( (标签名(act-...) 序号) ... )
+;eg. ( (act-if 33) (act-then 22) )
+;表示下一次碰到if表达式，其标签序列为33
+(define vm-act-counter-tabel (list ))
 
-
+;传入act名就可以获得该动作的编号
+;(get-vm-act-counter 'act-if) -> 33
+(define (get-vm-act-counter act)
+  (letrec ((loop (lambda(tab)
+                   (cond ((null? tab)
+                          (set! vm-act-counter-tabel
+                                (append vm-act-counter-tabel (list (list act 1))))
+                          1)
+                         ((eq? (car (car tab)) act)
+                          (set-cdr! (car tab)
+                                    (list (+ 1 (cadr (car tab)))))
+                          (cadr (car tab)))
+                         (else (loop (cdr tab)))))))
+    (loop vm-act-counter-tabel)))
 
 ;结构
 ;[
@@ -806,7 +1003,7 @@
 ;用闭包编号来替代本身的闭包
 (define (inplace-arg-by-number args ret)
   (cond ((null? args) ret)
-        ((not (eq?  (get-closure-number (car args) closure-table) -1))
+        ((not (eq?  (get-closure-number (car args) closure-table) -1)) ;闭包编号不等于-1，即存在这个闭包
          (inplace-arg-by-number (cdr args)
                                 (append ret (list (make-str (get-closure-number (car args) closure-table))))))
         (else (inplace-arg-by-number (cdr args) (append ret (list (car args)))))))
@@ -824,7 +1021,61 @@
         ((null? exp) ret)
         (else (make-inte-str (cdr exp) (append ret (list (any->string (car exp))))))))
 
+(define label-counter 0)
+(define (get-label)
+  (set! label-counter (+ 1 label-counter))
+  (string-append "L" (number->string label-counter)))
+
+(define (make-label exp)
+  (cond
+    ((self-evaluating? exp) (list (get-label) exp))
+    ;((self-evaluating? exp) (list exp))
+    ((symbol? exp)  (list (get-label) exp))
+    ;((symbol? exp)  (list exp))
+    ((eq? 'define (car exp))
+     (list (get-label)
+           (list 'define
+                 (make-label (cadr exp))
+                 (make-label (caddr exp)))))
+    ((eq? 'set! (car exp))
+     (list (get-label)
+           (list 'set!
+                 (make-label (cadr exp))
+                 (make-label (caddr exp)))))
+    ((eq? 'if (car exp))
+     (let ((test (cadr exp))
+           (then (caddr exp))
+           (else (cadddr exp)))
+       (list (get-label)
+             (list 'if
+                   (make-label test)
+                   (make-label then)
+                   (make-label else)))))
+    ((or (eq? 'lambda (car exp))
+         (eq? 'slambda (car exp))
+         (eq? 'clambda (car exp)))
+     
+     (let ((body (caddr exp))
+           (lam (car exp)))
+       (list (get-label)
+             (list lam
+                   (cadr exp)
+                   (make-label body)))))
+    (else
+     (let ((fun (car exp))
+           (args (cdr exp)))
+       (list (get-label)
+             (append (list  (make-label fun))
+                     (map (lambda(x) (make-label x)) args)))))))
+
 ;====macro======
+
+(define interpreter-break-switch #t)
+(define VM-break-switch #t)
+(define (set-vm-break val)
+  (set! VM-break-switch val))
+(define (set-inte-break val)
+  (set! interpreter-break-switch val))
 
 (define (cc)
   (call/cc
@@ -835,12 +1086,12 @@
 (define (make-jumppoint-eval)
   (call/cc (lambda (breakpoint)
              (set! exec-k breakpoint)
-             (resume-meta 'ok))))
+             (cond (interpreter-break-switch (resume-meta 'ok))))))
 
 (define (make-jumppoint-vm)
   (call/cc (lambda (breakpoint)
              (set! vm-k breakpoint)
-             (resume-meta 'ok))))
+             (cond (VM-break-switch (resume-meta 'ok))))))
 
 
 (define-macro define-act-eval
@@ -853,10 +1104,10 @@
               (cond ((break? inte-info) (set! break #t)))
               (make-jumppoint-eval)
               (draw-interpreter-info ,info)
-              ;(console-log 'eval:)(console-log ,info)(newline)
               (let ((ret (apply org-fun (cons arg restarg))))
                 (sub-indent)
-                ret)
+                ret
+                )
               )))))
 
 (define-macro define-act-compiler
@@ -864,7 +1115,7 @@
     `(let* ((org-fun ,fun))
        (set! ,fun
              (lambda (arg . restarg)
-               (list ,pseins
+               (list ,pseins (get-vm-act-counter ,pseins)
                      (apply org-fun (cons arg restarg))))))))
 
 
@@ -879,8 +1130,9 @@
                     (cond ((break? vm-info) (set! break #t)))
                     (make-jumppoint-vm)
                     (draw-VM-Info (car x))
-                    ;(console-log 'vm:)(console-log (car x)) (newline)
-                    (VM a (cadr x) f c s))
+                    ;(VM a (cadr x) f c s))
+                    (send-label-vm (car x) (cadr x))
+                    (VM a (caddr x) f c s))
                    (org-fun a x f c s)))))))
 
 
@@ -903,10 +1155,10 @@
              (lambda (exp env)
               (js-call-frame-eval-add (length  env))
               ;(js-call-frame-eval-add)
-              (js-call-frame-show)
+
               (let ((res (org-fun exp env)))
                 (js-call-frame-eval-sub (length  env))
-                (js-call-frame-show)
+
                 res
               )
               
@@ -956,13 +1208,29 @@
     `(let* ((org-fun eval-application-apply-functional))
        (set! eval-application-apply-functional
              (lambda (exp env func arguments)
-              (draw-interpreter-info "environment extended")
-              (append-new-env env)
-              ;因为interpreter-new-frame需要用到arguments 和 func两个参数，所以也将这两个参数传递
-              ;待修改
-              (interpreter-new-frame (inplace-arg-by-number arguments '()) func (get-env-id env) (get-env-id (cdr env)))
 
-              (org-fun exp env func arguments))))))
+                (append-new-env env)
+                ;因为interpreter-new-frame需要用到arguments 和 func两个参数，所以也将这两个参数传递
+                ;待修改
+                (interpreter-new-frame (inplace-arg-by-number arguments '()) func (get-env-id env) (get-env-id (cdr env)) 99)
+
+                (org-fun exp env func arguments)
+
+              )))))
+; (define-macro embed-eval-draw-frame-functional
+;   (lambda ()
+;     `(let* ((org-fun eval-application-apply-functional))
+;        (set! eval-application-apply-functional
+;              (lambda (exp env func arguments syn)
+
+;                 (append-new-env env)
+;                 ;因为interpreter-new-frame需要用到arguments 和 func两个参数，所以也将这两个参数传递
+;                 ;待修改
+;                 (interpreter-new-frame (inplace-arg-by-number arguments '()) func (get-env-id env) (get-env-id (cdr env)) syn)
+
+;                 (org-fun exp env func arguments syn)
+
+;               )))))
 
 (define-macro embed-vm-draw-frame 
   (lambda ()
@@ -1053,7 +1321,23 @@
        (set! VM-close
              (lambda (a x f c s)
               (loop (cadr x) view-stack-pop)
-              (org-fun a x f c s))))))              
+              (org-fun a x f c s))))))      
+
+
+
+(define-macro embed-eval-draw-define-variable
+  (lambda ()
+    `(let* ((org-fun define-variable!))
+       (set! define-variable!
+             (lambda (var val)
+             
+              (let ((ret (org-fun var val)))
+                (cond ((not (eq?  (get-closure-number val closure-table) -1))
+                        (view-environment-addglobalvariable (symbol->string var) (make-str (get-closure-number val closure-table))))
+                (else (view-environment-addglobalvariable (symbol->string var) val)))
+                ret
+               ))))))
+
 
 
 (define (loop n fun)
@@ -1064,6 +1348,8 @@
     (cond ((not (number? ele)) n )
           ((eq? f 0) n)
           (else (trav-link ele (+ n 1))))))
+
+          
 ;定义伪指令
 
 ;; 0 self-evaluating
@@ -1139,6 +1425,7 @@
 (define-eval-exec)
 (define-vm-VM)
 
+(embed-eval-draw-define-variable)
 ;====break===
 
 (define breakpoints (vector (vector 'act-constant #f)
@@ -1250,6 +1537,13 @@
   (console-log t) (newline))
 
 (define (meta program)
+  (set! vm-k #f)
+  (set! exec-k #f)
+  (let ((inte-code (make-label (preprocess program #f)))
+        (VM-code (sc program) ))
+  
+(send-program  inte-code VM-code )
+  
   (call/cc
    (lambda (break-meta)
      (call/cc
@@ -1263,14 +1557,14 @@
                (set! next c)
                (break-meta 'ok')))))
       
-         (cond ((eq? vm-k #f) (run program))
-               ((eq? exec-k #f) (resume-meta (eval1 program)))
+         (cond ((eq? vm-k #f) (run-vm VM-code))
+               ((eq? exec-k #f) (resume-meta (eval inte-code)))
                ((is-same-position?)
                 (act-add1 inte-info 'exec)
                 (exec-k 'ok))
                (else
                 (act-add1 vm-info 'vm)
-                (vm-k 'ok))))))
+                (vm-k 'ok)))))))
          
   
 
@@ -1289,7 +1583,4 @@
 
 ;(run '1)
 ;(eval1 '1)
-(define run
-  (lambda (exp)
-    (VM '() (compile (preprocess exp #f) '(() . ()) '(halt)) 0 '() 0)))
-(define (eval1 exp) (exec (preprocess exp #f) GE))
+

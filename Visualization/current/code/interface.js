@@ -15,8 +15,8 @@ function testVal(val) {
  * @param {*} args  传入eval-application-apply的func参数
  * 可以得到 参数：值 的结果，显示在环境box中
  */
-function interNewFrame(vals, args, frameNum, targetNum) {
-
+function interNewFrame(vals, args, frameNum, targetNum, syn) {
+    console.log(syn)
     var values = vals;
     var retVals = [];
     while (values.car != null) {

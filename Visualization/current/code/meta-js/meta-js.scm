@@ -40,6 +40,10 @@
 (define (view-closure-createclosure val)
   (js-invoke (js-ref (js-eval "view") "closure") "createClosure" val))
 
+;view.closure.createBox(val)
+(define (view-closure-createbox val)
+  (js-invoke (js-ref (js-eval "view") "closure") "createBox" val))
+
 ;view.environment.addClosure(l)
 (define (view-environment-addclosure val targetNum)
   (js-invoke (js-ref (js-eval "view") "environment") "addClosure" val targetNum))
@@ -72,12 +76,6 @@
 ;callFrame.vmReturn()
 (define (js-call-frame-vm-sub)
   (js-invoke (js-eval "callFrame") "vmReturn"))
-
-;callFrame.showFrame()
-(define (js-call-frame-show)
-  (js-invoke (js-eval "callFrame") "showFrame"))
-
-
 
 (define (draw-interpreter-info info)
   (js-call (js-eval "drawInterpreterInfo") info))
@@ -517,24 +515,35 @@
     (VM (closure body n s) x f c (- s n))))
 
 (define (VM-box a x f c s)
-  (let ((n (cadr x))
-        (x (caddr x)))
-    (console-log (index s n))(newline)
-    (index-set! s n (box (index s n)))
+  (let* ((n (cadr x))
+        (x (caddr x))
+        (b (box (index s n))))
+    (VM-box-helping s n b)
     (VM a x f c s)))
+(define (VM-box-helping s n b)
+  (index-set! s n b))
+
+
 
 (define (VM-test a x f c s)
   (let ((then (cadr x))
         (els (caddr x)))
     (VM a (if a then els) f c s)))
 
+
 (define (VM-assign a x f c s)
-  (let ((n (cadr x))
+  (let* ((n (cadr x))
         (m (caddr x))
-        (x (cadddr x)))
-    (console-log (index (find-link n f) m))(newline)
-    (set-box! (index (find-link n f) m) a)
+        (x (cadddr x))
+        (b (index (find-link n f) m))
+        (obj a))
+    ;(console-log (index (find-link n f) m))(newline)
+    (VM-assign-helping b obj)
     (VM a x f c s)))
+
+(define (VM-assign-helping box obj)
+  (set-box! box obj)
+)
 
 (define (VM-assign-free a x f c s)
   (let ((n (cadr x))
@@ -881,12 +890,11 @@
 
 (define syn-counter-inte 1)
 (define (eval-application exp env) ;为了同步，在原函数上进行了修改
-  (let ((args (eval-application-args (cdr exp) env))
-        (body (eval-application-body (car exp) env))
-        (syn syn-counter-inte))
+  (let ((syn syn-counter-inte))
     (set! syn-counter-inte (+ 1 syn-counter-inte))
-    (console-log "syn-counter-inte: ")(console-log syn-counter-inte)
-    (eval-application-apply body args env syn)))
+    (let ((args (eval-application-args (cdr exp) env))
+        (body (eval-application-body (car exp) env)))
+    (eval-application-apply body args env syn))))
 
 (define (eval-application-args args env)
   (reverse (map (lambda(x) (exec x env)) (reverse args))))
@@ -942,6 +950,19 @@
 (define (eval1 exp) (exec (make-label (preprocess exp #f)) GE))
 
 ;==========new==========
+
+(define indirect-flag #f)
+
+(define box-table (list))
+
+(define (add-box b)
+  (set! box-table (append box-table (list (list b (length box-table))))))
+
+(define (get-box-num b table)
+  (cond ((null? b) -1)
+        ((eq? b (car (car table))) (cadr (car table)))
+        (else (get-box-num b (cdr table) ))))
+
 
 ;这个变量是用来存放标签序号的
 ;( (标签名(act-...) 序号) ... )
@@ -1192,6 +1213,37 @@
                (org-fun a x f c s)
                )))))
 
+(define-macro define-vm-box-helping
+  (lambda ()
+    `(let* ((org-fun VM-box-helping))
+       (set! VM-box-helping
+             (lambda (s n b)
+               (add-box b)
+               (view-closure-createbox (car b))
+               (org-fun s n b)
+               )))))
+
+(define-macro define-vm-refer-indirect
+  (lambda ()
+    `(let* ((org-fun VM-refer-indirect))
+       (set! VM-refer-indirect
+             (lambda (a x f c s)
+               (cond ((eq? (car (cadr x)) 'argument) 
+                     (set! indirect-flag (+ 1 (get-box-num a box-table)))))   
+               (org-fun a x f c s)
+               )))))
+
+(define-macro define-vm-assign-helping
+  (lambda ()
+    `(let* ((org-fun VM-assign-helping))
+       (set! VM-assign-helping
+             (lambda (box obj)
+               (view-closure-changeboxval (+ 1 (get-box-num box box-table))
+                                          obj)
+               (org-fun a x f c s)
+               )))))
+
+
 
 
 ;===============画面相关=================
@@ -1227,7 +1279,7 @@
                 (append-new-env env)
                 ;因为interpreter-new-frame需要用到arguments 和 func两个参数，所以也将这两个参数传递
                 ;待修改
-                (interpreter-new-frame (inplace-arg-by-number arguments '()) func (get-env-id env) (get-env-id (cdr env)) 99)
+                (interpreter-new-frame (inplace-arg-by-number arguments '()) func (get-env-id env) (get-env-id (cdr env)) syn)
 
                 (org-fun exp env func arguments syn)
 
@@ -1239,20 +1291,25 @@
        (set! VM-frame
              (lambda (a x f c s)
               (js-call-frame-vm-add (trav-link f 1))
-              (js-call-frame-show)
               (view-stack-createFrame)
               (view-stack-push c "closure")
               (view-stack-push f "frame")
               (view-stack-push (cadr x) "return")
               (org-fun a x f c s))))))
 
+
 (define-macro embed-vm-draw-arg-push 
   (lambda ()
     `(let* ((org-fun VM-argument))
        (set! VM-argument
              (lambda (a x f c s)
-              (view-stack-push a "argument")
-              (org-fun a x f c s))))))
+               (if indirect-flag
+                   (begin
+                   (view-stack-push (string-append "<box" (number->string indirect-flag) ">")
+                                    "argument")
+                   (set! indirect-flag #f))
+                   (view-stack-push a "argument"))
+               (org-fun a x f c s))))))
 
 (define-macro embed-vm-draw-apply-functional 
   (lambda ()
@@ -1276,7 +1333,6 @@
        (set! VM-return
              (lambda (a x f c s)
               (js-call-frame-vm-sub)
-              (js-call-frame-show)
               (loop (+ 3 (cadr x)) view-stack-pop)
               (view-stack-deleteframe)
               (org-fun a x f c s))))))
@@ -1287,7 +1343,6 @@
        (set! prim-return
              (lambda (retval s)
               (js-call-frame-vm-sub)
-              (js-call-frame-show)
               (loop 6 view-stack-pop) ;3 + 3 c，f，x， arg1,arg2,link
               (view-stack-deleteframe)
               (org-fun retval s))))))
@@ -1427,6 +1482,8 @@
 (define-vm-VM)
 
 (embed-eval-draw-define-variable)
+(define-vm-box-helping)
+(define-vm-refer-indirect)
 ;====break===
 
 (define breakpoints (vector (vector 'act-constant #f)

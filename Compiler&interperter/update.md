@@ -58,5 +58,16 @@
 
 
 
+# 疑问
+
+'((lambda(a) (set! a 99)) 100))
+{frame
+ {halt}
+ {constant
+  100
+  {argument {functional {box 1 {constant 99 {assign 0 0 {return 2}}}} {apply}}}}}
+对于参数a来说是不是一个box
+
+
 
 

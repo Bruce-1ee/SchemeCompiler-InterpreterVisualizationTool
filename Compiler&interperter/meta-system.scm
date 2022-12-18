@@ -397,24 +397,35 @@
     (VM (closure body n s) x f c (- s n))))
 
 (define (VM-box a x f c s)
-  (let ((n (cadr x))
-        (x (caddr x)))
-    (display (index s n))(newline)
-    (index-set! s n (box (index s n)))
+  (let* ((n (cadr x))
+        (x (caddr x))
+        (b (box (index s n))))
+    (VM-box-helping s n b)
     (VM a x f c s)))
+(define (VM-box-helping s n b)
+  (index-set! s n b))
+
+
 
 (define (VM-test a x f c s)
   (let ((then (cadr x))
         (els (caddr x)))
     (VM a (if a then els) f c s)))
 
+
 (define (VM-assign a x f c s)
-  (let ((n (cadr x))
+  (let* ((n (cadr x))
         (m (caddr x))
-        (x (cadddr x)))
-    (display (index (find-link n f) m))(newline)
-    (set-box! (index (find-link n f) m) a)
+        (x (cadddr x))
+        (b (index (find-link n f) m))
+        (obj a))
+    ;(display (index (find-link n f) m))(newline)
+    (VM-assign-helping b obj)
     (VM a x f c s)))
+
+(define (VM-assign-helping box obj)
+  (set-box! box obj)
+)
 
 (define (VM-assign-free a x f c s)
   (let ((n (cadr x))
@@ -822,6 +833,19 @@
 
 ;==========new==========
 
+(define indirect-flag #f)
+
+(define box-table (list))
+
+(define (add-box b)
+  (set! box-table (append box-table (list (list b (length box-table))))))
+
+(define (get-box-num b table)
+  (cond ((null? b) -1)
+        ((eq? b (car (car table))) (cadr (car table)))
+        (else (get-box-num b (cdr table) ))))
+
+
 ;这个变量是用来存放标签序号的
 ;( (标签名(act-...) 序号) ... )
 ;eg. ( (act-if 33) (act-then 22) )
@@ -1071,6 +1095,37 @@
                (org-fun a x f c s)
                )))))
 
+(define-macro define-vm-box-helping
+  (lambda ()
+    `(let* ((org-fun VM-box-helping))
+       (set! VM-box-helping
+             (lambda (s n b)
+               (add-box b)
+               (view-closure-createbox (car b))
+               (org-fun s n b)
+               )))))
+
+(define-macro define-vm-refer-indirect
+  (lambda ()
+    `(let* ((org-fun VM-refer-indirect))
+       (set! VM-refer-indirect
+             (lambda (a x f c s)
+               (cond ((eq? (car (cadr x)) 'argument) 
+                     (set! indirect-flag (+ 1 (get-box-num a box-table)))))   
+               (org-fun a x f c s)
+               )))))
+
+(define-macro define-vm-assign-helping
+  (lambda ()
+    `(let* ((org-fun VM-assign-helping))
+       (set! VM-assign-helping
+             (lambda (box obj)
+               (view-closure-changeboxval (+ 1 (get-box-num box box-table))
+                                          obj)
+               (org-fun box obj)
+               )))))
+
+
 
 
 ;===============画面相关=================
@@ -1124,13 +1179,19 @@
               (view-stack-push (cadr x) "return")
               (org-fun a x f c s))))))
 
+
 (define-macro embed-vm-draw-arg-push 
   (lambda ()
     `(let* ((org-fun VM-argument))
        (set! VM-argument
              (lambda (a x f c s)
-              (view-stack-push a "argument")
-              (org-fun a x f c s))))))
+               (if indirect-flag
+                   (begin
+                   (view-stack-push (string-append "<box" (number->string indirect-flag) ">")
+                                    "argument")
+                   (set! indirect-flag #f))
+                   (view-stack-push a "argument"))
+               (org-fun a x f c s))))))
 
 (define-macro embed-vm-draw-apply-functional 
   (lambda ()
@@ -1154,7 +1215,6 @@
        (set! VM-return
              (lambda (a x f c s)
               (js-call-frame-vm-sub)
-              (js-call-frame-show)
               (loop (+ 3 (cadr x)) view-stack-pop)
               (view-stack-deleteframe)
               (org-fun a x f c s))))))
@@ -1165,7 +1225,6 @@
        (set! prim-return
              (lambda (retval s)
               (js-call-frame-vm-sub)
-              (js-call-frame-show)
               (loop 6 view-stack-pop) ;3 + 3 c，f，x， arg1,arg2,link
               (view-stack-deleteframe)
               (org-fun retval s))))))
@@ -1305,6 +1364,9 @@
 (define-vm-VM)
 
 (embed-eval-draw-define-variable)
+(define-vm-box-helping)
+(define-vm-refer-indirect)
+(define-vm-assign-helping)
 ;====break===
 
 (define breakpoints (vector (vector 'act-constant #f)

@@ -580,7 +580,7 @@ class StackElementFrameContent {
 class Closure {
 
     closureCounter = 0;
-
+    boxCounter = 0;
     constructor() {
         let closure = makeNewElement('closure', 'closure', 'closure');
         document.getElementById('view').appendChild(closure);
@@ -599,6 +599,23 @@ class Closure {
             closureFrame.appendChild(closureElement);
         }
         document.getElementById('closure').appendChild(closureFrame);
+    }
+
+    createBox(val) {
+
+        let boxFrame = makeNewElement("", "B" + this.boxCounter++, 'closureFrame clearfix');
+        let boxName = makeNewElement("box" + this.boxCounter + ":", "B" + this.boxCounter + "_val", 'closureElement');
+        boxFrame.appendChild(boxName);
+
+        let valElement = makeNewElement(val, "B" + this.boxCounter + "Val", 'closureElement');
+        boxFrame.appendChild(valElement);
+
+        document.getElementById('closure').appendChild(boxFrame);
+    }
+
+    changeBoxVal(number, val) {
+        let box = document.getElementById("B" + number + "Val");
+        box.innerText = val;
     }
 
 }

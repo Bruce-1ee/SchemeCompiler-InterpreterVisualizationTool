@@ -40,6 +40,14 @@
 (define (view-closure-createclosure val)
   (js-invoke (js-ref (js-eval "view") "closure") "createClosure" val))
 
+;view.closure.createBox(val)
+(define (view-closure-createbox val)
+  (js-invoke (js-ref (js-eval "view") "closure") "createBox" val))
+
+;view.closure.changeBoxVal(number, val)
+(define (view-closure-changeboxval number val)
+  (js-invoke (js-ref (js-eval "view") "closure") "changeBoxVal" number val))
+
 ;view.environment.addClosure(l)
 (define (view-environment-addclosure val targetNum)
   (js-invoke (js-ref (js-eval "view") "environment") "addClosure" val targetNum))

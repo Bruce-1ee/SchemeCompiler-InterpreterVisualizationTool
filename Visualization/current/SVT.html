@@ -25,16 +25,15 @@
 
         <textarea style=" position: absolute1; left: 200px; top: 10px;" name="content" id="programInput" rows="8"
             cols="50">
-
-            (meta '((lambda(arg1)
-            arg1)
-          ((lambda(a) 88) 11)))            
+(glo-define '(define make-withdraw (lambda (balance) (lambda (amount) (if (>= balance amount) ((lambda (dum) balance) (set! balance (- balance amount))) "Insufficient funds")))))
+(glo-define '(define w1 (make-withdraw 100)))
+;(meta '(w1 50))
+;(meta '((lambda(arg1) arg1) ((lambda(a) 88) 11)))            
 ;(meta '((lambda (a b c) (if a b c)) 11 22 33))
 ;(meta '((lambda (square) ((lambda (sum-of-squares) ((lambda(a) (sum-of-squares (+ a 1) (* a 2))) 5)) (lambda(x y) (+ (square x) (square y))))) (lambda(x) (* x x))))
-;(glo-define '(define make-withdraw (lambda (balance) (lambda (amount) (if (>= balance amount) ((lambda (dum) balance) (set! balance (- balance amount))) "Insufficient funds")))))
-;(glo-define '(define w1 (make-withdraw 100)))
+;
 ;(glo-define '(define var1 100))
-;(meta '(w1 50))
+;
 ;(meta '((lambda() (set! var1 88))))
          </textarea>
 

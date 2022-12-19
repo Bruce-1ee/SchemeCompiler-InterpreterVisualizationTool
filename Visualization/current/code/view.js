@@ -594,7 +594,9 @@ class Closure {
         let closureFrame = makeNewElement("", "C" + this.closureCounter++, 'closureFrame clearfix');
         let cloName = makeNewElement("clo" + this.closureCounter + ":", "C" + this.closureCounter + "E" + eleCoutner++, 'closureElement');
         closureFrame.appendChild(cloName);
-        for (let i = 0; i < eleList.length; i++) {
+        let closureElement = makeNewElement("<clo" + this.closureCounter + ">", "C" + this.closureCounter + "E" + eleCoutner++, 'closureElement');
+        closureFrame.appendChild(closureElement);
+        for (let i = 1; i < eleList.length; i++) {
             let closureElement = makeNewElement(eleList[i], "C" + this.closureCounter + "E" + eleCoutner++, 'closureElement');
             closureFrame.appendChild(closureElement);
         }

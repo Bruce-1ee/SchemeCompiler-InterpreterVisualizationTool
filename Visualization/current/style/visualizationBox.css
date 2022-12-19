@@ -2,6 +2,9 @@
     在这个文件里定义了环境模型和栈的样式
 */
 
+::-webkit-scrollbar {
+    display: none;
+}
 
 /* 最外层边框 */
 .visualizationBox {
@@ -406,4 +409,14 @@
     margin-top: 10px;
     margin-bottom: 20px;
     float: left;
+}
+
+.code {
+    height: 45px;
+    overflow: scroll;
+}
+
+.VMcode {
+    height: 45px;
+    overflow: scroll;
 }

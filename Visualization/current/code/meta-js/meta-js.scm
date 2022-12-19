@@ -44,6 +44,10 @@
 (define (view-closure-createbox val)
   (js-invoke (js-ref (js-eval "view") "closure") "createBox" val))
 
+;view.closure.changeBoxVal(number, val)
+(define (view-closure-changeboxval number val)
+  (js-invoke (js-ref (js-eval "view") "closure") "changeBoxVal" number val))
+
 ;view.environment.addClosure(l)
 (define (view-environment-addclosure val targetNum)
   (js-invoke (js-ref (js-eval "view") "environment") "addClosure" val targetNum))
@@ -546,9 +550,12 @@
 )
 
 (define (VM-assign-free a x f c s)
-  (let ((n (cadr x))
-        (x (caddr x)))
-    (set-box! (index-closure c n) a)
+  (let* ((n (cadr x))
+        (x (caddr x))
+        (b (index-closure c n))
+        )
+    ;(set-box! (index-closure c n) a)
+    (VM-assign-helping b a)
     (VM a x f c s)))
 
 (define (VM-assign-global a x f c s)
@@ -951,6 +958,18 @@
 
 ;==========new==========
 
+
+(define (make-arg-str name str)
+   (string-append "<" str (number->string (+ 1 num)) ">"))
+
+(define (make-short-argument arg)
+   (cond ((not (eq? -1 (get-box-num arg box-table)))
+          (make-arg-str (get-box-num arg box-table) "box"))
+         ((not (eq? -1 (get-closure-number arg closure-table)))
+          (make-arg-str (get-closure-number arg closure-table) "clo"))
+         (else arg)))
+
+
 (define indirect-flag #f)
 
 (define box-table (list))
@@ -1240,7 +1259,7 @@
              (lambda (box obj)
                (view-closure-changeboxval (+ 1 (get-box-num box box-table))
                                           obj)
-               (org-fun a x f c s)
+               (org-fun box obj)
                )))))
 
 
@@ -1308,7 +1327,7 @@
                    (view-stack-push (string-append "<box" (number->string indirect-flag) ">")
                                     "argument")
                    (set! indirect-flag #f))
-                   (view-stack-push a "argument"))
+                   (view-stack-push (make-short-argument a) "argument"))
                (org-fun a x f c s))))))
 
 (define-macro embed-vm-draw-apply-functional 
@@ -1484,6 +1503,7 @@
 (embed-eval-draw-define-variable)
 (define-vm-box-helping)
 (define-vm-refer-indirect)
+(define-vm-assign-helping)
 ;====break===
 
 (define breakpoints (vector (vector 'act-constant #f)

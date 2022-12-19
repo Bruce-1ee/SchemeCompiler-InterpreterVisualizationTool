@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-     
 import re
 import os
 import shutil
@@ -21,11 +22,13 @@ jsfile = 'Visualization/current/code//test.js'
 
 
 def delUselessLines(fileadds):
-    r = open(fileadds, "r", encoding="utf-8")
+    # r = open(fileadds, "r", encoding="utf-8")
+    r = open(fileadds, "r")
     # r = open("Visualization/old file/python demo/a.txt", "r")
     lines = r.readlines()
     c = 0
-    w = open(fileadds, "w", encoding="utf-8")
+    # w = open(fileadds, "w", encoding="utf-8")
+    w = open(fileadds, "w")
     # w = open("Visualization/old file/python demo/a.txt", "w")
     for l in lines:
         if c > 4:
@@ -37,8 +40,8 @@ def delUselessLines(fileadds):
 
 def addHelpFunction(fileadds, hepfunc):
 
-    file = open(fileadds, "r", encoding="utf-8")
-    file_add = open(hepfunc, "r", encoding="utf-8")
+    file = open(fileadds, "r")
+    file_add = open(hepfunc, "r")
     # file = open("Visualization/old file/python demo/a.txt", "r")
     # file_add = open("Visualization/old file/python demo/b.txt", "r")
     content = file.read()
@@ -48,7 +51,7 @@ def addHelpFunction(fileadds, hepfunc):
 
     content = content[:pos] + content_add + "\n" + content[pos:]
     file = open(fileadds,
-                "w", encoding="utf-8")
+                "w")
     file.write(content)
     file.close()
     file_add.close()
@@ -56,9 +59,9 @@ def addHelpFunction(fileadds, hepfunc):
 
 def toJsLiteral(outputadds):
 
-    r = open(outputadds, "r", encoding="utf-8")
+    r = open(outputadds, "r")
     lines = r.readlines()
-    w = open(outputadds, "w", encoding="utf-8")
+    w = open(outputadds, "w")
     for l in lines:
       #   pos = l.find(";")
       #   l = l[:pos]
@@ -66,16 +69,16 @@ def toJsLiteral(outputadds):
         l = l.replace('\n', ' ')
         l = l.replace("'", "\\'")
         w.write(l)
-    file = open(outputadds, "r", encoding="utf-8")
+    file = open(outputadds, "r")
     content = file.read()
     content = "meta = '" + content
-    file = open(outputadds, "w", encoding="utf-8")
+    file = open(outputadds, "w")
     file.write(content)
     file.close()
 
 
 def addtail(outputadds):
-    w = open(outputadds, "a", encoding="utf-8")
+    w = open(outputadds, "a")
     w.write("'")
 
 
@@ -84,7 +87,7 @@ def addtail(outputadds):
 
 def alter(file, old_str, new_str):
 
-    with open(file, "r", encoding="utf-8") as f1, open("%s.bak" % file, "w", encoding="utf-8") as f2:
+    with open(file, "r") as f1, open("%s.bak" % file, "w") as f2:
         for line in f1:
             f2.write(re.sub(old_str, new_str, line))
     os.remove(file)

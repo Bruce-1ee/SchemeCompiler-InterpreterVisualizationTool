@@ -1052,11 +1052,11 @@
       `(let* ((org-fun exec))
         (set! exec
               (lambda (exp env)
-                (js-draw-expression exp)
+                ;(js-draw-expression exp)
 
 
                 (view-environment-highlightframe (get-env-id env))
-                (draw-interpreter-exp (make-inte-str exp '()))
+                ;(draw-interpreter-exp (make-inte-str exp '()))
                 (org-fun exp env)
 
   )))))
@@ -1068,7 +1068,7 @@
        (set! VM
              (lambda (a x f c s)
 
-               (draw-draw-VM-exp (make-inte-str x '()))
+               ;(draw-draw-VM-exp (make-inte-str x '()))
                (org-fun a x f c s)
                )))))
 
@@ -1134,7 +1134,7 @@
     `(let* ((org-fun eval-application-apply-functional))
        (set! eval-application-apply-functional
              (lambda (exp env func arguments syn)
-
+                (draw-interpreter-info "environment extended")
                 (append-new-env env)
                 ;因为interpreter-new-frame需要用到arguments 和 func两个参数，所以也将这两个参数传递
                 ;待修改

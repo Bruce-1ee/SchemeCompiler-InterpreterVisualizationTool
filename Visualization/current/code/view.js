@@ -582,7 +582,7 @@ class Closure {
     closureCounter = 0;
     boxCounter = 0;
     constructor() {
-        let closure = makeNewElement('closure', 'closure', 'closure');
+        let closure = makeNewElement('closure&box', 'closure', 'closure');
         document.getElementById('view').appendChild(closure);
         //document.getElementsByTagName("body")[0].appendChild(closure);
 

@@ -139,6 +139,12 @@
         (else (error "Unknown expression type -- COMPILE" exp))))
 
 ;=============tagged-list========================
+
+(define (tagged-list? exp tag)
+  (if (pair? exp)
+      (eq? (car exp) tag)
+      false))
+
 (define (self-evaluating? exp)
   (cond ((number? exp) true)
         ((string? exp) true)
@@ -160,14 +166,9 @@
   (or (tagged-list? exp 'lambda)
       (tagged-list? exp 'slambda)
       (tagged-list? exp 'clambda)))
-
 (define (application? exp)
   (pair? exp))
 
-(define (tagged-list? exp tag)
-  (if (pair? exp)
-      (eq? (car exp) tag)
-      false))
 
 ;===========compiler-process=====================
 (define (compile-self-evaluating val next)
@@ -398,25 +399,23 @@
                     lambda-vals))))     
 ;(cons (list 'lambda lambda-args body) lambda-vals))))                                   
 
+;=========set-function===========
 (define set-member?
   (lambda (x s)
     (cond
       ((null? s) #f) ;;;
       ((eq? x (car s)) #t) ;;;
       (else (set-member? x (cdr s))))))
-
 (define set-cons
   (lambda (x s)
     (if (set-member? x s)
         s
         (cons x s))))
-
 (define set-union
   (lambda (s1 s2)
     (if (null? s1)
         s2
         (set-union (cdr s1) (set-cons (car s1) s2)))))
-
 (define set-minus
   (lambda (s1 s2)
     (if (null? s1)
@@ -424,7 +423,6 @@
         (if (set-member? (car s1) s2)
             (set-minus (cdr s1) s2)
             (cons (car s1) (set-minus (cdr s1) s2))))))
-
 (define set-intersect
   (lambda (s1 s2)
     (if (null? s1)
@@ -432,6 +430,8 @@
         (if (set-member? (car s1) s2)
             (cons (car s1) (set-intersect (cdr s1) s2))
             (set-intersect (cdr s1) s2)))))
+
+;==========preprocess==========
 
 (define (preprocess x funpos?)
   (cond ((symbol? x) x)
@@ -524,16 +524,14 @@
         (b (box (index s n))))
     (VM-box-helping s n b)
     (VM a x f c s)))
+
 (define (VM-box-helping s n b)
   (index-set! s n b))
-
-
 
 (define (VM-test a x f c s)
   (let ((then (cadr x))
         (els (caddr x)))
     (VM a (if a then els) f c s)))
-
 
 (define (VM-assign a x f c s)
   (let* ((n (cadr x))
@@ -545,9 +543,7 @@
     (VM-assign-helping b obj)
     (VM a x f c s)))
 
-(define (VM-assign-helping box obj)
-  (set-box! box obj)
-)
+(define (VM-assign-helping box obj) (set-box! box obj))
 
 (define (VM-assign-free a x f c s)
   (let* ((n (cadr x))
@@ -599,7 +595,7 @@
       (VM a (index s 0) (index s 1) (index s 2) (- s 3)))))
 
 (define (VM-otherwise a x f c s)
-  (error "unknow inst"))
+  (error "Unknow VM instruction -- VM-otherwise"))
  
 (define functional
   (lambda (body e)
@@ -635,16 +631,6 @@
   (lambda (s i v)
     (vector-set! stack (- (- s i) 1) v)))
 
-(define closure-bak
-  (lambda (body n s)
-    (let ((v (make-vector (+ n 1))))
-      (vector-set! v 0 body)
-      (let f ((i 0))
-        (unless (= i n)
-          (vector-set! v (+ i 1) (index s i))
-          (f (+ i 1))))
-      (cons 'closure v)))) ;;;
-
 (define closure
   (lambda (body n s)
     (let ((v (make-clo body n s)))
@@ -672,19 +658,11 @@
     (if (= n 0) e
         (find-link (- n 1) (index e -1)))))
 
-;;
-
 (define (prim-return retval s)
   (VM retval (index s 0) (index s 1) (index s 2) (- s 3)))
 
 (define the-global-environment ;;;
-  `((foo . ,(primitive-fun (lambda (s)
-                             (let ((ans 10))
-                               ;; (return 3)
-                               (write s)(newline)
-                               (write stack)(newline)
-                               (prim-return ans (- s 3))))))
-    (+ . ,(primitive-fun (lambda (s)
+  `((+ . ,(primitive-fun (lambda (s)
                            (let ((ans (+ (index s 1)
                                          (index s 2))))
                              (prim-return ans (- s 3))))))
@@ -752,10 +730,9 @@
              ((quoted? exp) (eval-quotation exp))
              ((assignment? exp) (eval-assignment exp env))
              ((definition? exp) (eval-definition exp env))
-             ;((let? exp) (eval-let exp env))
+             ((let? exp) (eval-let exp env))
              ((if? exp) (eval-if exp env))
              ((lambda? exp) (eval-lambda exp env))
-             ;((begin? exp) (eval-sequence (cdr exp) env)) ;new
              ((application? exp) (eval-application exp env))
              (else (error "Unknown expression type -- EXEC" exp)))))))
 
@@ -791,22 +768,6 @@
    '(+ - * / = eq? < <= > >= console-log) ; <- ( + - * / )
    (map (lambda (f) (cons 'primitive f))
         (list + - * / = eq? < <= > >= console-log))))  ; <- ( + - * / )
-
-
-
-;==========new==========
-(define (begin? exp) (tagged-list? exp 'begin))
-(define (last-exp? seq) (null? (cdr seq)))
-(define (first-exp seq) (car seq))
-(define (rest-exps seq) (cdr seq))
-
-(define (eval-sequence exps env)
-  (cond ((last-exp? exps) (exec (first-exp exps) env))
-        (else (exec (first-exp exps) env)
-              (eval-sequence (rest-exps exps) env))))
-
-
-
 
 ;==========解析用函数==========
 
@@ -956,10 +917,11 @@
 (define (eval code) (exec code GE))
 (define (eval1 exp) (exec (make-label (preprocess exp #f)) GE))
 
-;==========new==========
+;==========================;==========================;==========================
+;==========================;==========tables==========;==========================
+;==========================;==========================;==========================
 
-
-(define (make-arg-str name str)
+(define (make-arg-str num str)
    (string-append "<" str (number->string (+ 1 num)) ">"))
 
 (define (make-short-argument arg)
@@ -978,7 +940,7 @@
   (set! box-table (append box-table (list (list b (length box-table))))))
 
 (define (get-box-num b table)
-  (cond ((null? b) -1)
+  (cond ((null? table) -1)
         ((eq? b (car (car table))) (cadr (car table)))
         (else (get-box-num b (cdr table) ))))
 
@@ -1212,11 +1174,11 @@
       `(let* ((org-fun exec))
         (set! exec
               (lambda (exp env)
-                (js-draw-expression exp)
+                ;(js-draw-expression exp)
 
 
                 (view-environment-highlightframe (get-env-id env))
-                (draw-interpreter-exp (make-inte-str exp '()))
+                ;(draw-interpreter-exp (make-inte-str exp '()))
                 (org-fun exp env)
 
   )))))
@@ -1228,7 +1190,7 @@
        (set! VM
              (lambda (a x f c s)
 
-               (draw-draw-VM-exp (make-inte-str x '()))
+               ;(draw-draw-VM-exp (make-inte-str x '()))
                (org-fun a x f c s)
                )))))
 
@@ -1294,7 +1256,7 @@
     `(let* ((org-fun eval-application-apply-functional))
        (set! eval-application-apply-functional
              (lambda (exp env func arguments syn)
-
+                (draw-interpreter-info "environment extended")
                 (append-new-env env)
                 ;因为interpreter-new-frame需要用到arguments 和 func两个参数，所以也将这两个参数传递
                 ;待修改
@@ -1372,7 +1334,7 @@
        (set! make-clo
              (lambda (body n s)
               (let ((v (org-fun body n s)))
-                (view-closure-createclosure v)
+                (view-closure-createclosure (list->vector (map (lambda (x) (make-short-argument x)) (vector->list v))))
                 v
               )
                )))))

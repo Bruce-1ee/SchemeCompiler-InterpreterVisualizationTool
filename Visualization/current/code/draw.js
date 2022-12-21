@@ -490,8 +490,10 @@ var code;
 function getProgram(inteCode, VMCode) {
     code = VMCode.toString();
     var icode = inteCode.toString();
-    let e = document.getElementById("code");
-    let evm = document.getElementById("VMcode");
+    // let e = document.getElementById("code");
+    // let evm = document.getElementById("VMcode");
+    let e = document.getElementById("inteExp");
+    let evm = document.getElementById("VMExp");
     var codeEle = parseCode(icode);
     e.innerHTML = codeEle;
     evm.innerHTML = parseCodeVM(VMCode.toString());

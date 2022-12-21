@@ -1,3 +1,7 @@
+html {
+    overscroll-behavior: contain;
+}
+
 /* 
     在这个文件里定义了环境模型和栈的样式
 */
@@ -19,6 +23,7 @@
 /* 环境模型 */
 .environment {
     min-width: 500px;
+    /* min-width: 1290px; */
     margin: 3px;
 
     display: inline-block;
@@ -308,19 +313,19 @@
 
 .inteExp {
     width: 400px;
-    height: 70px;
+    height: 62px;
     overflow: scroll;
 }
 
 .VMRunningExp {
     position: absolute;
-    top: 80px;
+    top: 90px;
     left: 600px;
 }
 
 .VMExp {
     width: 400px;
-    height: 70px;
+    height: 62px;
     overflow: scroll;
 }
 

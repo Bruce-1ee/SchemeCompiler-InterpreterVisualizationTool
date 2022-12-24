@@ -340,6 +340,7 @@
 
 ;f:frame pointer
 ;c:closure pointer
+
 (define VM
   (lambda (a x f c s) ;; (a x e s)
     (case (car x)
@@ -401,7 +402,6 @@
 (define (VM-box a x f c s)
   (let ((n (cadr x))
         (x (caddr x)))
-    (display (index s n))(newline)
     (index-set! s n (box (index s n)))
     (VM a x f c s)))
 
@@ -414,7 +414,6 @@
   (let ((n (cadr x))
         (m (caddr x))
         (x (cadddr x)))
-    (display (index (find-link n f) m))(newline)
     (set-box! (index (find-link n f) m) a)
     (VM a x f c s)))
 
@@ -627,7 +626,7 @@
   (and (list? exp)
        (string? (car exp))))
 (define (eval-label exp env)
-  (display (car exp)) (newline)
+  ;(display (car exp)) (newline)
   (exec (cadr exp) env))
 
 (define eval-extend 
@@ -820,6 +819,15 @@
 
 ;==========new==========
 
+
+(define non-act-table '(eval-application eval-arguments))
+
+(define (is-non-act? act table)
+  (cond ((null? table) #f)
+        ((eq? act (car table)) #t)
+        (else (is-non-act? act (cdr table)))))
+
+
 (define box-table (list))
 
 (define (add-box b)
@@ -829,10 +837,6 @@
   (cond ((null? b) -1)
         ((eq? b (car (car table))) (cadr (car table)))
         (else (get-box-num b (cdr table) ))))
-
-
-
-
 
 ;这个变量是用来存放标签序号的
 ;( (标签名(act-...) 序号) ... )
@@ -892,7 +896,7 @@
 
 ;向a-list中追加新元素，编号自动维护
 (define (create-closure-pair c)
-  (let ((ret (cons c (length closure-table))))
+  (let ((ret (cons (cdr c) (length closure-table))))
     (set! closure-table (append closure-table (list ret)))))
 
 ;获取编号
@@ -900,6 +904,14 @@
   (cond ((null? table) -1)
         ((eq? (car (car table)) c) (cdr (car table)))
         (else (get-closure-number c (cdr table)))))
+
+;生成闭包字符串
+(define (make-clo-name c)
+  (let ((num (get-closure-number c closure-table)))
+    (if (eq? num -1)
+        ;(error "bad_closure -- make-clo-name")
+        c
+        (string-append "<clo" (number->string (+ num 1)) ">"))))
 
         
 (define (make-inte-str exp ret)
@@ -979,6 +991,12 @@
              (set! vm-k breakpoint)
              (cond (VM-break-switch (resume-meta))))))
 
+(define (make-subjumppoint-eval)
+  (call/cc (lambda (breakpoint)
+             (set! sub-exec-k breakpoint)
+             (set! sub-exec-flag #t)
+             (set! break #t)
+             (resume-meta))))
 
 (define-macro define-act-eval
   (lambda (fun info act)
@@ -990,6 +1008,16 @@
                (make-jumppoint-eval)
                (display 'eval:)(display ,info)(newline)
                ;(,inst)
+               (apply org-fun (cons arg restarg)))))))
+
+(define-macro define-sub-act-eval
+  (lambda (fun info act)
+    `(let* ((org-fun ,fun))
+       (set! ,fun
+             (lambda (arg . restarg)
+               (set! sub-inte-info ,act)
+               (make-subjumppoint-eval)
+               (display 'sub-eval:)(display sub-inte-info)(newline)
                (apply org-fun (cons arg restarg)))))))
 
 (define-macro define-act-compiler
@@ -1018,7 +1046,27 @@
                      (VM a (caddr x) f c s))
                    (org-fun a x f c s)))))))
 
+(define-macro embed-eval-draw-clambda
+  (lambda ()
+    `(let* ((org-fun eval-clambda))
+       (set! eval-clambda
+             (lambda (exp env)
+               (let ((ret (org-fun exp env)))
+                
+                
+                 ret
+                 )
+               )))))
 
+(define-macro embed-vm-draw-close
+  (lambda ()
+    `(let* ((org-fun closure))
+       (set! closure
+             (lambda (body n s)
+               (let ((ret (org-fun body n s)))
+                 (create-closure-pair ret)
+                 ret
+                 ))))))
 
 
 (define (trav-link f n)
@@ -1099,9 +1147,10 @@
   ;; 6 others
   ;(define-act-create-frame)
 
-
+  (define-sub-act-eval eval-variable 'variable 'variable)
   
   (define-vm-otherwise)
+  (embed-vm-draw-close)
 
 
   )
@@ -1161,9 +1210,17 @@
 (define vm-k #f)
 (define resume-meta #f)
 
+(define sub-exec-k #f)
+(define sub-vm-k #f)
+
+(define sub-exec-flag #f)
+(define sub-vm-flag #f)
 
 (define vm-info #f)
 (define inte-info #f)
+
+(define sub-inte-info #f)
+(define sub-vm-info #f)
 
 (define next #f)
 (define break #f)
@@ -1231,7 +1288,10 @@
                (set! break #f)
                (set! next c)
                (break-meta)))))
-     (cond ((eq? vm-k #f)  (run program))
+     (cond (sub-exec-flag
+            (begin (set! sub-exec-flag #f)
+                   (sub-exec-k)))
+           ((eq? vm-k #f)  (run program))
            ((eq? exec-k #f) (resume-meta (eval1 program)))
            ((is-same-position?)
             (act-add1 inte-info 'exec)
@@ -1244,7 +1304,7 @@
   (call/cc
    (lambda (quit)
      (set! resume-meta quit))))
-(cc)
+;(cc)
 
          
   

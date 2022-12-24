@@ -84,8 +84,8 @@
 (define (draw-interpreter-info info)
   (js-call (js-eval "drawInterpreterInfo") info))
 
-(define (draw-VM-Info info)
-  (js-call (js-eval "drawVMInfo") info))
+(define (draw-VM-Info info from)
+  (js-call (js-eval "drawVMInfo") info from))
 
 
 ;view.environment.highlightFrame(frameNumber)
@@ -104,13 +104,21 @@
 (define (draw-draw-VM-exp exp)
   (js-call (js-eval "drawVMExp") exp))
 
-;addIndent()
-(define (add-indent)
-  (js-call (js-eval "addIndent")))
+;addIndentInte()
+(define (add-indent-inte)
+  (js-call (js-eval "addIndentInte")))
 
-;subIndent()
-(define (sub-indent)
-  (js-call (js-eval "subIndent")))
+;subIndentInte()
+(define (sub-indent-inte)
+  (js-call (js-eval "subIndentInte")))
+
+;addIndentInte()
+(define (add-indent-vm)
+  (js-call (js-eval "addIndentVm")))
+
+;subIndentInte()
+(define (sub-indent-vm)
+  (js-call (js-eval "subIndentVm")))
 
 
 ;getInteLabel
@@ -124,3 +132,8 @@
 ;getProgram
 (define (send-program inte-p vm-p)
   (js-call (js-eval "getProgram") inte-p vm-p))
+
+
+;setAccumulatorInfo(info)
+(define (send-acc-info info)
+  (js-call (js-eval "setAccumulatorInfo") info))

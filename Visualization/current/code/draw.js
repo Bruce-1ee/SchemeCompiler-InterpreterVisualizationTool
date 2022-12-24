@@ -285,14 +285,23 @@ function connectATOB(a, b, aanchor, banchor) {
 var inteCounter = 1;
 var inteSubCounter = 1;
 var inteIndent = 0;
+var vmIndent = 0;
 var indentString = " \u00A0 \u00A0";
 
-function addIndent() {
+function addIndentInte() {
     inteIndent++;
 }
 
-function subIndent() {
+function subIndentInte() {
     inteIndent--;
+}
+
+function addIndentVm() {
+    vmIndent++;
+}
+
+function subIndentVm() {
+    vmIndent--;
 }
 
 function drawInterpreterInfo(info) {
@@ -310,10 +319,22 @@ function drawInterpreterInfo(info) {
 }
 
 var VMCounter = 1;
-function drawVMInfo(info) {
-    let e = makeNewElement(VMCounter + ". " + info, "VMInfo" + VMCounter, "null");
+function drawVMInfo(info, from) {
+    var indentSpace = "";
+    for (var i = 0; i < vmIndent; i++) {
+        indentSpace += indentString;
+    }
+    info = info.toString();
+    if (info.indexOf("'act-") !== -1 && from === 1)
+        return;
+
+    if (info.indexOf("'act-") === -1 || from === 1) { //不包含
+        var e = makeNewElement(indentSpace + info, "VMInfo" + VMCounter, "null");
+    } else {
+        var e = makeNewElement(indentSpace + VMCounter + ". " + info, "VMInfo" + VMCounter++, "null");
+    }
     document.getElementById('VMInfo').appendChild(e);
-    VMCounter++;
+
 }
 
 
@@ -337,6 +358,23 @@ function drawVMExp(exp) {
     lst = exp.split('"');
     t = lst.join("");
     e.innerText = t;
+}
+
+function changeBiwaToJs(biwa) {
+
+    if (biwa.constructor.name === 'BiwaSymbol') {
+        return biwa.toString();
+    }
+    if (biwa.constructor.name === 'Pair') {
+        var ret = biwa.to_array();
+        for (var i = 0; i < ret.length; i++) {
+            if (typeof (ret[i]) === 'object') {
+                ret[i] = changeBiwaToJs(ret[i]);
+            }
+            continue;
+        }
+    }
+    return ret;
 }
 
 
@@ -444,10 +482,17 @@ function parseCodeVM(program) {
     }
     function main() {
         var lList = program.match(/'act[-[a-zA-Z]+]*[\s][0-9]+/g);
+        console.log(lList);
         for (var i = 0; i < lList.length; i++) {
             var label = lList[i];
             var strList = program.split(label);
+            console.log(strList);
+            console.log(label);
+            console.log(strList[1]);
+            console.log(i);
+            console.log(lList.length);
             var pos = getPosition(strList[1]);
+
             strList[0] = replace(strList[0], strList[0].length - 1, '<span id="' + makeNewLabel(label) + '">')
             strList[1] = replace(strList[1], pos, '</span>');
             program = strList.join("");
@@ -500,3 +545,7 @@ function getProgram(inteCode, VMCode) {
 }
 
 
+function setAccumulatorInfo(info) {
+    let e = document.getElementById("acc");
+    e.innerText = info;
+}

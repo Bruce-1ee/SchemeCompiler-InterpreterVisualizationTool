@@ -71,3 +71,17 @@
 
 
 
+
+# todo
+1. box的样式需要修改成和closure不一样的样式，以示区别。
+1. Interpreter Act和VM Act的部分需要加入更多信息
+      将act分为实际动作和名义动作。实际动作是指真的进行了计算的动作，名义动作为无实际计算的动作。例如，eval-argument就是名义动作。
+      修改成 名义动作 + 实际指令的样式
+            例如：eval-application （名义）
+                    constant （实际）
+1. 展示VM的寄存器数据 (完成)
+
+
+# 关于environment extended显示位置的说明
+      环境扩展的时间确实是在参数被计算完成的时候进行的
+

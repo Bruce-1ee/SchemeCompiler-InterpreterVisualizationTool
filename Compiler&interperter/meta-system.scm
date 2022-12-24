@@ -743,7 +743,10 @@
     (eval-application-apply body args env syn))))
 
 (define (eval-application-args args env)
-  (reverse (map (lambda(x) (exec x env)) (reverse args))))
+  (let ((ret (reverse (map (lambda(x) (exec x env)) (reverse args)))))
+    
+    ret
+  ))
 
 (define (eval-application-body name env) (exec name env))
 
@@ -799,14 +802,45 @@
 ;==========================;==========tables==========;==========================
 ;==========================;==========================;==========================
 
+(define closure-table-vm (list))
+
+;向a-list中追加新元素，编号自动维护
+(define (add-vm-closure c)
+  (let ((ret (cons (cdr c) (length closure-table-vm))))
+    (set! closure-table-vm (append closure-table-vm (list ret)))))
+
+;获取编号
+(define (get-vm-closure-number c table)
+  (cond ((null? table) -1)
+        ((eq? (car (car table)) c) (cdr (car table)))
+        (else (get-vm-closure-number c (cdr table)))))
+
+;生成闭包字符串 无前缀closure
+(define (make-vm-clo-name c)
+  (let ((num (get-vm-closure-number c closure-table-vm)))
+    (if (eq? num -1)
+        ;(error "bad_closure -- make-inte-clo-name")
+        "null"
+        (string-append "<clo" (number->string (+ num 1)) ">"))))
+
+
+;非计算动作标签
+(define non-act-table '(eval-application eval-arguments eval-body
+                        eval-if eval-test eval-then eval-else))
+;判断act是否为非计算动作标签
+(define (is-non-act? act table)
+  (cond ((null? table) #f)
+        ((eq? act (car table)) #t)
+        (else (is-non-act? act (cdr table)))))
+
 (define (make-arg-str num str)
    (string-append "<" str (number->string (+ 1 num)) ">"))
 
 (define (make-short-argument arg)
    (cond ((not (eq? -1 (get-box-num arg box-table)))
           (make-arg-str (get-box-num arg box-table) "box"))
-         ((not (eq? -1 (get-closure-number arg closure-table)))
-          (make-arg-str (get-closure-number arg closure-table) "clo"))
+         ((not (eq? -1 (get-inte-closure-number arg closure-table-inte)))
+          (make-arg-str (get-inte-closure-number arg closure-table-inte) "clo"))
          (else arg)))
 
 
@@ -866,27 +900,37 @@
         (append env-table
                 (list (cons env (length env-table))))))
 
-                
+
+;解释器用闭包      
 ;创建一个a-list存放 （闭包.编号）
-(define closure-table (list))
+(define closure-table-inte (list))
 
 ;向a-list中追加新元素，编号自动维护
-(define (create-closure-pair c)
-  (let ((ret (cons c (length closure-table))))
-    (set! closure-table (append closure-table (list ret)))))
+(define (add-inte-closure c)
+  (let ((ret (cons c (length closure-table-inte))))
+    (set! closure-table-inte (append closure-table-inte (list ret)))))
 
 ;获取编号
-(define (get-closure-number c table)
+(define (get-inte-closure-number c table)
   (cond ((null? table) -1)
         ((eq? (car (car table)) c) (cdr (car table)))
-        (else (get-closure-number c (cdr table)))))
+        (else (get-inte-closure-number c (cdr table)))))
+
+;生成闭包字符串
+(define (make-inte-clo-name c)
+  (let ((num (get-inte-closure-number c closure-table-inte)))
+    (if (eq? num -1)
+        ;(error "bad_closure -- make-inte-clo-name")
+        "null"
+        (string-append "<clo" (number->string (+ num 1)) ">"))))
+
 
 ;用闭包编号来替代本身的闭包
 (define (inplace-arg-by-number args ret)
   (cond ((null? args) ret)
-        ((not (eq?  (get-closure-number (car args) closure-table) -1)) ;闭包编号不等于-1，即存在这个闭包
+        ((not (eq?  (get-inte-closure-number (car args) closure-table-inte) -1)) ;闭包编号不等于-1，即存在这个闭包
          (inplace-arg-by-number (cdr args)
-                                (append ret (list (make-str (get-closure-number (car args) closure-table))))))
+                                (append ret (list (make-str (get-inte-closure-number (car args) closure-table-inte))))))
         (else (inplace-arg-by-number (cdr args) (append ret (list (car args)))))))
 ;生成 <clo num> 这样的字符串 其中num是加一表示的，因为是从0开始计数而画面上是从1开始计数的。
 (define (make-str num)
@@ -949,6 +993,12 @@
              (append (list  (make-label fun))
                      (map (lambda(x) (make-label x)) args)))))))
 
+(define (make-acc-str a)
+  (cond ((pair? a)
+         (cond ((eq? (car a) 'closure)
+                (make-vm-clo-name (cdr a)))))
+        (else a)))
+
 ;====macro======
 
 (define interpreter-break-switch #t)
@@ -980,13 +1030,16 @@
     `(let* ((org-fun ,fun))
        (set! ,fun
              (lambda (arg . restarg)
-              (add-indent)
+              (add-indent-inte)
               (set! inte-info ,act)
               (cond ((break? inte-info) (set! break #t)))
               (make-jumppoint-eval)
               (draw-interpreter-info ,info)
               (let ((ret (apply org-fun (cons arg restarg))))
-                (sub-indent)
+                (cond ((is-non-act? ,info non-act-table)
+                      (draw-interpreter-info (string-append "END-" (symbol->string ,info)  )) ))
+                
+                (sub-indent-inte)
                 ret
                 )
               )))))
@@ -1010,10 +1063,13 @@
                     (set! vm-info (car x))
                     (cond ((break? vm-info) (set! break #t)))
                     (make-jumppoint-vm)
-                    (draw-VM-Info (car x))
-                    ;(VM a (cadr x) f c s))
+                    (draw-VM-Info (car x) 0)
+
                     (send-label-vm (car x) (cadr x))
-                    (VM a (caddr x) f c s))
+                    (let ((ret (VM a (caddr x) f c s)))
+                        ret
+                    ))
+                    
                    (org-fun a x f c s)))))))
 
 
@@ -1067,7 +1123,8 @@
     `(let* ((org-fun VM))
        (set! VM
              (lambda (a x f c s)
-
+              (draw-VM-Info (car x) 1)
+              (send-acc-info (make-acc-str a))
                ;(draw-draw-VM-exp (make-inte-str x '()))
                (org-fun a x f c s)
                )))))
@@ -1112,7 +1169,7 @@
     `(let* ((org-fun find-link))
        (set! find-link
              (lambda (n e)
-              (draw-VM-Info "finding link")
+              (draw-VM-Info "finding link" 0)
               (org-fun n e))))))
 
 ; (define-macro embed-eval-draw-frame-functional
@@ -1151,7 +1208,7 @@
              (lambda (a x f c s)
               (js-call-frame-vm-add (trav-link f 1))
               (view-stack-createFrame)
-              (view-stack-push c "closure")
+              (view-stack-push (make-vm-clo-name c) "closure")
               (view-stack-push f "frame")
               (view-stack-push (cadr x) "return")
               (org-fun a x f c s))))))
@@ -1223,7 +1280,7 @@
        (set! eval-clambda
              (lambda (exp env)
               (let ((ret (org-fun exp env)))
-                (create-closure-pair ret)
+                (add-inte-closure ret)
                 (view-environment-addclosure (list->vector (list (list->vector (cadr exp)) (caddr exp)))
                                    (get-env-id env))
                 ret
@@ -1236,7 +1293,17 @@
        (set! VM-close
              (lambda (a x f c s)
               (loop (cadr x) view-stack-pop)
-              (org-fun a x f c s))))))      
+              (org-fun a x f c s)))))) 
+
+(define-macro embed-vm-closure
+  (lambda ()
+    `(let* ((org-fun closure))
+       (set! closure
+             (lambda (body n s)
+               (let ((ret (org-fun body n s)))
+                 (add-vm-closure ret)
+                 ret
+                 ))))))
 
 
 
@@ -1247,8 +1314,8 @@
              (lambda (var val)
              
               (let ((ret (org-fun var val)))
-                (cond ((not (eq?  (get-closure-number val closure-table) -1))
-                        (view-environment-addglobalvariable (symbol->string var) (make-str (get-closure-number val closure-table))))
+                (cond ((not (eq?  (get-inte-closure-number val closure-table-inte) -1))
+                        (view-environment-addglobalvariable (symbol->string var) (make-str (get-inte-closure-number val closure-table-inte))))
                 (else (view-environment-addglobalvariable (symbol->string var) val)))
                 ret
                ))))))
@@ -1344,6 +1411,8 @@
 (define-vm-box-helping)
 (define-vm-refer-indirect)
 (define-vm-assign-helping)
+
+(embed-vm-closure)
 ;====break===
 
 (define breakpoints (vector (vector 'act-constant #f)

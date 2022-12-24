@@ -255,7 +255,7 @@ class EnvironmentFrame {
         let evnFrm = makeNewElement('', 'localEnvrionmenFrame_' + frameCounter, 'localEnvironmentFrame');
         //同步用
         // L: level F:frame
-        evnFrm.setAttribute('name', 'L' + callFrame.getEvalFrame() + 'F' + callFrame.getEvalCounter());
+        evnFrm.setAttribute('name', 'F' + syn);
         evnFrm.setAttribute('EnvironmentFrame', 'L' + callFrame.getEvalFrame() + 'F' + callFrame.getEvalCounter());
         evnFrm.setAttribute('syn', '1');
         evnFrm.setAttribute('synframenumber', syn);
@@ -462,7 +462,7 @@ class StackFrame {
         let stackFrame = makeNewElement('', 'stackFrame_' + number, 'stackFrame');
         //为了同步显示新加入的全局变量
         stackFrame.setAttribute('syn', '1');
-        stackFrame.setAttribute('name', 'L' + callFrame.getVmFrame() + 'F' + callFrame.getVmCounter());
+        stackFrame.setAttribute('name', 'F' + stackCounter);
 
         stackFrame.setAttribute('synframenumber', stackCounter);
 
@@ -479,9 +479,11 @@ class StackFrame {
         this.elementList.push(newElement);
         this.frameLength += 1;
         if (type === 'argument') {
+
             let t = document.getElementById('StackElementFrameContent_' + number);
+            let frameNumber = t.parentElement.parentElement.getAttribute('synframenumber');
             t.setAttribute('syn', '1');
-            t.setAttribute("name", 'F' + (stackCounter - 1) + "A" + stackArgumentCounter[stackArgumentCounter.length - 1]);
+            t.setAttribute("name", 'F' + frameNumber + "A" + stackArgumentCounter[stackArgumentCounter.length - 1]);
             stackArgumentCounter[stackArgumentCounter.length - 1]++;
         }
         if (type === 'link') {

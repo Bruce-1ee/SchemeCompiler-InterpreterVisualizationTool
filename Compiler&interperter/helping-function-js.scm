@@ -137,3 +137,20 @@
 ;setAccumulatorInfo(info)
 (define (send-acc-info info)
   (js-call (js-eval "setAccumulatorInfo") info))
+
+;drawSubInterpreterInfo(info)
+(define (draw-sub-inte-info info)
+  (js-call (js-eval "drawSubInterpreterInfo") info))
+
+;animeEvalLookup(envNum, varNum)
+(define (anime-eval-lookup envNum varNum)
+  (js-call (js-eval "animeEvalLookup") envNum varNum))
+
+;animeVmFindlink(target)
+(define (anime-vm-findlink target)
+  (js-call (js-eval "animeVmFindlink") target))
+
+;animeVmIndex(target)
+(define (anime-vm-index target)
+  (js-call (js-eval "animeVmIndex") target))
+

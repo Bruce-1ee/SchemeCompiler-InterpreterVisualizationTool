@@ -50,6 +50,7 @@ function nextComp() {
 
 function next() {
     let p = "(next 'ok)"
+    iniAllVar();
     evl(p);
 }
 

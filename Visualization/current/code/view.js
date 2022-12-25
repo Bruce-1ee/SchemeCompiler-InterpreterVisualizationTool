@@ -217,6 +217,7 @@ class EnvironmentFrame {
 
         let globalEnvironmentFrame = makeNewElement('GLOBALENV', 'globalEnvironmentFrame', 'globalEnvironmentFrame');
         globalEnvironmentFrame.setAttribute('frameNumber', 0);
+        globalEnvironmentFrame.setAttribute('synframeNumber', 0);
         document.getElementById('environment').appendChild(globalEnvironmentFrame);
         // let box1 = makeNewElement('', "testbox", '');
         // document.getElementById('environment').appendChild(box1);
@@ -525,13 +526,11 @@ class StackFrame {
         if (type === 'link') {
 
             var l = this.linkNodeList.pop();
-            console.log(l)
             l[0].removeChild(l[1])
         }
         if (type === 'frame') {
 
             var l = this.frameNodeList.pop();
-            console.log(l)
             l[0].removeChild(l[1])
         }
         this.elementList.pop().delete(frameLength, stackLength);

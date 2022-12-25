@@ -19,6 +19,12 @@
         (else (error "Unknown expression type -- COMPILE" exp))))
 
 ;=============tagged-list========================
+
+(define (tagged-list? exp tag)
+  (if (pair? exp)
+      (eq? (car exp) tag)
+      false))
+
 (define (self-evaluating? exp)
   (cond ((number? exp) true)
         ((string? exp) true)
@@ -40,14 +46,9 @@
   (or (tagged-list? exp 'lambda)
       (tagged-list? exp 'slambda)
       (tagged-list? exp 'clambda)))
-
 (define (application? exp)
   (pair? exp))
 
-(define (tagged-list? exp tag)
-  (if (pair? exp)
-      (eq? (car exp) tag)
-      false))
 
 ;===========compiler-process=====================
 (define (compile-self-evaluating val next)
@@ -278,25 +279,23 @@
             lambda-vals))))
 ;(cons (list 'lambda lambda-args body) lambda-vals))))
 
+;=========set-function===========
 (define set-member?
   (lambda (x s)
     (cond
       ((null? s) #f) ;;;
       ((eq? x (car s)) #t) ;;;
       (else (set-member? x (cdr s))))))
-
 (define set-cons
   (lambda (x s)
     (if (set-member? x s)
         s
         (cons x s))))
-
 (define set-union
   (lambda (s1 s2)
     (if (null? s1)
         s2
         (set-union (cdr s1) (set-cons (car s1) s2)))))
-
 (define set-minus
   (lambda (s1 s2)
     (if (null? s1)
@@ -304,7 +303,6 @@
         (if (set-member? (car s1) s2)
             (set-minus (cdr s1) s2)
             (cons (car s1) (set-minus (cdr s1) s2))))))
-
 (define set-intersect
   (lambda (s1 s2)
     (if (null? s1)
@@ -312,6 +310,8 @@
         (if (set-member? (car s1) s2)
             (cons (car s1) (set-intersect (cdr s1) s2))
             (set-intersect (cdr s1) s2)))))
+
+;==========preprocess==========
 
 (define (preprocess x funpos?)
   (cond ((symbol? x) x)
@@ -340,7 +340,6 @@
 
 ;f:frame pointer
 ;c:closure pointer
-
 (define VM
   (lambda (a x f c s) ;; (a x e s)
     (case (car x)
@@ -364,10 +363,12 @@
       (else (VM-otherwise a x f c s)))))
 
 (define (VM-refer a x f c s)
-  (let ((n (cadr x))
+  (let* ((n (cadr x))
         (m (caddr x))
-        (x (cadddr x)))
-    (VM (index (find-link n f) m) x f c s)))
+        (x (cadddr x))
+        (l (find-link n f))
+        (v (anime-index l m)))
+    (VM v x f c s)))
 
 (define (VM-refer-free a x f c s)
   (let ((n (cadr x))
@@ -400,10 +401,14 @@
     (VM (closure body n s) x f c (- s n))))
 
 (define (VM-box a x f c s)
-  (let ((n (cadr x))
-        (x (caddr x)))
-    (index-set! s n (box (index s n)))
+  (let* ((n (cadr x))
+        (x (caddr x))
+        (b (box (index s n))))
+    (VM-box-helping s n b)
     (VM a x f c s)))
+
+(define (VM-box-helping s n b)
+  (index-set! s n b))
 
 (define (VM-test a x f c s)
   (let ((then (cadr x))
@@ -411,16 +416,24 @@
     (VM a (if a then els) f c s)))
 
 (define (VM-assign a x f c s)
-  (let ((n (cadr x))
+  (let* ((n (cadr x))
         (m (caddr x))
-        (x (cadddr x)))
-    (set-box! (index (find-link n f) m) a)
+        (x (cadddr x))
+        (b (index (find-link n f) m))
+        (obj a))
+    ;(display (index (find-link n f) m))(newline)
+    (VM-assign-helping b obj)
     (VM a x f c s)))
 
+(define (VM-assign-helping box obj) (set-box! box obj))
+
 (define (VM-assign-free a x f c s)
-  (let ((n (cadr x))
-        (x (caddr x)))
-    (set-box! (index-closure c n) a)
+  (let* ((n (cadr x))
+        (x (caddr x))
+        (b (index-closure c n))
+        )
+    ;(set-box! (index-closure c n) a)
+    (VM-assign-helping b a)
     (VM a x f c s)))
 
 (define (VM-assign-global a x f c s)
@@ -464,7 +477,7 @@
       (VM a (index s 0) (index s 1) (index s 2) (- s 3)))))
 
 (define (VM-otherwise a x f c s)
-  (error "unknow inst"))
+  (error "Unknow VM instruction -- VM-otherwise"))
  
 (define functional
   (lambda (body e)
@@ -495,6 +508,10 @@
 (define index
   (lambda (s i)
     (vector-ref stack (- (- s i) 1))))
+
+(define (anime-index s i)
+  (display "i: ") (display i) (newline)
+  (vector-ref stack (- (- s i) 1)))
 
 (define index-set!
   (lambda (s i v)
@@ -534,22 +551,16 @@
 
 (define find-link
   (lambda (n e)
+    (make-subjumppoint-vm)
+    (display "finding link e: ") (display e) (newline)
     (if (= n 0) e
         (find-link (- n 1) (index e -1)))))
-
-;;
 
 (define (prim-return retval s)
   (VM retval (index s 0) (index s 1) (index s 2) (- s 3)))
 
 (define the-global-environment ;;;
-  `((foo . ,(primitive-fun (lambda (s)
-                             (let ((ans 10))
-                               ;; (return 3)
-                               (write s)(newline)
-                               (write stack)(newline)
-                               (prim-return ans (- s 3))))))
-    (+ . ,(primitive-fun (lambda (s)
+  `((+ . ,(primitive-fun (lambda (s)
                            (let ((ans (+ (index s 1)
                                          (index s 2))))
                              (prim-return ans (- s 3))))))
@@ -632,7 +643,7 @@
 (define eval-extend 
   (lambda (env vars vals)
     (cons (cons vars vals) env)))
-(define (eval-lookup var env)
+(define (eval-lookup-bak var env)
   (define (env-loop env)
     (define (scan vars vals)
       (cond ((null? vars)
@@ -646,6 +657,20 @@
           (scan (car frame)
                 (cdr frame)))))
   (env-loop env))
+
+
+(define (eval-lookup var env)
+  (eval-lookup-env var env 0))
+
+(define (eval-lookup-env var env n)
+  (cond ((null? env) (error  "Unbound variable" ))
+        (else (eval-loopup-frame var env (car (car env)) (cdr (car env)) n 0))))
+
+(define (eval-loopup-frame var env vars vals n m)
+  (make-subjumppoint-eval)
+  (cond ((null? vars) (eval-lookup-env var (cdr env) (+ n 1)))
+        ((eq? var (car vars)) (car vals))
+        (else (eval-loopup-frame var env (cdr vars) (cdr vals) n (+ 1 m)))))
 
 
 (define GE
@@ -834,9 +859,10 @@
   (set! box-table (append box-table (list (list b (length box-table))))))
 
 (define (get-box-num b table)
-  (cond ((null? b) -1)
+  (cond ((null? table) -1)
         ((eq? b (car (car table))) (cadr (car table)))
         (else (get-box-num b (cdr table) ))))
+
 
 ;这个变量是用来存放标签序号的
 ;( (标签名(act-...) 序号) ... )
@@ -998,6 +1024,13 @@
              (set! break #t)
              (resume-meta))))
 
+(define (make-subjumppoint-vm)
+  (call/cc (lambda (breakpoint)
+             (set! sub-vm-k breakpoint)
+             (set! sub-vm-flag #t)
+             (set! break #t)
+             (resume-meta))))
+
 (define-macro define-act-eval
   (lambda (fun info act)
     `(let* ((org-fun ,fun))
@@ -1011,13 +1044,13 @@
                (apply org-fun (cons arg restarg)))))))
 
 (define-macro define-sub-act-eval
-  (lambda (fun info act)
+  (lambda (fun act)
     `(let* ((org-fun ,fun))
        (set! ,fun
              (lambda (arg . restarg)
                (set! sub-inte-info ,act)
                (make-subjumppoint-eval)
-               (display 'sub-eval:)(display sub-inte-info)(newline)
+               (display 'sub-eval:)(display ,act)(newline)
                (apply org-fun (cons arg restarg)))))))
 
 (define-macro define-act-compiler
@@ -1045,6 +1078,16 @@
                      ;(VM a (cadr x) f c s))
                      (VM a (caddr x) f c s))
                    (org-fun a x f c s)))))))
+
+(define-macro define-sub-act-vm
+  (lambda (fun act)
+    `(let* ((org-fun ,fun))
+       (set! ,fun
+             (lambda (arg . restarg)
+               (set! sub-vm-info ,act)
+               (make-subjumppoint-vm)
+               (display 'sub-vm:)(display ,act)(newline)
+               (apply org-fun (cons arg restarg)))))))
 
 (define-macro embed-eval-draw-clambda
   (lambda ()
@@ -1147,8 +1190,8 @@
   ;; 6 others
   ;(define-act-create-frame)
 
-  (define-sub-act-eval eval-variable 'variable 'variable)
-  
+  (define-sub-act-eval eval-variable 'variable)
+  (define-sub-act-vm VM-refer 'local-variable)
   (define-vm-otherwise)
   (embed-vm-draw-close)
 
@@ -1282,6 +1325,7 @@
      (call/cc
       (lambda (top)
         (set! resume-meta top)))
+        
      (call/cc
       (lambda (c)
         (cond ((eq? break #t)
@@ -1291,6 +1335,9 @@
      (cond (sub-exec-flag
             (begin (set! sub-exec-flag #f)
                    (sub-exec-k)))
+           (sub-vm-flag
+            (begin (set! sub-vm-flag #f)
+                   (sub-vm-k)))
            ((eq? vm-k #f)  (run program))
            ((eq? exec-k #f) (resume-meta (eval1 program)))
            ((is-same-position?)

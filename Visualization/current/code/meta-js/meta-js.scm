@@ -138,6 +138,23 @@
 (define (send-acc-info info)
   (js-call (js-eval "setAccumulatorInfo") info))
 
+;drawSubInterpreterInfo(info)
+(define (draw-sub-inte-info info)
+  (js-call (js-eval "drawSubInterpreterInfo") info))
+
+;animeEvalLookup(envNum, varNum)
+(define (anime-eval-lookup envNum varNum)
+  (js-call (js-eval "animeEvalLookup") envNum varNum))
+
+;animeVmFindlink(target)
+(define (anime-vm-findlink target)
+  (js-call (js-eval "animeVmFindlink") target))
+
+;animeVmIndex(target)
+(define (anime-vm-index target)
+  (js-call (js-eval "animeVmIndex") target))
+
+
 (define (compile exp env set next)
   (cond ((self-evaluating? exp) (compile-self-evaluating exp next))
         ((quoted? exp) (compile-quoted exp next))
@@ -496,10 +513,12 @@
       (else (VM-otherwise a x f c s)))))
 
 (define (VM-refer a x f c s)
-  (let ((n (cadr x))
+  (let* ((n (cadr x))
         (m (caddr x))
-        (x (cadddr x)))
-    (VM (index (find-link n f) m) x f c s)))
+        (x (cadddr x))
+        (l (find-link n f))
+        (v (anime-index l m)))
+    (VM v x f c s)))
 
 (define (VM-refer-free a x f c s)
   (let ((n (cadr x))
@@ -640,6 +659,12 @@
   (lambda (s i)
     (vector-ref stack (- (- s i) 1))))
 
+(define (anime-index s i)
+  ;(console-log "i: ") (console-log i) (newline)
+  (anime-vm-index i)
+  (make-subjumppoint-vm)
+  (vector-ref stack (- (- s i) 1)))
+
 (define index-set!
   (lambda (s i v)
     (vector-set! stack (- (- s i) 1) v)))
@@ -668,6 +693,10 @@
 
 (define find-link
   (lambda (n e)
+    
+    (anime-vm-findlink e)
+    (make-subjumppoint-vm)
+    ;(console-log "finding link e: ") (console-log e) (newline)
     (if (= n 0) e
         (find-link (- n 1) (index e -1)))))
 
@@ -759,7 +788,7 @@
 (define eval-extend 
   (lambda (env vars vals)
     (cons (cons vars vals) env)))
-(define (eval-lookup var env)
+(define (eval-lookup-bak var env)
   (define (env-loop env)
     (define (scan vars vals)
       (cond ((null? vars)
@@ -773,6 +802,25 @@
           (scan (car frame)
                 (cdr frame)))))
   (env-loop env))
+
+
+(define (eval-lookup var env)
+  (eval-lookup-env var env 0))
+
+(define (eval-lookup-env var env n)
+  (cond ((null? env) (error  "Unbound variable" ))
+        (else (eval-loopup-frame var env (car (car env)) (cdr (car env)) n 0))))
+
+(define (eval-loopup-frame var env vars vals n m)
+  (anime-eval-lookup (get-env-id env) m)
+  ;(console-log "env-id: ") (console-log (get-env-id env)) (newline)
+  ;(console-log "n: ") (console-log n) (newline)
+  ;(console-log "m: ") (console-log m) (newline)
+  (make-subjumppoint-eval)
+  (cond ((null? vars) (eval-lookup-env var (cdr env) (+ n 1)))
+        ((eq? var (car vars)) (car vals))
+        (else (eval-loopup-frame var env (cdr vars) (cdr vals) n (+ 1 m)))))
+
 
 
 (define GE
@@ -879,7 +927,7 @@
 
 (define (eval-application-args args env)
   (let ((ret (reverse (map (lambda(x) (exec x env)) (reverse args)))))
-    (draw-interpreter-info "environment extended")
+    
     ret
   ))
 
@@ -896,7 +944,6 @@
 ;     (else (error "Not a function -- eval-application-apply"))))
 
 (define (eval-application-apply func arguments env syn) ;;为了同步，在原函数上进行了修改
-  (console-log "eval-application-apply: ")(console-log syn)
   (case (car func)
     ((primitive)
      (eval-application-apply-primitive func arguments))
@@ -960,7 +1007,7 @@
 
 
 ;非计算动作标签
-(define non-act-table '(eval-application eval-arguments 
+(define non-act-table '(eval-application eval-arguments eval-body
                         eval-if eval-test eval-then eval-else))
 ;判断act是否为非计算动作标签
 (define (is-non-act? act table)
@@ -1131,7 +1178,7 @@
 (define (make-acc-str a)
   (cond ((pair? a)
          (cond ((eq? (car a) 'closure)
-                ((make-vm-clo-name (cdr a))))))
+                (make-vm-clo-name (cdr a)))))
         (else a)))
 
 ;====macro======
@@ -1159,6 +1206,19 @@
              (set! vm-k breakpoint)
              (cond (VM-break-switch (resume-meta 'ok))))))
 
+(define (make-subjumppoint-eval)
+  (call/cc (lambda (breakpoint)
+             (set! sub-exec-k breakpoint)
+             (set! sub-exec-flag #t)
+             (set! break #t)
+             (resume-meta 'ok))))
+
+(define (make-subjumppoint-vm)
+  (call/cc (lambda (breakpoint)
+             (set! sub-vm-k breakpoint)
+             (set! sub-vm-flag #t)
+             (set! break #t)
+             (resume-meta 'ok))))
 
 (define-macro define-act-eval
   (lambda (fun info act)
@@ -1178,6 +1238,17 @@
                 ret
                 )
               )))))
+
+(define-macro define-sub-act-eval
+  (lambda (fun act)
+    `(let* ((org-fun ,fun))
+       (set! ,fun
+             (lambda (arg . restarg)
+               (set! sub-inte-info ,act)
+               (make-subjumppoint-eval)
+               (draw-sub-inte-info ,act)
+               ;(console-log 'sub-eval:)(console-log ,act)(newline)
+               (apply org-fun (cons arg restarg)))))))
 
 (define-macro define-act-compiler
   (lambda (fun pseins)
@@ -1207,6 +1278,15 @@
                     
                    (org-fun a x f c s)))))))
 
+(define-macro define-sub-act-vm
+  (lambda (fun act)
+    `(let* ((org-fun ,fun))
+       (set! ,fun
+             (lambda (arg . restarg)
+               (set! sub-vm-info ,act)
+               (make-subjumppoint-vm)
+               (console-log 'sub-vm:)(console-log ,act)(newline)
+               (apply org-fun (cons arg restarg)))))))
 
 (define-macro define-vm-make-clo
   (lambda ()
@@ -1326,7 +1406,7 @@
     `(let* ((org-fun eval-application-apply-functional))
        (set! eval-application-apply-functional
              (lambda (exp env func arguments syn)
-                
+                (draw-interpreter-info "environment extended")
                 (append-new-env env)
                 ;因为interpreter-new-frame需要用到arguments 和 func两个参数，所以也将这两个参数传递
                 ;待修改
@@ -1548,6 +1628,9 @@
 (define-vm-assign-helping)
 
 (embed-vm-closure)
+
+(define-sub-act-eval eval-variable 'variable )
+(define-sub-act-vm VM-refer 'local-variable)
 ;====break===
 
 (define breakpoints (vector (vector 'act-constant #f)
@@ -1602,9 +1685,17 @@
 (define vm-k #f)
 (define resume-meta #f)
 
+(define sub-exec-k #f)
+(define sub-vm-k #f)
+
+(define sub-exec-flag #f)
+(define sub-vm-flag #f)
 
 (define vm-info #f)
 (define inte-info #f)
+
+(define sub-inte-info #f)
+(define sub-vm-info #f)
 
 (define next #f)
 (define break #f)
@@ -1679,7 +1770,13 @@
                (set! next c)
                (break-meta 'ok')))))
       
-         (cond ((eq? vm-k #f) (run-vm VM-code))
+         (cond (sub-exec-flag
+                (begin (set! sub-exec-flag #f)
+                       (sub-exec-k 'ok)))
+               (sub-vm-flag
+                (begin (set! sub-vm-flag #f)
+                       (sub-vm-k 'ok)))
+               ((eq? vm-k #f) (run-vm VM-code))
                ((eq? exec-k #f) (resume-meta (eval inte-code)))
                ((is-same-position?)
                 (act-add1 inte-info 'exec)

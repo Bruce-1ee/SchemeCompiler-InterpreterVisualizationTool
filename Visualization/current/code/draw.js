@@ -282,6 +282,18 @@ function connectATOB(a, b, aanchor, banchor) {
     connectLinkAndStackTag(a, b);
 }
 
+function animeConnectFindlink(a, b) {
+    return jsPlumb.connect({
+        source: a,
+        target: b,
+        endpoint: ['Dot', { radius: '0' }],
+        overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
+        // connector: ['Flowchart'],
+        connector: ['Flowchart'],
+        anchor: ['Left', 'Left']
+    });
+}
+
 var inteCounter = 1;
 var inteSubCounter = 1;
 var inteIndent = 0;
@@ -315,6 +327,17 @@ function drawInterpreterInfo(info) {
     } else { //包含
         var e = makeNewElement(indentSpace + inteCounter + ". " + info, "inteInfo" + inteCounter++, "null");
     }
+    document.getElementById('interpreterInfo').appendChild(e);
+}
+
+function drawSubInterpreterInfo(info) {
+    var indentSpace = "";
+    for (var i = 0; i < inteIndent; i++) {
+        indentSpace += indentString;
+    }
+    info = info.toString();
+
+    var e = makeNewElement(indentSpace + info, "subInteInfo" + inteSubCounter++, "null");
     document.getElementById('interpreterInfo').appendChild(e);
 }
 
@@ -482,15 +505,9 @@ function parseCodeVM(program) {
     }
     function main() {
         var lList = program.match(/'act[-[a-zA-Z]+]*[\s][0-9]+/g);
-        console.log(lList);
         for (var i = 0; i < lList.length; i++) {
             var label = lList[i];
             var strList = program.split(label);
-            console.log(strList);
-            console.log(label);
-            console.log(strList[1]);
-            console.log(i);
-            console.log(lList.length);
             var pos = getPosition(strList[1]);
 
             strList[0] = replace(strList[0], strList[0].length - 1, '<span id="' + makeNewLabel(label) + '">')
@@ -509,7 +526,7 @@ function getInteLabel(label) {
         let old = document.getElementById(oldLabel);
         old.style.backgroundColor = "";
     }
-    console.log(label);
+    //console.log(label);
 
     let newEle = document.getElementById(label);
     if (newEle === null) return;
@@ -548,4 +565,89 @@ function getProgram(inteCode, VMCode) {
 function setAccumulatorInfo(info) {
     let e = document.getElementById("acc");
     e.innerText = info;
+}
+
+var animeEvalLookupVarList = [];
+var animeEvalLookupEnvList = [];
+function animeEvalLookup(envNum, varNum) {
+    if (animeEvalLookupVarList.length !== 0) animeEvalLookupVarList.pop().style.backgroundColor = "";
+    if (animeEvalLookupEnvList.length !== 0) animeEvalLookupEnvList.pop().style.borderColor = "";
+    let targetEnv = document.querySelector("div[synframenumber = " + "'" + envNum + "'" + " ]");
+    // if (targetEnv === null) return;
+    animeEvalLookupEnvList.push(targetEnv);
+
+    targetEnv.style.borderColor = "rgb(255, 0, 0)";
+    if (envNum === 0) return;
+    if (targetEnv.childNodes.length === 1) return;
+    let targetVal = targetEnv.childNodes[1 + varNum];
+    if (targetVal === undefined) return;
+    animeEvalLookupVarList.push(targetVal);
+    targetVal.style.backgroundColor = "rgb(255, 0, 0)";
+}
+
+function setEleHighlight(e) {
+    e.style.borderColor = "red";
+    e.style.borderStyle = "dotted";
+    e.style.borderWidth = "3px"
+}
+
+function setEleLowlight(e) {
+    e.style.borderColor = "";
+    e.style.borderStyle = "";
+    e.style.borderWidth = "";
+}
+
+var animeVmFindlinkStart = "";
+var animeVmFindlinkList = [];
+function animeVmFindlink(target) {
+
+
+    if (animeVmFindlinkList.length > 0) {
+        let lst = animeVmFindlinkList.pop();
+        setEleLowlight(lst[0]);
+        setEleLowlight(lst[1]);
+        parent = lst[2].parentNode;
+        parent.removeChild(lst[2]);
+    }
+
+    if (animeVmFindlinkStart === "") {
+
+        var start = view.stack.frameList.length - 1;
+    } else {
+        var start = animeVmFindlinkStart;
+    }
+    console.log("进入寻找link")
+    console.log("start: " + start)
+    console.log("target: " + target)
+    console.log("暂存变量: " + animeVmFindlinkStart)
+    let startEle = document.getElementById("stackFrame_" + start);
+    let endFrameNumber = document.getElementById("stackElementFrameNumber_" + target);
+    let endEle = endFrameNumber.parentNode.parentNode;
+    testArg = startEle;
+    let line = animeConnectFindlink(startEle.id, endEle.id).canvas;
+    setEleHighlight(startEle);
+    setEleHighlight(endEle);
+    animeVmFindlinkStart = endEle.id.split('_')[1];
+    animeVmFindlinkList.push([startEle, endEle, line]);
+}
+
+var animeVmIndexList = [];
+function animeVmIndex(target) {
+    if (animeVmFindlinkList.length > 0) {
+        let lst = animeVmFindlinkList.pop();
+        setEleLowlight(lst[0]);
+        setEleLowlight(lst[1]);
+        animeVmFindlinkStart = "";
+        parent = lst[2].parentNode;
+        parent.removeChild(lst[2]);
+    }
+    var ele = document.getElementById("StackElementFrameContent_" + target);
+    ele.style.backgroundColor = "red";
+    animeVmIndexList.push(ele);
+}
+
+function iniAllVar() {
+    if (animeVmIndexList.length > 0) animeVmIndexList.pop().style.backgroundColor = "";
+    if (animeEvalLookupVarList.length !== 0) animeEvalLookupVarList.pop().style.backgroundColor = "";
+    if (animeEvalLookupEnvList.length !== 0) animeEvalLookupEnvList.pop().style.borderColor = "";
 }

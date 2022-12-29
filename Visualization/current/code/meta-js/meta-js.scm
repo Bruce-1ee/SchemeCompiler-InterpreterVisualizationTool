@@ -1661,14 +1661,14 @@
 
 
 ;; 0 self-evaluating
-(define-act-compiler compile-self-evaluating 'act-constant)
+;(define-act-compiler compile-self-evaluating 'act-constant)
 
 
 ;(define-act-eval eval-self-evaluating 'eval-self-evaluating 'act-constant)
 
 
 ;; 1 quotation
-(define-act-compiler compile-quoted 'act-constant)
+;(define-act-compiler compile-quoted 'act-constant)
 
 
 ;(define-act-eval eval-quotation 'eval-quotation 'act-constant)

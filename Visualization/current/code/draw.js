@@ -505,6 +505,7 @@ function parseCodeVM(program) {
     }
     function main() {
         var lList = program.match(/'act[-[a-zA-Z]+]*[\s][0-9]+/g);
+        console.log(lList)
         for (var i = 0; i < lList.length; i++) {
             var label = lList[i];
             var strList = program.split(label);
@@ -526,7 +527,7 @@ function getInteLabel(label) {
         let old = document.getElementById(oldLabel);
         old.style.backgroundColor = "";
     }
-    //console.log(label);
+    console.log(label);
 
     let newEle = document.getElementById(label);
     if (newEle === null) return;
@@ -571,12 +572,16 @@ var animeEvalLookupVarList = [];
 var animeEvalLookupEnvList = [];
 function animeEvalLookup(envNum, varNum) {
     if (animeEvalLookupVarList.length !== 0) animeEvalLookupVarList.pop().style.backgroundColor = "";
-    if (animeEvalLookupEnvList.length !== 0) animeEvalLookupEnvList.pop().style.borderColor = "";
+    // if (animeEvalLookupEnvList.length !== 0) animeEvalLookupEnvList.pop().style.borderColor = "";
+    if (animeEvalLookupEnvList.length !== 0) {
+        let ele = animeEvalLookupEnvList.pop();
+        testArg = ele;
+        setEleLowlight(ele);
+    }
     let targetEnv = document.querySelector("div[synframenumber = " + "'" + envNum + "'" + " ]");
-    // if (targetEnv === null) return;
     animeEvalLookupEnvList.push(targetEnv);
-
-    targetEnv.style.borderColor = "rgb(255, 0, 0)";
+    setEleHighlight(targetEnv);
+    // targetEnv.style.borderColor = "rgb(255, 0, 0)";
     if (envNum === 0) return;
     if (targetEnv.childNodes.length === 1) return;
     let targetVal = targetEnv.childNodes[1 + varNum];
@@ -649,5 +654,15 @@ function animeVmIndex(target) {
 function iniAllVar() {
     if (animeVmIndexList.length > 0) animeVmIndexList.pop().style.backgroundColor = "";
     if (animeEvalLookupVarList.length !== 0) animeEvalLookupVarList.pop().style.backgroundColor = "";
-    if (animeEvalLookupEnvList.length !== 0) animeEvalLookupEnvList.pop().style.borderColor = "";
+    if (animeEvalLookupEnvList.length !== 0) {
+        let ele = animeEvalLookupEnvList.pop();
+        setEleLowlight(ele);
+    }
+    if (animeVmFindlinkList.length > 0) {
+        let lst = animeVmFindlinkList.pop();
+        setEleLowlight(lst[0]);
+        setEleLowlight(lst[1]);
+        parent = lst[2].parentNode;
+        parent.removeChild(lst[2]);
+    }
 }

@@ -248,7 +248,17 @@
     float: left;
 }
 
-
+.narrationBox {
+    border-style: solid;
+    border-color: rgb(0, 0, 0);
+    border-width: 3px;
+    width: 400px;
+    height: 200px;
+    position: fixed;
+    top: 30px;
+    right: 5px;
+    float: right;
+}
 
 .hightlightCode {
     background-color: aqua;

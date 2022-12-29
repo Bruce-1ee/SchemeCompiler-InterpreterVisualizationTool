@@ -381,6 +381,7 @@
     (VM (refer-global-var var) x f c s)))
 
 (define (VM-refer-indirect a x f c s)
+  (p (car (cadr x)))
   (let ((x (cadr x)))
     (VM (unbox a) x f c s)))
 
@@ -551,7 +552,7 @@
 
 (define find-link
   (lambda (n e)
-    (make-subjumppoint-vm)
+    ;(make-subjumppoint-vm)
     (display "finding link e: ") (display e) (newline)
     (if (= n 0) e
         (find-link (- n 1) (index e -1)))))

@@ -35,6 +35,10 @@
 (define (view-stack-deleteframe)
  (js-invoke (js-ref (js-eval "view") "stack") "deleteFrame" ))
 
+;view.stack.addBox(eleNum, boxName)
+(define (view-stack-addbox n b)
+ (js-invoke (js-ref (js-eval "view") "stack") "addBox" n b))
+
 
 ;view.closure.createClosure(l)
 (define (view-closure-createclosure val)
@@ -153,4 +157,13 @@
 ;animeVmIndex(target)
 (define (anime-vm-index target)
   (js-call (js-eval "animeVmIndex") target))
+
+;view.narration.newNarration(key)
+(define (view-narration-newnarration key)
+  (js-invoke (js-ref (js-eval "view") "narration") "newNarration" key))
+  
+
+;view.narration.addSubActNarration(str)
+(define (view-narration-addsubactnarration str)
+  (js-invoke (js-ref (js-eval "view") "narration") "addSubActNarration" str))
 

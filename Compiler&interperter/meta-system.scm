@@ -385,11 +385,13 @@
 (define (VM-constant a x f c s)
   (let ((obj (cadr x))
         (x (caddr x)))
+    (view-narration-addsubactnarration 'vm-constant)
     (VM obj x f c s)))   
 
 (define (VM-functional a x f c s)
   (let ((body (cadr x))
         (x (caddr x)))
+    (view-narration-addsubactnarration 'vm-functional)
     (VM (functional body f) x f c s)))
 
 (define (VM-close a x f c s)
@@ -406,6 +408,7 @@
     (VM a x f c s)))
 
 (define (VM-box-helping s n b)
+
   (index-set! s n b))
 
 (define (VM-test a x f c s)
@@ -449,6 +452,7 @@
     (VM a x f c (push a s))))
 
 (define (VM-apply a x f c s)
+  (view-narration-addsubactnarration 'vm-apply)
   (case (car a)
     ((functional) ;;;
      (VM-apply-functional a x f c s))
@@ -510,6 +514,7 @@
 (define (anime-index s i)
   ;(display "i: ") (display i) (newline)
   (anime-vm-index (- (- s i) 1))
+  (view-narration-addsubactnarration 'act-index)
   (make-subjumppoint-vm)
   (vector-ref stack (- (- s i) 1)))
 
@@ -543,10 +548,20 @@
   (lambda (n e)
     
     (anime-vm-findlink e)
-    (make-subjumppoint-vm)
+    
     ;(display "finding link e: ") (display e) (newline)
-    (if (= n 0) e
-        (find-link (- n 1) (index e -1)))))
+    (if (= n 0) 
+        (begin 
+          (view-narration-addsubactnarration 'act-findlink-done)
+          (make-subjumppoint-vm)
+          e
+        )
+        (begin
+          (view-narration-addsubactnarration 'act-findlink-next)
+          (make-subjumppoint-vm)
+          (find-link (- n 1) (index e -1)))))
+        )
+        
 
 (define (prim-return retval s)
   (VM retval (index s 0) (index s 1) (index s 2) (- s 3)))
@@ -656,18 +671,31 @@
   (eval-lookup-env var env 0))
 
 (define (eval-lookup-env var env n)
+  (view-narration-newnarration "-1")
   (cond ((null? env) (error  "Unbound variable" ))
         (else (eval-loopup-frame var env (car (car env)) (cdr (car env)) n 0))))
 
 (define (eval-loopup-frame var env vars vals n m)
   (anime-eval-lookup (get-env-id env) m)
+  (view-narration-addsubactnarration 'eval-lookup)
   ;(display "env-id: ") (display (get-env-id env)) (newline)
   ;(display "n: ") (display n) (newline)
   ;(display "m: ") (display m) (newline)
-  (make-subjumppoint-eval)
-  (cond ((null? vars) (eval-lookup-env var (cdr env) (+ n 1)))
-        ((eq? var (car vars)) (car vals))
-        (else (eval-loopup-frame var env (cdr vars) (cdr vals) n (+ 1 m)))))
+  ;(make-subjumppoint-eval)
+  (cond ((null? vars)
+         (begin
+           (view-narration-addsubactnarration 'eval-lookup-diff-fra)
+           (make-subjumppoint-eval)
+           (eval-lookup-env var (cdr env) (+ n 1))))
+        ((eq? var (car vars))
+         (begin
+           (view-narration-addsubactnarration 'eval-lookup-same-var)
+           (make-subjumppoint-eval)
+           (car vals)))
+        (else (begin
+                (view-narration-addsubactnarration 'eval-lookup-diff-var)
+                (make-subjumppoint-eval)
+                (eval-loopup-frame var env (cdr vars) (cdr vals) n (+ 1 m))))))
 
 
 
@@ -874,14 +902,14 @@
          (else arg)))
 
 
-(define indirect-flag #f)
+;(define indirect-flag #f)
 
 (define box-table (list))
 
 (define (add-box b)
   (set! box-table (append box-table (list (list b (length box-table))))))
 
-(define (get-box-num b table)
+(define (get-box-num b table) 
   (cond ((null? table) -1)
         ((eq? b (car (car table))) (cadr (car table)))
         (else (get-box-num b (cdr table) ))))
@@ -1058,14 +1086,16 @@
   (call/cc (lambda (breakpoint)
              (set! sub-exec-k breakpoint)
              (set! sub-exec-flag #t)
-             (set! break #t)
+             (cond (interpreter-break-switch (resume-meta)))
+             ;(set! break #t)
              (resume-meta))))
 
 (define (make-subjumppoint-vm)
   (call/cc (lambda (breakpoint)
              (set! sub-vm-k breakpoint)
              (set! sub-vm-flag #t)
-             (set! break #t)
+             (cond (VM-break-switch (resume-meta)))
+             ;(set! break #t)
              (resume-meta))))
 
 (define-macro define-act-eval
@@ -1077,6 +1107,7 @@
               (set! inte-info ,act)
               (cond ((break? inte-info) (set! break #t)))
               (make-jumppoint-eval)
+              (view-narration-newnarration ,info)
               (draw-interpreter-info ,info)
               (let ((ret (apply org-fun (cons arg restarg))))
                 (cond ((is-non-act? ,info non-act-table)
@@ -1118,7 +1149,7 @@
                     (cond ((break? vm-info) (set! break #t)))
                     (make-jumppoint-vm)
                     (draw-VM-Info (car x) 0)
-
+                    (view-narration-newnarration (car x))
                     (send-label-vm (car x) (cadr x))
                     (let ((ret (VM a (caddr x) f c s)))
                         ret
@@ -1198,6 +1229,7 @@
        (set! VM-box-helping
              (lambda (s n b)
                (add-box b)
+               (view-stack-addbox (- s n 1) (+ 1 (get-box-num b box-table)))
                (view-closure-createbox (car b))
                (org-fun s n b)
                )))))
@@ -1207,8 +1239,8 @@
     `(let* ((org-fun VM-refer-indirect))
        (set! VM-refer-indirect
              (lambda (a x f c s)
-               (cond ((eq? (car (cadr x)) 'argument) 
-                     (set! indirect-flag (+ 1 (get-box-num a box-table)))))   
+               ;(cond ((eq? (car (cadr x)) 'argument) 
+               ;      (set! indirect-flag (+ 1 (get-box-num a box-table)))))   
                (org-fun a x f c s)
                )))))
 
@@ -1274,6 +1306,7 @@
               (view-stack-push (make-vm-clo-name c) "closure")
               (view-stack-push f "frame")
               (view-stack-push (cadr x) "return")
+              (view-narration-addsubactnarration 'vm-frame)
               (org-fun a x f c s))))))
 
 
@@ -1282,12 +1315,14 @@
     `(let* ((org-fun VM-argument))
        (set! VM-argument
              (lambda (a x f c s)
-               (if indirect-flag
-                   (begin
-                   (view-stack-push (string-append "<box" (number->string indirect-flag) ">")
-                                    "argument")
-                   (set! indirect-flag #f))
-                   (view-stack-push (make-short-argument a) "argument"))
+               ;(if indirect-flag
+               ;    (begin
+               ;    (view-stack-push (string-append "<box" (number->string indirect-flag) ">")
+               ;                     "argument")
+               ;    (set! indirect-flag #f))
+               (view-narration-addsubactnarration 'vm-argument)
+                   (view-stack-push (make-short-argument a) "argument")
+                   ;)
                (org-fun a x f c s))))))
 
 (define-macro embed-vm-draw-apply-functional 
@@ -1447,8 +1482,13 @@
 (define-act-eval eval-application-args 'eval-arguments 'act-args)
 (define-act-eval eval-application-body 'eval-body 'act-fun-body)
 
+;; 6 assignment
 
-;; 6 others
+(define-act-eval eval-assignment 'eval-assignment 'act-assignment)
+(define-act-compiler compile-assignment 'act-assignment)
+
+
+;; 7 others
 
 (define-vm-otherwise)
 
@@ -1490,11 +1530,12 @@
                             (vector 'act-lambda #f)
                             (vector 'act-application #f)
                             (vector 'act-args #f)
-                            (vector 'act-fun-body #f)))
+                            (vector 'act-fun-body #f)
+                            (vector 'act-assignment #f)))
 
 (define (get-breakpoint-pos name)
   (let loop ((n 0))
-    (cond ((>= n 10) (error 'bad_name))
+    (cond ((>= n 11) (error 'bad_name))
           ((eq? (vector-ref (vector-ref breakpoints n) 0) name) n)
           (else (loop (+ n 1))))))
 
@@ -1557,7 +1598,8 @@
                      (vector 'act-lambda 0 0)
                      (vector 'act-application 0 0)
                      (vector 'act-args 0 0)
-                     (vector 'act-fun-body 0 0)))
+                     (vector 'act-fun-body 0 0)
+                     (vector 'act-assignment 0 0)))
 
 
 (define (get-act act-name)

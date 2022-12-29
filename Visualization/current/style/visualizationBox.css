@@ -357,6 +357,12 @@ html {
     margin: 5px;
 }
 
+.boxFrame {
+    border: 3px solid rgb(50, 152, 67);
+
+    margin: 5px;
+}
+
 .closureRightBox {
     margin-top: 10px;
     margin-left: 50px;
@@ -424,4 +430,18 @@ html {
 .VMcode {
     height: 45px;
     overflow: scroll;
+}
+
+.narrationBox {
+    border-style: double;
+    border-color: rgb(0, 0, 0);
+    border-width: 3px;
+    background-color: azure;
+    width: 400px;
+    height: 200px;
+    position: fixed;
+    bottom: 5px;
+    right: 5px;
+    overflow: scroll;
+
 }

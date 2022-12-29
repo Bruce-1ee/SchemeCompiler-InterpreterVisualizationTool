@@ -47,3 +47,13 @@
 
 
 (meta '( (lambda(a) (set! a 99)) 44))
+
+(meta '((lambda (a0 a1 a2)
+    ((lambda (b0 b1 b2)
+       ((lambda (c0 c1 c2)
+          ((lambda (d0 d1 d2)
+             (-  (* c1 a2) (+ a2 b2)))
+           30 31 32))
+        20 21 22))
+     10 11 12))
+  1 2 3))

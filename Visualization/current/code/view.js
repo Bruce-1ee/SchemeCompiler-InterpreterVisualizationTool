@@ -120,6 +120,7 @@ class View {
         this.environment = new Environment();
         this.stack = new Stack();
         this.closure = new Closure();
+        this.narration = new Narration();
     }
 }
 
@@ -440,6 +441,11 @@ class Stack {
         stackArgumentCounter.pop();
     }
 
+    addBox(eleNum, boxName) {
+        let e = document.getElementById("StackElementFrameContent_" + eleNum);
+        e.innerText = "<box" + boxName + ">";
+    }
+
     push(ele, type) {
         this.frameList[this.frameLength - 1].pushElement(ele, this.stackLength, this.frameLength - 1, type, this.stackCounter);
         this.stackLength += 1;
@@ -581,7 +587,7 @@ class StackElementFrameContent {
 class Closure {
 
     closureCounter = 0;
-    boxCounter = 0;
+    boxCounter = 1;
     constructor() {
         let closure = makeNewElement('closure&box', 'closure', 'closure');
         document.getElementById('view').appendChild(closure);
@@ -606,11 +612,11 @@ class Closure {
 
     createBox(val) {
 
-        let boxFrame = makeNewElement("", "B" + this.boxCounter++, 'closureFrame clearfix');
+        let boxFrame = makeNewElement("", "B" + this.boxCounter, 'boxFrame clearfix');
         let boxName = makeNewElement("box" + this.boxCounter + ":", "B" + this.boxCounter + "_val", 'closureElement');
         boxFrame.appendChild(boxName);
 
-        let valElement = makeNewElement(val, "B" + this.boxCounter + "Val", 'closureElement');
+        let valElement = makeNewElement(val, "B" + this.boxCounter++ + "Val", 'closureElement');
         boxFrame.appendChild(valElement);
 
         document.getElementById('closure').appendChild(boxFrame);
@@ -619,6 +625,94 @@ class Closure {
     changeBoxVal(number, val) {
         let box = document.getElementById("B" + number + "Val");
         box.innerText = val;
+    }
+
+}
+
+
+class Narration {
+    // constructor() {
+    narrationTable = new Map();
+
+    constructor() {
+        this.narrationTable.set("'eval-self-evaluating", "インタプリタは定数を処理する");
+        this.narrationTable.set("'act-constant", "VMは定数を処理する");
+
+        this.narrationTable.set("'eval-if", "インタプリタはif式の処理を開始する");
+        this.narrationTable.set("'act-if", "VMはif式の処理を開始する");
+
+        this.narrationTable.set("'eval-test", "インタプリタはif式の条件式の処理を開始する");
+        this.narrationTable.set("'act-test", "VMはif式の条件式の処理を開始する");
+
+        this.narrationTable.set("'eval-then", "インタプリタはif式の真のブランチの処理を開始する");
+        this.narrationTable.set("'act-then", "VMはif式の真のブランチの処理を開始する");
+
+        this.narrationTable.set("'eval-else", "インタプリタはif式の偽のブランチの処理を開始する");
+        this.narrationTable.set("'act-else", "VMはif式の偽のブランチの処理を開始する");
+
+        this.narrationTable.set("'eval-lambda", "インタプリタはラムダ式を処理する");
+        this.narrationTable.set("'act-lambda", "VMはラムダ式を処理する");
+
+        this.narrationTable.set("'eval-application", "インタプリタは関数の処理を開始する");
+        this.narrationTable.set("'act-application", "VMはは関数の処理を開始する");
+
+        this.narrationTable.set("'eval-arguments", "インタプリタは関数の引数部分の処理を開始する");
+        this.narrationTable.set("'act-args", "VMは関数の引数部分の処理を開始する");
+
+        this.narrationTable.set("'eval-body", "インタプリタは関数本体の処理を開始する");
+        this.narrationTable.set("'act-fun-body", "VMは関数本体の処理を開始する");
+
+        this.narrationTable.set("'eval-lookup", "変数を探す");
+        this.narrationTable.set("'eval-lookup-diff-var", "目標変数とは異なるので、次の変数を比較する");
+
+        this.narrationTable.set("'eval-lookup-same-var", "目標変数を見つけた");
+        this.narrationTable.set("'eval-lookup-diff-fra", "探索中のフレームに見つからなかったので、次のフレームを比較する");
+
+        this.narrationTable.set("'act-findlink-done", "目標フレームに到着した");
+        this.narrationTable.set("'act-findlink-next", "静的リンクを辿る");
+        this.narrationTable.set("'act-index", "該当フレームに変数の値を引き取る");
+
+        this.narrationTable.set("'eval-assignment", "インタプリタは関数代入の処理を開始する");
+        this.narrationTable.set("'act-assignment", "VMは関数代入の処理を開始する");
+
+        this.narrationTable.set("'vm-frame", "frame命令が実行された");
+        this.narrationTable.set("'vm-constant", "constant命令が実行された");
+        this.narrationTable.set("'vm-argument", "argument命令が実行された");
+        this.narrationTable.set("'vm-functional", "functional命令が実行された");
+        this.narrationTable.set("vm-apply", "apply命令が実行された");
+        // this.narrationTable.set("'vm-frame", "frame命令が実行された");
+        // this.narrationTable.set("'vm-frame", "frame命令が実行された");
+        // this.narrationTable.set("'vm-frame", "frame命令が実行された");
+        // this.narrationTable.set("'vm-frame", "frame命令が実行された");
+        // this.narrationTable.set("'vm-frame", "frame命令が実行された");
+        // this.narrationTable.set("'vm-frame", "frame命令が実行された");
+        // this.narrationTable.set("'vm-frame", "frame命令が実行された");
+        // this.narrationTable.set("'vm-frame", "frame命令が実行された");
+
+
+    }
+
+    // }
+    newNarration(key) {
+        let str = key.toString();
+        console.log(str)
+        let txt = this.narrationTable.get(str);
+
+        let narration = document.getElementById("narration");
+        narration.innerHTML = "";
+        if (txt === undefined) return;
+        let nar = makeNewElement(txt, '', '');
+        narration.appendChild(nar);
+    }
+
+    addSubActNarration(key) {
+        let str = key.toString();
+        let txt = this.narrationTable.get(str);
+        let narration = document.getElementById("narration");
+        let nar = makeNewElement(txt, '', '');
+        narration.appendChild(nar);
+        var narrationMessage = document.getElementById("narrationBox");
+        narrationMessage.scrollTop = narrationMessage.scrollHeight;
     }
 
 }

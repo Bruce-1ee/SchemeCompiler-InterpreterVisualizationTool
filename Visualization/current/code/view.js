@@ -633,7 +633,7 @@ class Closure {
 class Narration {
     // constructor() {
     narrationTable = new Map();
-
+    bigStep = "";
     constructor() {
         this.narrationTable.set("'eval-self-evaluating", "インタプリタは定数を処理する");
         this.narrationTable.set("'act-constant", "VMは定数を処理する");
@@ -695,7 +695,7 @@ class Narration {
     // }
     newNarration(key) {
         let str = key.toString();
-        console.log(str)
+        this.bigStep = str;
         let txt = this.narrationTable.get(str);
 
         let narration = document.getElementById("narration");
@@ -706,8 +706,19 @@ class Narration {
     }
 
     addSubActNarration(key) {
+        testFun(key);
+        
         let str = key.toString();
         let txt = this.narrationTable.get(str);
+        console.log(str);
+        if(txt === undefined){
+            txt = str;
+        }
+        
+        if (str === "'end"){
+            console.log("进入else")
+            txt += " - " + this.bigStep.slice(1,this.bigStep.length);
+        }
         let narration = document.getElementById("narration");
         let nar = makeNewElement(txt, '', '');
         narration.appendChild(nar);

@@ -385,7 +385,6 @@
 (define (VM-constant a x f c s)
   (let ((obj (cadr x))
         (x (caddr x)))
-    (view-narration-addsubactnarration 'vm-constant)
     (VM obj x f c s)))   
 
 (define (VM-functional a x f c s)
@@ -1110,8 +1109,11 @@
               (view-narration-newnarration ,info)
               (draw-interpreter-info ,info)
               (let ((ret (apply org-fun (cons arg restarg))))
+
                 (cond ((is-non-act? ,info non-act-table)
                       (draw-interpreter-info (string-append "END-" (symbol->string ,info)  )) ))
+                (view-narration-addsubactnarration 'end)
+              (make-subjumppoint-eval)
                 
                 (sub-indent-inte)
                 ret
@@ -1128,6 +1130,18 @@
                (draw-sub-inte-info ,act)
                ;(display 'sub-eval:)(display ,act)(newline)
                (apply org-fun (cons arg restarg)))))))
+
+
+
+(define-macro define-sub-eval-info
+              (lambda(fun info)
+                `(let* ((org-fun ,fun))
+                   (set! ,fun
+                         (lambda (arg . restarg)
+                        (add-indent-inte)
+                           (draw-sub-inte-info ,info)
+                          (sub-indent-inte)
+                           (apply org-fun (cons arg restarg)))))))
 
 (define-macro define-act-compiler
   (lambda (fun pseins)
@@ -1419,6 +1433,19 @@
                ))))))
 
 
+;;定义旁白，fun是加入旁白的处理函数
+;;nar-code对应的是旁白对象中map里映射的值
+;;type是指旁白的类型，1为新旁白，此时旁白页面会被刷新
+;;2为追加旁白，此时旁白会被追加近原来的旁白中，页面不会刷新
+(define-macro define-narration
+  (lambda (fun nar-code)
+    `(let* ((org-fun ,fun))
+       (set! ,fun
+             (lambda (arg . restarg)
+               (view-narration-addsubactnarration ,nar-code)
+               (make-subjumppoint-eval)
+               (apply org-fun (cons arg restarg)))))))
+
 
 (define (loop n fun)
   (cond ((> n 0) (fun) (loop (- n 1) fun))))
@@ -1430,20 +1457,56 @@
           (else (trav-link ele (+ n 1))))))
 
           
+        
+
+;;def
+(define-narration eval-variable 'eval-variable)
+(define-sub-eval-info eval-variable 'variable)
+
+
+
+
+;定义旁白
+
+;;1 self-evaluating eval
+(define-narration eval-self-evaluating 'eval-self-evaluating)
+(define-sub-eval-info eval-self-evaluating 'self-evaluating)
+
+(define-narration eval-quotation 'eval-quotation)
+(define-sub-eval-info eval-quotation 'quotation)
+
+;;1 constant vm
+(define-narration VM-constant 'vm-constant)
+
+
+;;2 lambda eval
+(define-narration eval-lambda 'eval-lambda)
+(define-sub-eval-info eval-lambda 'eval-lambda)
+
+(define-narration VM-functional 'VM-functional) 
+(define-narration VM-close 'VM-close) 
+
+
+
+
+
+
+
 ;定义伪指令
 
+
 ;; 0 self-evaluating
-(define-act-compiler compile-self-evaluating 'act-constant)
+;(define-act-compiler compile-self-evaluating 'act-constant)
 
 
-(define-act-eval eval-self-evaluating 'eval-self-evaluating 'act-constant)
+;(define-act-eval eval-self-evaluating 'eval-self-evaluating 'act-constant)
 
 
 ;; 1 quotation
-(define-act-compiler compile-quoted 'act-constant)
+;(define-act-compiler compile-quoted 'act-constant)
 
 
-(define-act-eval eval-quotation 'eval-quotation 'act-constant)
+;(define-act-eval eval-quotation 'eval-quotation 'act-constant)
 
 
 ;; 2 variable
@@ -1467,9 +1530,9 @@
 
 
 ;; 4 lambda
-(define-act-compiler compile-lambda 'act-lambda)
+;(define-act-compiler compile-lambda 'act-lambda)
 
-(define-act-eval eval-lambda 'eval-lambda 'act-lambda)
+;(define-act-eval eval-lambda 'eval-lambda 'act-lambda)
 
 
 ;; 5 application
@@ -1517,7 +1580,7 @@
 
 (embed-vm-closure)
 
-(define-sub-act-eval eval-variable 'variable )
+;(define-sub-act-eval eval-variable 'variable )
 (define-sub-act-vm VM-refer 'local-variable)
 ;====break===
 

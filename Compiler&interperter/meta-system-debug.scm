@@ -1,18 +1,32 @@
-(define true #t)
-(define false #f)
-(define (error str . exp)
-  (display str)
-  (display " ")
-  (if (null? exp)
-    (display " ")
-    (display exp))
-  (newline))
+#lang scheme
+(require r5rs)
+(require compatibility/defmacro)
 
-;测试用函数，可以将参数val传给js中的testArg
+(define (js-eval str)
+  ;(display str) (newline)
+  'ok
+  )
+
+(define (js-call fun . restargs)
+  'ok
+  ;(display restargs) (newline)
+
+  )
+
+(define (js-ref arg . restargs)
+  'ok)
+ 
+(define (js-invoke arg . restargs)
+  'ok)
+
+(define console-log display)
+
+
+;测试用函数,可以将参数val传给js中的testArg
 (define (test-fun val)
   (js-call (js-eval "testFun") val))
 
-;绘制新的环境时使用，待修改
+;绘制新的环境时使用,待修改
 (define (interpreter-new-frame vals args frameNum targetNum syn)
   (js-call (js-eval "interNewFrame") vals args frameNum targetNum syn))
 
@@ -23,7 +37,7 @@
 
 
 ;view.stack.push(val type)
-;新版push，type为该element的类型
+;新版push,type为该element的类型
 (define (view-stack-push val type)
   (js-invoke (js-ref (js-eval "view") "stack") "push" val type))
 
@@ -160,12 +174,22 @@
 
 ;view.narration.newNarration(key)
 (define (view-narration-newnarration key)
-  (js-invoke (js-ref (js-eval "view") "narration") "newNarration" key))
+  (display "旁白: ") (display key) (newline))
   
 
 ;view.narration.addSubActNarration(str)
 (define (view-narration-addsubactnarration str)
-  (js-invoke (js-ref (js-eval "view") "narration") "addSubActNarration" str))
+  (display "sub旁白： ") (display str) (newline))
+
+
+
+
+
+
+
+
+
+
 
 
 (define (compile exp env set next)
@@ -586,7 +610,7 @@
         (x (cadddr x))
         (b (index (find-link n f) m))
         (obj a))
-    ;(console-log (index (find-link n f) m))(newline)
+    ;(display (index (find-link n f) m))(newline)
     (VM-assign-helping b obj)
     (VM a x f c s)))
 
@@ -676,7 +700,7 @@
     (vector-ref stack (- (- s i) 1))))
 
 (define (anime-index s i)
-  ;(console-log "i: ") (console-log i) (newline)
+  ;(display "i: ") (display i) (newline)
   (anime-vm-index (- (- s i) 1))
   (view-narration-addsubactnarration 'act-index)
   (make-subjumppoint-vm)
@@ -713,7 +737,7 @@
     
     (anime-vm-findlink e)
     
-    ;(console-log "finding link e: ") (console-log e) (newline)
+    ;(display "finding link e: ") (display e) (newline)
     (if (= n 0) 
         (begin 
           (view-narration-addsubactnarration 'act-findlink-done)
@@ -842,9 +866,9 @@
 (define (eval-loopup-frame var env vars vals n m)
   (anime-eval-lookup (get-env-id env) m)
   (view-narration-addsubactnarration 'eval-lookup)
-  ;(console-log "env-id: ") (console-log (get-env-id env)) (newline)
-  ;(console-log "n: ") (console-log n) (newline)
-  ;(console-log "m: ") (console-log m) (newline)
+  ;(display "env-id: ") (display (get-env-id env)) (newline)
+  ;(display "n: ") (display n) (newline)
+  ;(display "m: ") (display m) (newline)
   ;(make-subjumppoint-eval)
   (cond ((null? vars)
          (begin
@@ -866,9 +890,9 @@
 (define GE
   (eval-extend
    '()
-   '(+ - * / = eq? < <= > >= console-log) ; <- ( + - * / )
+   '(+ - * / = eq? < <= > >= display) ; <- ( + - * / )
    (map (lambda (f) (cons 'primitive f))
-        (list + - * / = eq? < <= > >= console-log))))  ; <- ( + - * / )
+        (list + - * / = eq? < <= > >= display))))  ; <- ( + - * / )
 
 ;==========解析用函数==========
 
@@ -958,7 +982,7 @@
 ;     (eval-application-apply body args env)))
 
 (define syn-counter-inte 1)
-(define (eval-application exp env) ;为了同步，在原函数上进行了修改
+(define (eval-application exp env) ;为了同步,在原函数上进行了修改
   (let ((syn syn-counter-inte))
     (set! syn-counter-inte (+ 1 syn-counter-inte))
     (let ((args (eval-application-args (cdr exp) env))
@@ -983,7 +1007,7 @@
 ;       (eval-application-apply-functional f e func arguments)))
 ;     (else (error "Not a function -- eval-application-apply"))))
 
-(define (eval-application-apply func arguments env syn) ;;为了同步，在原函数上进行了修改
+(define (eval-application-apply func arguments env syn) ;;为了同步,在原函数上进行了修改
   (case (car func)
     ((primitive)
      (eval-application-apply-primitive func arguments))
@@ -1026,7 +1050,7 @@
 
 (define closure-table-vm (list))
 
-;向a-list中追加新元素，编号自动维护
+;向a-list中追加新元素,编号自动维护
 (define (add-vm-closure c)
   (let ((ret (cons (cdr c) (length closure-table-vm))))
     (set! closure-table-vm (append closure-table-vm (list ret)))))
@@ -1082,7 +1106,7 @@
 ;这个变量是用来存放标签序号的
 ;( (标签名(act-...) 序号) ... )
 ;eg. ( (act-if 33) (act-then 22) )
-;表示下一次碰到if表达式，其标签序列为33
+;表示下一次碰到if表达式,其标签序列为33
 (define vm-act-counter-tabel (list ))
 
 ;传入act名就可以获得该动作的编号
@@ -1124,10 +1148,10 @@
 
 
 ;解释器用闭包      
-;创建一个a-list存放 （闭包.编号）
+;创建一个a-list存放 (闭包.编号)
 (define closure-table-inte (list))
 
-;向a-list中追加新元素，编号自动维护
+;向a-list中追加新元素,编号自动维护
 (define (add-inte-closure c)
   (let ((ret (cons c (length closure-table-inte))))
     (set! closure-table-inte (append closure-table-inte (list ret)))))
@@ -1150,11 +1174,11 @@
 ;用闭包编号来替代本身的闭包
 (define (inplace-arg-by-number args ret)
   (cond ((null? args) ret)
-        ((not (eq?  (get-inte-closure-number (car args) closure-table-inte) -1)) ;闭包编号不等于-1，即存在这个闭包
+        ((not (eq?  (get-inte-closure-number (car args) closure-table-inte) -1)) ;闭包编号不等于-1,即存在这个闭包
          (inplace-arg-by-number (cdr args)
                                 (append ret (list (make-str (get-inte-closure-number (car args) closure-table-inte))))))
         (else (inplace-arg-by-number (cdr args) (append ret (list (car args)))))))
-;生成 <clo num> 这样的字符串 其中num是加一表示的，因为是从0开始计数而画面上是从1开始计数的。
+;生成 <clo num> 这样的字符串 其中num是加一表示的,因为是从0开始计数而画面上是从1开始计数的。
 (define (make-str num)
   (string-append "<clo" (number->string (+ 1 num)) ">"))
 
@@ -1239,28 +1263,37 @@
 (define (make-jumppoint-eval)
   (call/cc (lambda (breakpoint)
              (set! exec-k breakpoint)
-             (cond (interpreter-break-switch (resume-meta 'ok))))))
+             (cond (interpreter-break-switch (resume-meta))))))
 
 (define (make-jumppoint-vm)
   (call/cc (lambda (breakpoint)
              (set! vm-k breakpoint)
-             (cond (VM-break-switch (resume-meta 'ok))))))
+             (cond (VM-break-switch (resume-meta))))))
 
 (define (make-subjumppoint-eval)
   (call/cc (lambda (breakpoint)
              (set! sub-exec-k breakpoint)
              (set! sub-exec-flag #t)
-             (cond (interpreter-break-switch (resume-meta 'ok)))
+             (if sub-breakpoints
+                 (begin (set!  break #t) (resume-meta))
+                 (resume-meta))
+             
+             
+             (cond (interpreter-break-switch
+                 (begin
+                   (set!  break #t)
+                   (resume-meta))))
+
              ;(set! break #t)
-             (resume-meta 'ok))))
+             )))
 
 (define (make-subjumppoint-vm)
   (call/cc (lambda (breakpoint)
              (set! sub-vm-k breakpoint)
              (set! sub-vm-flag #t)
-             (cond (VM-break-switch (resume-meta 'ok)))
+             (cond (VM-break-switch (resume-meta)))
              ;(set! break #t)
-             (resume-meta 'ok))))
+             )))
 
 (define-macro define-act-eval
   (lambda (fun info act)
@@ -1293,7 +1326,7 @@
                (set! sub-inte-info ,act)
                (make-subjumppoint-eval)
                (draw-sub-inte-info ,act)
-               ;(console-log 'sub-eval:)(console-log ,act)(newline)
+               ;(display 'sub-eval:)(display ,act)(newline)
                (apply org-fun (cons arg restarg)))))))
 
 
@@ -1303,6 +1336,7 @@
                 `(let* ((org-fun ,fun))
                    (set! ,fun
                          (lambda (arg . restarg)
+                           (display 'sub-eval-info) (newline)
                         (add-indent-inte)
                            (draw-sub-inte-info ,info)
                           (sub-indent-inte)
@@ -1343,7 +1377,7 @@
              (lambda (arg . restarg)
                (set! sub-vm-info ,act)
                (make-subjumppoint-vm)
-               (console-log 'sub-vm:)(console-log ,act)(newline)
+               (display 'sub-vm:)(display ,act)(newline)
                (apply org-fun (cons arg restarg)))))))
 
 (define-macro define-vm-make-clo
@@ -1357,7 +1391,7 @@
               )
                )))))
 
-;eval-application　(length (cdr (reverse env)))
+;eval-application (length (cdr (reverse env)))
 (define-macro define-eval-application
   (lambda ()
     `(let* ((org-fun eval-application))
@@ -1453,7 +1487,7 @@
 ;              (lambda (exp env func arguments)
 
 ;                 (append-new-env env)
-;                 ;因为interpreter-new-frame需要用到arguments 和 func两个参数，所以也将这两个参数传递
+;                 ;因为interpreter-new-frame需要用到arguments 和 func两个参数,所以也将这两个参数传递
 ;                 ;待修改
 ;                 (interpreter-new-frame (inplace-arg-by-number arguments '()) func (get-env-id env) (get-env-id (cdr env)) 99)
 
@@ -1467,7 +1501,7 @@
              (lambda (exp env func arguments syn)
                 (draw-interpreter-info "environment extended")
                 (append-new-env env)
-                ;因为interpreter-new-frame需要用到arguments 和 func两个参数，所以也将这两个参数传递
+                ;因为interpreter-new-frame需要用到arguments 和 func两个参数,所以也将这两个参数传递
                 ;待修改
                 (interpreter-new-frame (inplace-arg-by-number arguments '()) func (get-env-id env) (get-env-id (cdr env)) syn)
 
@@ -1536,7 +1570,7 @@
        (set! prim-return
              (lambda (retval s)
               (js-call-frame-vm-sub)
-              (loop 6 view-stack-pop) ;3 + 3 c，f，x， arg1,arg2,link
+              (loop 6 view-stack-pop) ;3 + 3 c,f,x, arg1,arg2,link
               (view-stack-deleteframe)
               (org-fun retval s))))))
 
@@ -1598,10 +1632,10 @@
                ))))))
 
 
-;;定义旁白，fun是加入旁白的处理函数
+;;定义旁白,fun是加入旁白的处理函数
 ;;nar-code对应的是旁白对象中map里映射的值
-;;type是指旁白的类型，1为新旁白，此时旁白页面会被刷新
-;;2为追加旁白，此时旁白会被追加近原来的旁白中，页面不会刷新
+;;type是指旁白的类型,1为新旁白,此时旁白页面会被刷新
+;;2为追加旁白,此时旁白会被追加近原来的旁白中,页面不会刷新
 (define-macro define-narration
   (lambda (fun nar-code)
     `(let* ((org-fun ,fun))
@@ -1622,7 +1656,7 @@
           (else (trav-link ele (+ n 1))))))
 
           
-        
+         
 
 ;;def
 (define-narration eval-variable 'eval-variable)
@@ -1661,14 +1695,14 @@
 
 
 ;; 0 self-evaluating
-(define-act-compiler compile-self-evaluating 'act-constant)
+;(define-act-compiler compile-self-evaluating 'act-constant)
 
 
 ;(define-act-eval eval-self-evaluating 'eval-self-evaluating 'act-constant)
 
 
 ;; 1 quotation
-(define-act-compiler compile-quoted 'act-constant)
+;(define-act-compiler compile-quoted 'act-constant)
 
 
 ;(define-act-eval eval-quotation 'eval-quotation 'act-constant)
@@ -1748,6 +1782,7 @@
 ;(define-sub-act-eval eval-variable 'variable )
 (define-sub-act-vm VM-refer 'local-variable)
 ;====break===
+(define sub-breakpoints #f)
 
 (define breakpoints (vector (vector 'act-constant #f)
                             (vector 'act-variable #f)
@@ -1773,6 +1808,7 @@
     (vector-set! v 1 (not (vector-ref v 1)))))
 
 (define (breakpoint-on)
+  (set! sub-breakpoints #t)
   (let ((len (vector-length breakpoints)))
     (let loop ((n 0))
       (cond ((>= n len) 'done)
@@ -1782,6 +1818,7 @@
                (loop (+ n 1))))))))
 
 (define (breakpoint-off)
+  (set! sub-breakpoints #f)
   (let ((len (vector-length breakpoints)))
     (let loop ((n 0))
       (cond ((>= n len) 'done)
@@ -1865,7 +1902,7 @@
 
 
 (define (p t)
-  (console-log t) (newline))
+  (display t) (newline))
 
 (define (meta program)
   (set! vm-k #f)
@@ -1886,22 +1923,22 @@
         (cond ((eq? break #t)
                (set! break #f)
                (set! next c)
-               (break-meta 'ok')))))
+               (break-meta 'ok)))))
       
          (cond (sub-exec-flag
                 (begin (set! sub-exec-flag #f)
-                       (sub-exec-k 'ok)))
+                       (sub-exec-k)))
                (sub-vm-flag
                 (begin (set! sub-vm-flag #f)
-                       (sub-vm-k 'ok)))
+                       (sub-vm-k)))
                ((eq? vm-k #f) (run-vm VM-code))
                ((eq? exec-k #f) (resume-meta (eval inte-code)))
                ((is-same-position?)
                 (act-add1 inte-info 'exec)
-                (exec-k 'ok))
+                (exec-k))
                (else
                 (act-add1 vm-info 'vm)
-                (vm-k 'ok)))))))
+                (vm-k)))))))
          
   
 

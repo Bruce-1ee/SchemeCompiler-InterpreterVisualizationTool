@@ -57,3 +57,15 @@
         20 21 22))
      10 11 12))
   1 2 3))
+
+
+(meta '((lambda (x f)
+               ((lambda (dum) x)
+                (f (lambda ()
+                     ((lambda (dum) x)
+                      (set! x (+ x 1)))))))
+             10
+             (lambda (g) (g))))
+
+
+

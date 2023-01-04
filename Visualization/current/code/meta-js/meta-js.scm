@@ -88,8 +88,8 @@
 (define (draw-interpreter-info info)
   (js-call (js-eval "drawInterpreterInfo") info))
 
-(define (draw-VM-Info info from)
-  (js-call (js-eval "drawVMInfo") info from))
+(define (draw-VM-Info info)
+  (js-call (js-eval "drawVMInfo") info))
 
 
 ;view.environment.highlightFrame(frameNumber)
@@ -221,8 +221,8 @@
 (define compile-variable
   (lambda (exp env set next)
     (compile-refer exp env (if (set-member? exp set)
-                             (list 'indirect next)
-                             next))))
+                               (list 'indirect next)
+                               next))))
 
 (define compile-refer
   (lambda (exp env next)
@@ -375,7 +375,7 @@
         next
         (collect-free (cdr vars) e
                       (compile-refer (car vars) e
-                                        (list 'argument next))))))
+                                     (list 'argument next))))))
 (define find-sets
   (lambda (x v)
     (cond
@@ -409,12 +409,15 @@
                            (next (cdr x))))))))
       (else '()))))
 (define (make-boxes sets vars next)
-  (let f ((vars vars) (n 0))
-    (if (null? vars)
-        next
-        (if (set-member? (car vars) sets)
-            (list 'box n (f (cdr vars) (+ n 1)))
-            (f (cdr vars) (+ n 1))))))
+  (make-boxes-loop vars 0 sets next ))
+(define (make-boxes-loop vars n sets next )
+  (if (null? vars)
+      next
+      (if (set-member? (car vars) sets)
+          (make-box-helping vars n sets next)
+          (make-boxes-loop (cdr vars) (+ n 1) sets next ))))
+(define (make-box-helping vars n sets next)
+  (list 'box n (make-boxes-loop (cdr vars) (+ n 1) sets next )))
 (define getargs
   (lambda (args ret)
     
@@ -429,17 +432,17 @@
 (define let->lambda
   (lambda (exp)
     (let* ((args (cadr exp))
-          (body (caddr exp))
+           (body (caddr exp))
            
-          (lambda-args (getargs args '()))
-          (lambda-vals (getvals args '())))
+           (lambda-args (getargs args '()))
+           (lambda-vals (getvals args '())))
 
-    (cons (list 'lambda
-                lambda-args
-                (if (eq? (car body) 'let)
-                    (let->lambda body)
-                    body))
-                    lambda-vals))))     
+      (cons (list 'lambda
+                  lambda-args
+                  (if (eq? (car body) 'let)
+                      (let->lambda body)
+                      body))
+            lambda-vals))))     
 ;(cons (list 'lambda lambda-args body) lambda-vals))))                                   
 
 ;=========set-function===========
@@ -527,10 +530,10 @@
 
 (define (VM-refer a x f c s)
   (let* ((n (cadr x))
-        (m (caddr x))
-        (x (cadddr x))
-        (l (find-link n f))
-        (v (anime-index l m)))
+         (m (caddr x))
+         (x (cadddr x))
+         (l (find-link n f))
+         (v (anime-index l m)))
     (VM v x f c s)))
 
 (define (VM-refer-free a x f c s)
@@ -555,7 +558,6 @@
 (define (VM-functional a x f c s)
   (let ((body (cadr x))
         (x (caddr x)))
-    (view-narration-addsubactnarration 'vm-functional)
     (VM (functional body f) x f c s)))
 
 (define (VM-close a x f c s)
@@ -566,13 +568,12 @@
 
 (define (VM-box a x f c s)
   (let* ((n (cadr x))
-        (x (caddr x))
-        (b (box (index s n))))
+         (x (caddr x))
+         (b (box (index s n))))
     (VM-box-helping s n b)
     (VM a x f c s)))
 
 (define (VM-box-helping s n b)
-
   (index-set! s n b))
 
 (define (VM-test a x f c s)
@@ -582,10 +583,10 @@
 
 (define (VM-assign a x f c s)
   (let* ((n (cadr x))
-        (m (caddr x))
-        (x (cadddr x))
-        (b (index (find-link n f) m))
-        (obj a))
+         (m (caddr x))
+         (x (cadddr x))
+         (b (index (find-link n f) m))
+         (obj a))
     ;(console-log (index (find-link n f) m))(newline)
     (VM-assign-helping b obj)
     (VM a x f c s)))
@@ -594,9 +595,9 @@
 
 (define (VM-assign-free a x f c s)
   (let* ((n (cadr x))
-        (x (caddr x))
-        (b (index-closure c n))
-        )
+         (x (caddr x))
+         (b (index-closure c n))
+         )
     ;(set-box! (index-closure c n) a)
     (VM-assign-helping b a)
     (VM a x f c s)))
@@ -616,7 +617,6 @@
     (VM a x f c (push a s))))
 
 (define (VM-apply a x f c s)
-  (view-narration-addsubactnarration 'vm-apply)
   (case (car a)
     ((functional) ;;;
      (VM-apply-functional a x f c s))
@@ -675,11 +675,15 @@
   (lambda (s i)
     (vector-ref stack (- (- s i) 1))))
 
-(define (anime-index s i)
+(define (anime-index-bak s i)
   ;(console-log "i: ") (console-log i) (newline)
   (anime-vm-index (- (- s i) 1))
   (view-narration-addsubactnarration 'act-index)
   (make-subjumppoint-vm)
+  (vector-ref stack (- (- s i) 1)))
+
+(define (anime-index s i)
+  (anime-vm-index (- (- s i) 1))
   (vector-ref stack (- (- s i) 1)))
 
 (define index-set!
@@ -693,11 +697,11 @@
   
 (define (make-clo body n s)
   (let ((v (make-vector (+ n 1))))
-      (vector-set! v 0 body)
-      (let f ((i 0))
-        (unless (= i n)
-          (vector-set! v (+ i 1) (index s i))
-          (f (+ i 1))))
+    (vector-set! v 0 body)
+    (let f ((i 0))
+      (unless (= i n)
+        (vector-set! v (+ i 1) (index s i))
+        (f (+ i 1))))
     v))
 
 (define closure-body
@@ -708,7 +712,7 @@
   (lambda (c n)
     (vector-ref c (+ n 1))))
 
-(define find-link
+(define find-link-bak
   (lambda (n e)
     
     (anime-vm-findlink e)
@@ -716,16 +720,29 @@
     ;(console-log "finding link e: ") (console-log e) (newline)
     (if (= n 0) 
         (begin 
-          (view-narration-addsubactnarration 'act-findlink-done)
+          ;(view-narration-addsubactnarration 'act-findlink-done)
           (make-subjumppoint-vm)
           e
-        )
+          )
         (begin
-          (view-narration-addsubactnarration 'act-findlink-next)
+          ;(view-narration-addsubactnarration 'act-findlink-next)
           (make-subjumppoint-vm)
           (find-link (- n 1) (index e -1)))))
-        )
-        
+  )
+
+    
+(define (find-link n e)
+  (anime-vm-findlink e)
+  (if (= n 0)
+      (find-link-done e)
+      (find-link-next n e)))
+
+(define (find-link-done e) e)
+(define (find-link-next n e)
+  (find-link (- n 1) (index e -1)))    
+
+
+
 
 (define (prim-return retval s)
   (VM retval (index s 0) (index s 1) (index s 2) (- s 3)))
@@ -752,25 +769,25 @@
                                          (index s 2))))
                              (prim-return ans (- s 3))))))
     (eq? . ,(primitive-fun (lambda (s)
-                           (let ((ans (eq? (index s 1)
-                                         (index s 2))))
-                             (prim-return ans (- s 3))))))
+                             (let ((ans (eq? (index s 1)
+                                             (index s 2))))
+                               (prim-return ans (- s 3))))))
     (< . ,(primitive-fun (lambda (s)
                            (let ((ans (< (index s 1)
                                          (index s 2))))
                              (prim-return ans (- s 3))))))
     (<= . ,(primitive-fun (lambda (s)
-                           (let ((ans (<= (index s 1)
-                                         (index s 2))))
-                             (prim-return ans (- s 3))))))
+                            (let ((ans (<= (index s 1)
+                                           (index s 2))))
+                              (prim-return ans (- s 3))))))
     (> . ,(primitive-fun (lambda (s)
                            (let ((ans (> (index s 1)
                                          (index s 2))))
                              (prim-return ans (- s 3))))))
     (>= . ,(primitive-fun (lambda (s)
-                           (let ((ans (>= (index s 1)
-                                         (index s 2))))
-                             (prim-return ans (- s 3))))))))
+                            (let ((ans (>= (index s 1)
+                                           (index s 2))))
+                              (prim-return ans (- s 3))))))))
 
 (define (refer-global-var var) ;;;
   (cond ((assq var the-global-environment)
@@ -837,15 +854,11 @@
 (define (eval-lookup-env var env n)
   (view-narration-newnarration "-1")
   (cond ((null? env) (error  "Unbound variable" ))
-        (else (eval-loopup-frame var env (car (car env)) (cdr (car env)) n 0))))
+        (else (eval-lookup-frame var env (car (car env)) (cdr (car env)) n 0))))
 
-(define (eval-loopup-frame var env vars vals n m)
+(define (eval-lookup-frame-bak var env vars vals n m)
   (anime-eval-lookup (get-env-id env) m)
   (view-narration-addsubactnarration 'eval-lookup)
-  ;(console-log "env-id: ") (console-log (get-env-id env)) (newline)
-  ;(console-log "n: ") (console-log n) (newline)
-  ;(console-log "m: ") (console-log m) (newline)
-  ;(make-subjumppoint-eval)
   (cond ((null? vars)
          (begin
            (view-narration-addsubactnarration 'eval-lookup-diff-fra)
@@ -859,8 +872,22 @@
         (else (begin
                 (view-narration-addsubactnarration 'eval-lookup-diff-var)
                 (make-subjumppoint-eval)
-                (eval-loopup-frame var env (cdr vars) (cdr vals) n (+ 1 m))))))
+                (eval-lookup-frame var env (cdr vars) (cdr vals) n (+ 1 m))))))
 
+
+(define (eval-lookup-frame var env vars vals n m)
+  (anime-eval-lookup (get-env-id env) m)
+  (cond ((null? vars) (eval-lookup-frame-diff-fra var env n))
+        ((eq? var (car vars)) (eval-lookup-frame-same-var vals))
+        (else (eval-lookup-frame-diff-var var env vars vals n m))))
+
+
+(define (eval-lookup-frame-diff-fra var env n)
+  (eval-lookup-env var (cdr env) (+ n 1)))
+(define (eval-lookup-frame-same-var vals)
+  (car vals))
+(define (eval-lookup-frame-diff-var var env vars vals n m)
+  (eval-lookup-frame var env (cdr vars) (cdr vals) n (+ 1 m)))
 
 
 (define GE
@@ -948,9 +975,9 @@
     (list 'function vars body env)))
 
 (define (eval-clambda-helping-fun exp)
-    (let ((vars (cadr exp))
-          (body (caddr exp)))
-        (list vars body)))
+  (let ((vars (cadr exp))
+        (body (caddr exp)))
+    (list vars body)))
 
 ; (define (eval-application exp env)
 ;   (let ((args (eval-application-args (cdr exp) env))
@@ -958,18 +985,18 @@
 ;     (eval-application-apply body args env)))
 
 (define syn-counter-inte 1)
-(define (eval-application exp env) ;为了同步，在原函数上进行了修改
+(define (eval-application exp env) ;为了同步,在原函数上进行了修改
   (let ((syn syn-counter-inte))
     (set! syn-counter-inte (+ 1 syn-counter-inte))
     (let ((args (eval-application-args (cdr exp) env))
-        (body (eval-application-body (car exp) env)))
-    (eval-application-apply body args env syn))))
+          (body (eval-application-body (car exp) env)))
+      (eval-application-apply body args env syn))))
 
 (define (eval-application-args args env)
   (let ((ret (reverse (map (lambda(x) (exec x env)) (reverse args)))))
     
     ret
-  ))
+    ))
 
 (define (eval-application-body name env) (exec name env))
 
@@ -983,14 +1010,14 @@
 ;       (eval-application-apply-functional f e func arguments)))
 ;     (else (error "Not a function -- eval-application-apply"))))
 
-(define (eval-application-apply func arguments env syn) ;;为了同步，在原函数上进行了修改
+(define (eval-application-apply func arguments env syn) ;;为了同步,在原函数上进行了修改
   (case (car func)
     ((primitive)
      (eval-application-apply-primitive func arguments))
     ((function)
-    (let ((f (caddr func))
-          (e (eval-extend (cadddr func) (cadr func) arguments)))
-      (eval-application-apply-functional f e func arguments syn)))
+     (let ((f (caddr func))
+           (e (eval-extend (cadddr func) (cadr func) arguments)))
+       (eval-application-apply-functional f e func arguments syn)))
     (else (error "Not a function -- eval-application-apply"))))
 
 ; (define (eval-application-apply-functional exp env func arguments)
@@ -1003,7 +1030,7 @@
 
 (define (eval-let exp env)
   (let ((e (let->lambda exp)))
-        (exec e env)))
+    (exec e env)))
 
 (define (glo-define exp)
   (let ((cur-v VM-break-switch)
@@ -1026,7 +1053,7 @@
 
 (define closure-table-vm (list))
 
-;向a-list中追加新元素，编号自动维护
+;向a-list中追加新元素,编号自动维护
 (define (add-vm-closure c)
   (let ((ret (cons (cdr c) (length closure-table-vm))))
     (set! closure-table-vm (append closure-table-vm (list ret)))))
@@ -1048,7 +1075,7 @@
 
 ;非计算动作标签
 (define non-act-table '(eval-application eval-arguments eval-body
-                        eval-if eval-test eval-then eval-else))
+                                         eval-if eval-test eval-then eval-else))
 ;判断act是否为非计算动作标签
 (define (is-non-act? act table)
   (cond ((null? table) #f)
@@ -1056,14 +1083,14 @@
         (else (is-non-act? act (cdr table)))))
 
 (define (make-arg-str num str)
-   (string-append "<" str (number->string (+ 1 num)) ">"))
+  (string-append "<" str (number->string (+ 1 num)) ">"))
 
 (define (make-short-argument arg)
-   (cond ((not (eq? -1 (get-box-num arg box-table)))
-          (make-arg-str (get-box-num arg box-table) "box"))
-         ((not (eq? -1 (get-inte-closure-number arg closure-table-inte)))
-          (make-arg-str (get-inte-closure-number arg closure-table-inte) "clo"))
-         (else arg)))
+  (cond ((not (eq? -1 (get-box-num arg box-table)))
+         (make-arg-str (get-box-num arg box-table) "box"))
+        ((not (eq? -1 (get-inte-closure-number arg closure-table-inte)))
+         (make-arg-str (get-inte-closure-number arg closure-table-inte) "clo"))
+        (else arg)))
 
 
 ;(define indirect-flag #f)
@@ -1082,7 +1109,7 @@
 ;这个变量是用来存放标签序号的
 ;( (标签名(act-...) 序号) ... )
 ;eg. ( (act-if 33) (act-then 22) )
-;表示下一次碰到if表达式，其标签序列为33
+;表示下一次碰到if表达式,其标签序列为33
 (define vm-act-counter-tabel (list ))
 
 ;传入act名就可以获得该动作的编号
@@ -1124,10 +1151,10 @@
 
 
 ;解释器用闭包      
-;创建一个a-list存放 （闭包.编号）
+;创建一个a-list存放 (闭包.编号)
 (define closure-table-inte (list))
 
-;向a-list中追加新元素，编号自动维护
+;向a-list中追加新元素,编号自动维护
 (define (add-inte-closure c)
   (let ((ret (cons c (length closure-table-inte))))
     (set! closure-table-inte (append closure-table-inte (list ret)))))
@@ -1150,11 +1177,11 @@
 ;用闭包编号来替代本身的闭包
 (define (inplace-arg-by-number args ret)
   (cond ((null? args) ret)
-        ((not (eq?  (get-inte-closure-number (car args) closure-table-inte) -1)) ;闭包编号不等于-1，即存在这个闭包
+        ((not (eq?  (get-inte-closure-number (car args) closure-table-inte) -1)) ;闭包编号不等于-1,即存在这个闭包
          (inplace-arg-by-number (cdr args)
                                 (append ret (list (make-str (get-inte-closure-number (car args) closure-table-inte))))))
         (else (inplace-arg-by-number (cdr args) (append ret (list (car args)))))))
-;生成 <clo num> 这样的字符串 其中num是加一表示的，因为是从0开始计数而画面上是从1开始计数的。
+;生成 <clo num> 这样的字符串 其中num是加一表示的,因为是从0开始计数而画面上是从1开始计数的。
 (define (make-str num)
   (string-append "<clo" (number->string (+ 1 num)) ">"))
 
@@ -1235,6 +1262,14 @@
    (lambda (quit)
      (set! resume-meta quit)))) 
 ;(cc)
+(define temp-break #f)
+(define temp-break-flag #f)
+(define (make-temp-break)
+  (call/cc (lambda (breakpoint)
+             (set! temp-break breakpoint)
+             (set! temp-break-flag #t)
+             (set! break #t)
+             (resume-meta 'ok))))
 
 (define (make-jumppoint-eval)
   (call/cc (lambda (breakpoint)
@@ -1250,40 +1285,47 @@
   (call/cc (lambda (breakpoint)
              (set! sub-exec-k breakpoint)
              (set! sub-exec-flag #t)
-             (cond (interpreter-break-switch (resume-meta 'ok)))
-             ;(set! break #t)
-             (resume-meta 'ok))))
+             (if sub-breakpoints
+                 (begin (set!  break #t) (resume-meta 'ok))
+                 (resume-meta 'ok))
+             )))
 
 (define (make-subjumppoint-vm)
   (call/cc (lambda (breakpoint)
              (set! sub-vm-k breakpoint)
              (set! sub-vm-flag #t)
-             (cond (VM-break-switch (resume-meta 'ok)))
+             (if sub-breakpoints
+                 (begin (set!  break #t) (resume-meta 'ok))
+                 (resume-meta 'ok))
+             ;(cond (VM-break-switch (resume-meta 'ok)))
              ;(set! break #t)
-             (resume-meta 'ok))))
+             )))
 
 (define-macro define-act-eval
   (lambda (fun info act)
     `(let* ((org-fun ,fun))
        (set! ,fun
              (lambda (arg . restarg)
-              (add-indent-inte)
-              (set! inte-info ,act)
-              (cond ((break? inte-info) (set! break #t)))
-              (make-jumppoint-eval)
-              (view-narration-newnarration ,info)
-              (draw-interpreter-info ,info)
-              (let ((ret (apply org-fun (cons arg restarg))))
+              
+               (add-indent-inte)      ;增加缩进距离
+               (set! inte-info ,act)  ;传递解释器信息
+               (cond ((break? inte-info) (set! break #t)))  ;如果在断点名单中,就将break置为真
+               (make-jumppoint-eval) 
+               (view-narration-newnarration ,info)
+               (draw-interpreter-info ,info)
+              
+               (make-subjumppoint-eval)
+               (let ((ret (apply org-fun (cons arg restarg))))
 
-                (cond ((is-non-act? ,info non-act-table)
-                      (draw-interpreter-info (string-append "END-" (symbol->string ,info)  )) ))
-                (view-narration-addsubactnarration 'end)
-              (make-subjumppoint-eval)
+                 (cond ((is-non-act? ,info non-act-table)
+                        (draw-interpreter-info (string-append "END-" (symbol->string ,info)  )) ))
+                 (view-narration-addsubactnarration 'end)
+                 (make-subjumppoint-eval)
                 
-                (sub-indent-inte)
-                ret
-                )
-              )))))
+                 (sub-indent-inte)
+                 ret
+                 )
+               )))))
 
 (define-macro define-sub-act-eval
   (lambda (fun act)
@@ -1299,14 +1341,14 @@
 
 
 (define-macro define-sub-eval-info
-              (lambda(fun info)
-                `(let* ((org-fun ,fun))
-                   (set! ,fun
-                         (lambda (arg . restarg)
-                        (add-indent-inte)
-                           (draw-sub-inte-info ,info)
-                          (sub-indent-inte)
-                           (apply org-fun (cons arg restarg)))))))
+  (lambda(fun info)
+    `(let* ((org-fun ,fun))
+       (set! ,fun
+             (lambda (arg . restarg)
+               (add-indent-inte)
+               (draw-sub-inte-info ,info)
+               (sub-indent-inte)
+               (apply org-fun (cons arg restarg)))))))
 
 (define-macro define-act-compiler
   (lambda (fun pseins)
@@ -1324,15 +1366,17 @@
              (lambda (a x f c s)
                (if (get-act (car x)) ;如果存在于acts的VECTOR里那么就执行,不然就报错
                    (begin
-                    (set! vm-info (car x))
-                    (cond ((break? vm-info) (set! break #t)))
-                    (make-jumppoint-vm)
-                    (draw-VM-Info (car x) 0)
-                    (view-narration-newnarration (car x))
-                    (send-label-vm (car x) (cadr x))
-                    (let ((ret (VM a (caddr x) f c s)))
-                        ret
-                    ))
+                     
+                     (set! vm-info (car x)) ;设置vm-info为当前act的值
+                     (cond ((break? vm-info) (set! break #t))) ;判断当前的act是否需要中断
+                     ;(make-jumppoint-vm)
+                     (view-narration-newnarration (car x))
+                     (send-label-vm (car x) (cadr x))
+                     (make-jumppoint-vm)
+                     ;(make-subjumppoint-vm)
+                     (let ((ret (VM a (caddr x) f c s)))
+                       ret
+                       ))
                     
                    (org-fun a x f c s)))))))
 
@@ -1351,26 +1395,26 @@
     `(let* ((org-fun make-clo))
        (set! make-clo
              (lambda (body n s)
-              (let ((v (org-fun body n s)))
-                (test-fun v)
-                v
-              )
+               (let ((v (org-fun body n s)))
+                 (test-fun v)
+                 v
+                 )
                )))))
 
-;eval-application　(length (cdr (reverse env)))
+;eval-application (length (cdr (reverse env)))
 (define-macro define-eval-application
   (lambda ()
     `(let* ((org-fun eval-application))
        (set! eval-application
              (lambda (exp env)
-              (js-call-frame-eval-add (length  env))
-              ;(js-call-frame-eval-add)
+               (js-call-frame-eval-add (length  env))
+               ;(js-call-frame-eval-add)
 
-              (let ((res (org-fun exp env)))
-                (js-call-frame-eval-sub (length  env))
+               (let ((res (org-fun exp env)))
+                 (js-call-frame-eval-sub (length  env))
 
-                res
-              )
+                 res
+                 )
               
  
                )))))
@@ -1378,17 +1422,17 @@
 
 (define-macro define-eval-exec
   (lambda ()
-      `(let* ((org-fun exec))
-        (set! exec
-              (lambda (exp env)
-                ;(js-draw-expression exp)
+    `(let* ((org-fun exec))
+       (set! exec
+             (lambda (exp env)
+               ;(js-draw-expression exp)
 
 
-                (view-environment-highlightframe (get-env-id env))
-                ;(draw-interpreter-exp (make-inte-str exp '()))
-                (org-fun exp env)
+               (view-environment-highlightframe (get-env-id env))
+               ;(draw-interpreter-exp (make-inte-str exp '()))
+               (org-fun exp env)
 
-  )))))
+               )))))
 
 
 (define-macro define-vm-VM
@@ -1396,8 +1440,9 @@
     `(let* ((org-fun VM))
        (set! VM
              (lambda (a x f c s)
-              (draw-VM-Info (car x) 1)
-              (send-acc-info (make-acc-str a))
+               ;(make-subjumppoint-vm)
+               (draw-VM-Info (car x))
+               (send-acc-info (make-acc-str a))
                ;(draw-draw-VM-exp (make-inte-str x '()))
                (org-fun a x f c s)
                )))))
@@ -1438,14 +1483,6 @@
 
 ;===============画面相关=================
 
-(define-macro embed-vm-draw-find-link
-  (lambda ()
-    `(let* ((org-fun find-link))
-       (set! find-link
-             (lambda (n e)
-              (draw-VM-Info "finding link" 0)
-              (org-fun n e))))))
-
 ; (define-macro embed-eval-draw-frame-functional
 ;   (lambda ()
 ;     `(let* ((org-fun eval-application-apply-functional))
@@ -1453,7 +1490,7 @@
 ;              (lambda (exp env func arguments)
 
 ;                 (append-new-env env)
-;                 ;因为interpreter-new-frame需要用到arguments 和 func两个参数，所以也将这两个参数传递
+;                 ;因为interpreter-new-frame需要用到arguments 和 func两个参数,所以也将这两个参数传递
 ;                 ;待修改
 ;                 (interpreter-new-frame (inplace-arg-by-number arguments '()) func (get-env-id env) (get-env-id (cdr env)) 99)
 
@@ -1465,28 +1502,27 @@
     `(let* ((org-fun eval-application-apply-functional))
        (set! eval-application-apply-functional
              (lambda (exp env func arguments syn)
-                (draw-interpreter-info "environment extended")
-                (append-new-env env)
-                ;因为interpreter-new-frame需要用到arguments 和 func两个参数，所以也将这两个参数传递
-                ;待修改
-                (interpreter-new-frame (inplace-arg-by-number arguments '()) func (get-env-id env) (get-env-id (cdr env)) syn)
+               (draw-interpreter-info "environment extended")
+               (append-new-env env)
+               ;因为interpreter-new-frame需要用到arguments 和 func两个参数,所以也将这两个参数传递
+               ;待修改
+               (interpreter-new-frame (inplace-arg-by-number arguments '()) func (get-env-id env) (get-env-id (cdr env)) syn)
 
-                (org-fun exp env func arguments syn)
+               (org-fun exp env func arguments syn)
 
-              )))))
+               )))))
 
 (define-macro embed-vm-draw-frame 
   (lambda ()
     `(let* ((org-fun VM-frame))
        (set! VM-frame
              (lambda (a x f c s)
-              (js-call-frame-vm-add (trav-link f 1))
-              (view-stack-createFrame)
-              (view-stack-push (make-vm-clo-name c) "closure")
-              (view-stack-push f "frame")
-              (view-stack-push (cadr x) "return")
-              (view-narration-addsubactnarration 'vm-frame)
-              (org-fun a x f c s))))))
+               (js-call-frame-vm-add (trav-link f 1))
+               (view-stack-createFrame)
+               (view-stack-push (make-vm-clo-name c) "closure")
+               (view-stack-push f "frame")
+               (view-stack-push (cadr x) "return")
+               (org-fun a x f c s))))))
 
 
 (define-macro embed-vm-draw-arg-push 
@@ -1494,14 +1530,7 @@
     `(let* ((org-fun VM-argument))
        (set! VM-argument
              (lambda (a x f c s)
-               ;(if indirect-flag
-               ;    (begin
-               ;    (view-stack-push (string-append "<box" (number->string indirect-flag) ">")
-               ;                     "argument")
-               ;    (set! indirect-flag #f))
-               (view-narration-addsubactnarration 'vm-argument)
-                   (view-stack-push (make-short-argument a) "argument")
-                   ;)
+               (view-stack-push (make-short-argument a) "argument")
                (org-fun a x f c s))))))
 
 (define-macro embed-vm-draw-apply-functional 
@@ -1509,46 +1538,46 @@
     `(let* ((org-fun VM-apply-functional))
        (set! VM-apply-functional
              (lambda (a x f c s)
-              (view-stack-push (caddr a) "link")
-              (org-fun a x f c s))))))
+               (view-stack-push (caddr a) "link")
+               (org-fun a x f c s))))))
 
 (define-macro embed-vm-draw-apply-primitive
   (lambda ()
     `(let* ((org-fun VM-apply-primitive))
        (set! VM-apply-primitive
              (lambda (a x f c s)
-              (view-stack-push 0 "empty")
-              (org-fun a x f c s))))))
+               (view-stack-push 0 "empty")
+               (org-fun a x f c s))))))
 
 (define-macro embed-vm-draw-return 
   (lambda ()
     `(let* ((org-fun VM-return))
        (set! VM-return
              (lambda (a x f c s)
-              (js-call-frame-vm-sub)
-              (loop (+ 3 (cadr x)) view-stack-pop)
-              (view-stack-deleteframe)
-              (org-fun a x f c s))))))
+               (js-call-frame-vm-sub)
+               (loop (+ 3 (cadr x)) view-stack-pop)
+               (view-stack-deleteframe)
+               (org-fun a x f c s))))))
 
 (define-macro embed-vm-draw-prim-return 
   (lambda ()
     `(let* ((org-fun prim-return))
        (set! prim-return
              (lambda (retval s)
-              (js-call-frame-vm-sub)
-              (loop 6 view-stack-pop) ;3 + 3 c，f，x， arg1,arg2,link
-              (view-stack-deleteframe)
-              (org-fun retval s))))))
+               (js-call-frame-vm-sub)
+               (loop 6 view-stack-pop) ;3 + 3 c,f,x, arg1,arg2,link
+               (view-stack-deleteframe)
+               (org-fun retval s))))))
 
 (define-macro embed-vm-draw-make-clo 
   (lambda ()
     `(let* ((org-fun make-clo))
        (set! make-clo
              (lambda (body n s)
-              (let ((v (org-fun body n s)))
-                (view-closure-createclosure (list->vector (map (lambda (x) (make-short-argument x)) (vector->list v))))
-                v
-              )
+               (let ((v (org-fun body n s)))
+                 (view-closure-createclosure (list->vector (map (lambda (x) (make-short-argument x)) (vector->list v))))
+                 v
+                 )
                )))))
 
 (define-macro embed-eval-draw-clambda
@@ -1556,12 +1585,12 @@
     `(let* ((org-fun eval-clambda))
        (set! eval-clambda
              (lambda (exp env)
-              (let ((ret (org-fun exp env)))
-                (add-inte-closure ret)
-                (view-environment-addclosure (list->vector (list (list->vector (cadr exp)) (caddr exp)))
-                                   (get-env-id env))
-                ret
-              )
+               (let ((ret (org-fun exp env)))
+                 (add-inte-closure ret)
+                 (view-environment-addclosure (list->vector (list (list->vector (cadr exp)) (caddr exp)))
+                                              (get-env-id env))
+                 ret
+                 )
                )))))
 
 (define-macro embed-vm-draw-close
@@ -1569,8 +1598,8 @@
     `(let* ((org-fun VM-close))
        (set! VM-close
              (lambda (a x f c s)
-              (loop (cadr x) view-stack-pop)
-              (org-fun a x f c s)))))) 
+               (loop (cadr x) view-stack-pop)
+               (org-fun a x f c s)))))) 
 
 (define-macro embed-vm-closure
   (lambda ()
@@ -1590,25 +1619,25 @@
        (set! define-variable!
              (lambda (var val)
              
-              (let ((ret (org-fun var val)))
-                (cond ((not (eq?  (get-inte-closure-number val closure-table-inte) -1))
+               (let ((ret (org-fun var val)))
+                 (cond ((not (eq?  (get-inte-closure-number val closure-table-inte) -1))
                         (view-environment-addglobalvariable (symbol->string var) (make-str (get-inte-closure-number val closure-table-inte))))
-                (else (view-environment-addglobalvariable (symbol->string var) val)))
-                ret
-               ))))))
+                       (else (view-environment-addglobalvariable (symbol->string var) val)))
+                 ret
+                 ))))))
 
 
-;;定义旁白，fun是加入旁白的处理函数
+;;定义旁白,fun是加入旁白的处理函数
 ;;nar-code对应的是旁白对象中map里映射的值
-;;type是指旁白的类型，1为新旁白，此时旁白页面会被刷新
-;;2为追加旁白，此时旁白会被追加近原来的旁白中，页面不会刷新
+;;type是指旁白的类型,1为新旁白,此时旁白页面会被刷新
+;;2为追加旁白,此时旁白会被追加近原来的旁白中,页面不会刷新
 (define-macro define-narration
-  (lambda (fun nar-code)
+  (lambda (fun nar-code break-flag)
     `(let* ((org-fun ,fun))
        (set! ,fun
              (lambda (arg . restarg)
                (view-narration-addsubactnarration ,nar-code)
-               (make-subjumppoint-eval)
+               (cond (,break-flag (make-subjumppoint-eval)))
                (apply org-fun (cons arg restarg)))))))
 
 
@@ -1624,8 +1653,26 @@
           
         
 
+(define-narration eval-self-evaluating 'eval-self-evaluating #t)
+(define-narration eval-quotation 'eval-quotation #t)
+
+
+(define-narration VM-constant 'vm-constant #t)
+(define-narration VM-functional 'vm-functional #t) 
+(define-narration VM-box 'vm-box #t)
+(define-narration VM-close 'vm-close #t)
+(define-narration VM-frame 'vm-frame #t)
+(define-narration VM-apply 'vm-apply #t)
+(define-narration VM-return 'vm-return #f)
+
+
+
+(define-sub-eval-info eval-self-evaluating 'self-evaluating)
+(define-sub-eval-info eval-quotation 'quotation)
+
+
 ;;def
-(define-narration eval-variable 'eval-variable)
+(define-narration eval-variable 'eval-variable #t)
 (define-sub-eval-info eval-variable 'variable)
 
 
@@ -1634,23 +1681,43 @@
 ;定义旁白
 
 ;;1 self-evaluating eval
-(define-narration eval-self-evaluating 'eval-self-evaluating)
-(define-sub-eval-info eval-self-evaluating 'self-evaluating)
 
-(define-narration eval-quotation 'eval-quotation)
-(define-sub-eval-info eval-quotation 'quotation)
+
+
+
+
 
 ;;1 constant vm
-(define-narration VM-constant 'vm-constant)
+
 
 
 ;;2 lambda eval
-(define-narration eval-lambda 'eval-lambda)
+(define-narration eval-lambda 'eval-lambda #t)
 (define-sub-eval-info eval-lambda 'eval-lambda)
 
-(define-narration VM-functional 'VM-functional) 
-(define-narration VM-close 'VM-close) 
 
+
+
+;; functional vm
+
+
+;;find-link
+(define-narration find-link-done 'find-link-done #t)
+(define-narration find-link-next 'find-link-next #t)
+
+;;anime-index
+(define-narration anime-index 'anime-index #t)
+
+;;eval-lookup
+(define-narration eval-lookup-frame-diff-fra 'eval-lookup-diff-fra #t)
+(define-narration eval-lookup-frame-same-var 'eval-lookup-same-var #t)
+(define-narration eval-lookup-frame-diff-var 'eval-lookup-diff-var #t)
+(define-narration eval-lookup-frame 'eval-lookup #f)
+
+;;vm-argument
+(define-narration VM-argument 'vm-argument #t)
+
+;;VM-frame
 
 
 
@@ -1749,6 +1816,10 @@
 (define-sub-act-vm VM-refer 'local-variable)
 ;====break===
 
+
+
+(define sub-breakpoints #f)
+
 (define breakpoints (vector (vector 'act-constant #f)
                             (vector 'act-variable #f)
                             (vector 'act-if #f)
@@ -1759,11 +1830,12 @@
                             (vector 'act-application #f)
                             (vector 'act-args #f)
                             (vector 'act-fun-body #f)
-                            (vector 'act-assignment #f)))
+                            (vector 'act-assignment #f)
+                            (vector 'act-box #f)))
 
 (define (get-breakpoint-pos name)
   (let loop ((n 0))
-    (cond ((>= n 11) (error 'bad_name))
+    (cond ((>= n (vector-length breakpoints)) (error 'bad_name))
           ((eq? (vector-ref (vector-ref breakpoints n) 0) name) n)
           (else (loop (+ n 1))))))
 
@@ -1773,6 +1845,7 @@
     (vector-set! v 1 (not (vector-ref v 1)))))
 
 (define (breakpoint-on)
+  (set! sub-breakpoints #t)
   (let ((len (vector-length breakpoints)))
     (let loop ((n 0))
       (cond ((>= n len) 'done)
@@ -1782,6 +1855,7 @@
                (loop (+ n 1))))))))
 
 (define (breakpoint-off)
+  (set! sub-breakpoints #f)
   (let ((len (vector-length breakpoints)))
     (let loop ((n 0))
       (cond ((>= n len) 'done)
@@ -1791,9 +1865,9 @@
                (loop (+ n 1))))))))
 
 (define (break? name)
-   (let* ((n (get-breakpoint-pos name))
-          (v (vector-ref breakpoints n)))
-     (vector-ref v 1)))
+  (let* ((n (get-breakpoint-pos name))
+         (v (vector-ref breakpoints n)))
+    (vector-ref v 1)))
 
 ;========meta======
 
@@ -1827,7 +1901,8 @@
                      (vector 'act-application 0 0)
                      (vector 'act-args 0 0)
                      (vector 'act-fun-body 0 0)
-                     (vector 'act-assignment 0 0)))
+                     (vector 'act-assignment 0 0)
+                     (vector 'act-box 0 0)))
 
 
 (define (get-act act-name)
@@ -1873,35 +1948,44 @@
   (let ((inte-code (make-label (preprocess program #f)))
         (VM-code (sc program) ))
   
-(send-program  inte-code VM-code )
-  
-  (call/cc
-   (lambda (break-meta)
-     (call/cc
-      (lambda (top)
-        (set! resume-meta top)))
-     
-     (call/cc
-      (lambda (c)
-        (cond ((eq? break #t)
-               (set! break #f)
-               (set! next c)
-               (break-meta 'ok')))))
-      
-         (cond (sub-exec-flag
-                (begin (set! sub-exec-flag #f)
-                       (sub-exec-k 'ok)))
-               (sub-vm-flag
-                (begin (set! sub-vm-flag #f)
-                       (sub-vm-k 'ok)))
-               ((eq? vm-k #f) (run-vm VM-code))
-               ((eq? exec-k #f) (resume-meta (eval inte-code)))
-               ((is-same-position?)
-                (act-add1 inte-info 'exec)
-                (exec-k 'ok))
-               (else
-                (act-add1 vm-info 'vm)
-                (vm-k 'ok)))))))
+    (send-program  inte-code VM-code )
+
+    ;总继续，整个meta由该继续控制
+    (call/cc
+     (lambda (break-meta)
+
+       ;创建顶部继续，用来设置返回点
+       (call/cc
+        (lambda (top)
+          (set! resume-meta top)))
+
+       ;断点继续，当执行返回top之后，判断
+       ;break的真假，为真则停止meta，为假
+       ;则继续执行
+       (call/cc
+        (lambda (c)
+          (cond ((eq? break #t)
+                 (set! break #f)
+                 (set! next c)
+                 (break-meta 'ok)))))
+
+       ;这里的分支决定了解释器和VM的同步方式
+       (cond 
+
+         (sub-exec-flag
+          (begin (set! sub-exec-flag #f)
+                 (sub-exec-k 'ok)))
+         (sub-vm-flag
+          (begin (set! sub-vm-flag #f)
+                 (sub-vm-k 'ok)))
+         ((eq? vm-k #f) (run-vm VM-code))
+         ((eq? exec-k #f) (resume-meta (eval inte-code)))
+         ((is-same-position?)
+          (act-add1 inte-info 'exec)
+          (exec-k 'ok))
+         (else
+          (act-add1 vm-info 'vm)
+          (vm-k 'ok)))))))
          
   
 

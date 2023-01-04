@@ -342,22 +342,33 @@ function drawSubInterpreterInfo(info) {
 }
 
 var VMCounter = 1;
-function drawVMInfo(info, from) {
-    var indentSpace = "";
-    for (var i = 0; i < vmIndent; i++) {
-        indentSpace += indentString;
-    }
-    info = info.toString();
-    if (info.indexOf("'act-") !== -1 && from === 1)
-        return;
+// function drawVMInfo(info, from) {
+//     var indentSpace = "";
+//     for (var i = 0; i < vmIndent; i++) {
+//         indentSpace += indentString;
+//     }
+//     info = info.toString();
+//     if (info.indexOf("'act-") !== -1 && from === 1) //包含act并且from为1，就不绘制
 
-    if (info.indexOf("'act-") === -1 || from === 1) { //不包含
-        var e = makeNewElement(indentSpace + info, "VMInfo" + VMCounter, "null");
+//         return;
+
+//     if (info.indexOf("'act-") === -1 || from === 1) { //不包含
+//         var e = makeNewElement(indentSpace + info, "VMInfo" + VMCounter, "null");
+//     } else {
+//         var e = makeNewElement(indentSpace + VMCounter + ". " + info, "VMInfo" + VMCounter++, "null");
+//     }
+//     document.getElementById('VMInfo').appendChild(e);
+
+// }
+
+function drawVMInfo(info) {
+    info = info.toString();
+    if (info.indexOf("'act-") === -1) { //不包含
+        var e = makeNewElement(info, "VMInfo" + VMCounter, "null");
     } else {
-        var e = makeNewElement(indentSpace + VMCounter + ". " + info, "VMInfo" + VMCounter++, "null");
+        var e = makeNewElement(VMCounter + ". " + info, "VMInfo" + VMCounter++, "null");
     }
     document.getElementById('VMInfo').appendChild(e);
-
 }
 
 
@@ -404,9 +415,9 @@ function changeBiwaToJs(biwa) {
 
 
 
-var str = `("L7" ('if ("L6" ("L5" 'a)) ("L4" ("L3" 'b)) ("L2" ("L1" 'c))))`;
+// var str = `("L7" ('if ("L6" ("L5" 'a)) ("L4" ("L3" 'b)) ("L2" ("L1" 'c))))`;
 
-var str2 = "('act-application 1 ('frame ('halt) ('act-args 1 ('act-constant 3 ('constant 33 ('argument ('act-constant 2 ('constant 22 ('argument ('act-constant 1 ('constant 11 ('argument ('act-fun-body 1 ('act-lambda 1 ('functional ('act-if 1 ('act-test 1 ('refer 0 0 ('test ('act-then 1 ('refer 0 1 ('return 4))) ('act-else 1 ('refer 0 2 ('return 4))))))) ('apply))))))))))))))))"
+// var str2 = "('act-application 1 ('frame ('halt) ('act-args 1 ('act-constant 3 ('constant 33 ('argument ('act-constant 2 ('constant 22 ('argument ('act-constant 1 ('constant 11 ('argument ('act-fun-body 1 ('act-lambda 1 ('functional ('act-if 1 ('act-test 1 ('refer 0 0 ('test ('act-then 1 ('refer 0 1 ('return 4))) ('act-else 1 ('refer 0 2 ('return 4))))))) ('apply))))))))))))))))"
 /**
  * 将代码中的L1 L2替换成dom的标签
  * @param {*} program 输入的程序
@@ -616,9 +627,10 @@ function animeVmFindlink(target) {
     }
 
     if (animeVmFindlinkStart === "") {
-
+        console.log("start为空")
         var start = view.stack.frameList.length - 1;
     } else {
+        console.log("start非空")
         var start = animeVmFindlinkStart;
     }
     console.log("进入寻找link")
@@ -628,7 +640,7 @@ function animeVmFindlink(target) {
     let startEle = document.getElementById("stackFrame_" + start);
     let endFrameNumber = document.getElementById("stackElementFrameNumber_" + target);
     let endEle = endFrameNumber.parentNode.parentNode;
-    testArg = startEle;
+    console.log("animeVmFindlinkList: " + animeVmFindlinkList)
     let line = animeConnectFindlink(startEle.id, endEle.id).canvas;
     setEleHighlight(startEle);
     setEleHighlight(endEle);
@@ -642,10 +654,11 @@ function animeVmIndex(target) {
         let lst = animeVmFindlinkList.pop();
         setEleLowlight(lst[0]);
         setEleLowlight(lst[1]);
-        animeVmFindlinkStart = "";
+
         parent = lst[2].parentNode;
         parent.removeChild(lst[2]);
     }
+    animeVmFindlinkStart = "";
     var ele = document.getElementById("StackElementFrameContent_" + target);
     ele.style.backgroundColor = "red";
     animeVmIndexList.push(ele);

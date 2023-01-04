@@ -88,8 +88,8 @@
 (define (draw-interpreter-info info)
   (js-call (js-eval "drawInterpreterInfo") info))
 
-(define (draw-VM-Info info from)
-  (js-call (js-eval "drawVMInfo") info from))
+(define (draw-VM-Info info)
+  (js-call (js-eval "drawVMInfo") info))
 
 
 ;view.environment.highlightFrame(frameNumber)

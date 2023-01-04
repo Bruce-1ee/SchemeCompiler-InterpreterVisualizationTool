@@ -654,7 +654,7 @@ class Narration {
         this.narrationTable.set("'act-lambda", "VMはラムダ式を処理する");
 
         this.narrationTable.set("'eval-application", "インタプリタは関数の処理を開始する");
-        this.narrationTable.set("'act-application", "VMはは関数の処理を開始する");
+        this.narrationTable.set("'act-application", "VMは関数の処理を開始する");
 
         this.narrationTable.set("'eval-arguments", "インタプリタは関数の引数部分の処理を開始する");
         this.narrationTable.set("'act-args", "VMは関数の引数部分の処理を開始する");
@@ -679,7 +679,14 @@ class Narration {
         this.narrationTable.set("'vm-constant", "constant命令が実行された");
         this.narrationTable.set("'vm-argument", "argument命令が実行された");
         this.narrationTable.set("'vm-functional", "functional命令が実行された");
-        this.narrationTable.set("vm-apply", "apply命令が実行された");
+        this.narrationTable.set("'vm-apply", "apply命令が実行された");
+        this.narrationTable.set("'vm-close", "close命令が実行された");
+        this.narrationTable.set("'find-link-done", "静的リンクをたどり着いた");
+        this.narrationTable.set("'find-link-next", "静的リンクを辿っている");
+        this.narrationTable.set("'anime-index", "フレーム内の要素をindexする");
+        this.narrationTable.set("'eval-variable", "インタプリタは変数の処理を開始する");
+        this.narrationTable.set("'vm-box", "box命令が実行された");
+        this.narrationTable.set("'vm-return", "return命令が実行された");
         // this.narrationTable.set("'vm-frame", "frame命令が実行された");
         // this.narrationTable.set("'vm-frame", "frame命令が実行された");
         // this.narrationTable.set("'vm-frame", "frame命令が実行された");
@@ -707,17 +714,17 @@ class Narration {
 
     addSubActNarration(key) {
         testFun(key);
-        
+
         let str = key.toString();
         let txt = this.narrationTable.get(str);
         console.log(str);
-        if(txt === undefined){
+        if (txt === undefined) {
             txt = str;
         }
-        
-        if (str === "'end"){
-            console.log("进入else")
-            txt += " - " + this.bigStep.slice(1,this.bigStep.length);
+
+        if (str === "'end") {
+            return;
+            txt = str
         }
         let narration = document.getElementById("narration");
         let nar = makeNewElement(txt, '', '');

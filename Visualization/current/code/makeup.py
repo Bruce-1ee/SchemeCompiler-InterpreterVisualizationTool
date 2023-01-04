@@ -104,6 +104,7 @@ alter(outputpath, "\(vm-k\)", "(vm-k 'ok)")
 alter(outputpath, "\(sub-vm-k\)", "(sub-vm-k 'ok)")
 alter(outputpath, "\(resume-meta\)", "(resume-meta 'ok)")
 alter(outputpath, "\(beginning\)", "(beginning 'ok)")
+alter(outputpath, "\(temp-break\)", "(temp-break 'ok)")
 #alter(outputpath, "\(break-meta\)", "(break-meta 'ok)")
 
 alter(outputpath, "display", "console-log")

@@ -22,7 +22,9 @@ html {
 
 /* 环境模型 */
 .environment {
-    min-width: 500px;
+    /* min-width: 700px; */
+    /* width: 700px;*/
+    width: 400px;
     /* min-width: 1290px; */
     margin: 3px;
 
@@ -42,8 +44,9 @@ html {
     margin-top: 10px;
     margin-left: 50px;
     margin-right: 50px;
-    margin-bottom: 100px;
-    height: 110px;
+    /* margin-bottom: 100px; */
+    margin-bottom: 10px;
+    height: 60px;
     background-color: rgb(190, 236, 240);
     border-width: 2px;
     border-color: rgb(0, 0, 0);
@@ -93,7 +96,7 @@ html {
     margin-top: 10px;
     margin-left: 50px;
     width: 100px;
-    height: 80px;
+    height: 50px;
 
 
 
@@ -305,9 +308,11 @@ html {
 
 
 .interpreterRunningExp {
+    border-width: 1px;
+    border-style: dashed;
     position: absolute;
-    top: 0px;
-    left: 600px;
+    top: 2px;
+    left: 400px;
 
 }
 
@@ -318,9 +323,11 @@ html {
 }
 
 .VMRunningExp {
+    border-width: 1px;
+    border-style: dashed;
     position: absolute;
     top: 90px;
-    left: 600px;
+    left: 400px;
 }
 
 .VMExp {
@@ -333,7 +340,7 @@ html {
 
 .closure {
     margin: 3px;
-    width: 15%;
+    width: 120px;
     min-height: 90%;
     background-color: rgb(240, 240, 190);
     border-width: 1px;
@@ -438,7 +445,7 @@ html {
     border-width: 3px;
     background-color: azure;
     width: 400px;
-    height: 200px;
+    height: 70px;
     position: fixed;
     bottom: 5px;
     right: 5px;

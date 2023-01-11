@@ -282,6 +282,22 @@ function connectATOB(a, b, aanchor, banchor) {
     connectLinkAndStackTag(a, b);
 }
 
+function co(a, b, aanchor, banchor) {
+
+
+    function connectLinkAndStackTag(a, b) {
+        jsPlumb.connect({
+            source: a,
+            target: b,
+            endpoint: ['Dot', { radius: '0' }],
+            overlays: [['Arrow', { width: 12, length: 12, location: 1 }]],
+            connector: ['Flowchart'],
+            anchor: [aanchor, banchor]
+        });
+    }
+    connectLinkAndStackTag(a, b);
+}
+
 function animeConnectFindlink(a, b) {
     return jsPlumb.connect({
         source: a,

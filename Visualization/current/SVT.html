@@ -22,27 +22,16 @@
         <div id="inteExp" class="inteExp"></div>
     </div>
     <div class="VMRunningExp">
-        <span>VMExp:</span> <span>accumulator:</span> <span id="acc">accumulator</span>
+        <span>VMExp:</span> <span>
+            &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbspaccumulator:</span>
+        <span id="acc">null</span>
         <div id="VMExp" class="VMExp"></div>
     </div>
 
-    <div id="inputBox" class="inputBox">this is inputBox
+    <div id="inputBox" class="inputBox">
 
-        <textarea style=" position: absolute1; left: 200px; top: 10px;" name="content" id="programInput" rows="8"
-            cols="50">
-            (meta '((lambda(a b c d) ((lambda() (set! b 1)))) 99 88 77 66))  
-            ;(meta '((lambda(a b c d) ((lambda() (+ c d)))) 99 88 77 66))            
-;(glo-define '(define make-withdraw (lambda (balance) (lambda (amount) (if (>= balance amount) ((lambda (dum) balance) (set! balance (- balance amount))) "Insufficient funds")))))
-;(glo-define '(define w1 (make-withdraw 100)))
-;(meta '(w1 50))
-;(meta '((lambda(arg1) arg1) ((lambda(a) 88) 11)))            
-;(meta '((lambda (a b c) (if a b c)) 11 22 33))
-;(meta '((lambda (square) ((lambda (sum-of-squares) ((lambda(a) (sum-of-squares (+ a 1) (* a 2))) 5)) (lambda(x y) (+ (square x) (square y))))) (lambda(x) (* x x))))
-;
-;(glo-define '(define var1 100))
-;
-;(meta '((lambda() (set! var1 88))))
-         </textarea>
+        <textarea placeholder="input code here..." style=" position: absolute1; left: 200px; top: 10px;" name="content"
+            id="programInput" rows="8" cols="50"></textarea>
 
         <!-- 
  ;3.2.2  Applying Simple Procedures            
@@ -91,7 +80,22 @@
    (if (= n 0)
        1
        (* n (self self (- n 1)))))
- 5)) -->
+ 5)) 
+
+             (meta '((lambda(a b c d) ((lambda() (set! b 1)))) 99 88 77 66))  
+            ;(meta '((lambda(a b c d) ((lambda() (+ c d)))) 99 88 77 66))            
+;(glo-define '(define make-withdraw (lambda (balance) (lambda (amount) (if (>= balance amount) ((lambda (dum) balance) (set! balance (- balance amount))) "Insufficient funds")))))
+;(glo-define '(define w1 (make-withdraw 100)))
+;(meta '(w1 50))
+;(meta '((lambda(arg1) arg1) ((lambda(a) 88) 11)))            
+;(meta '((lambda (a b c) (if a b c)) 11 22 33))
+;(meta '((lambda (square) ((lambda (sum-of-squares) ((lambda(a) (sum-of-squares (+ a 1) (* a 2))) 5)) (lambda(x y) (+ (square x) (square y))))) (lambda(x) (* x x))))
+;
+;(glo-define '(define var1 100))
+;
+;(meta '((lambda() (set! var1 88))))
+
+-->
 
 
         <script>
@@ -106,10 +110,10 @@
             <input type="button" value="breakpointOn" onclick="javascript:breakpointOn(); ">
             <input type="button" value="breakpointOff" onclick="javascript:breakpointOff(); ">
 
-            <input type="button" value="eval" onclick="javascript:biwac(); ">
+            <input type="button" value="start" onclick="javascript:biwac(); ">
             <input type="button" value="next" onclick="javascript:next(); ">
-            <input type="button" value="nextInte" onclick="javascript:nextInte(); ">
-            <input type="button" value="breakApplication" onclick="javascript:breakApp(); ">
+            <!-- <input type="button" value="nextInte" onclick="javascript:nextInte(); ">
+            <input type="button" value="breakApplication" onclick="javascript:breakApp(); "> -->
         </div>
     </div>
     <div id="view" class="clearfix"></div>

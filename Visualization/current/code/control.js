@@ -54,6 +54,11 @@ function next() {
     evl(p);
 }
 
+function breakApp() {
+    let p = "(breakpoint-switch 'act-application)"
+    evl(p);
+}
+
 /**
  * 用biwascheme执行文本框内的程序
  */
@@ -227,16 +232,19 @@ function menuFun() {
         // e.target //右键点击的元素
         // let x = e.offsetX;                //触发点到页面窗口左边的距离
         // let y = e.offsetY;
-        let x = e.x;                //触发点到页面窗口左边的距离
-        let y = e.y;
+        testArg = e;
+        // let x = e.x;                //触发点到页面窗口左边的距离
+        // let y = e.y;
+        let x = e.clientX;                //触发点到页面窗口左边的距离
+        let y = e.pageY;
         document.getElementById("menuItem2").innerHTML = e.target.getAttribute("type");
 
         // let winWidth = window.innerWidth; //窗口的内部宽度（包括滚动条）
         // let winHeight = window.innerHeight;
         // let menuWidth = menu.offsetWidth; //菜单宽度
         // let menuHeight = menu.offsetHeight;
-        //x = winWidth - menuWidth >= x ? x : winWidth - menuWidth;
-        //y = winHeight - menuHeight >= y ? y : winHeight - menuHeight;
+        // x = winWidth - menuWidth >= x ? x : winWidth - menuWidth;
+        // y = winHeight - menuHeight >= y ? y : winHeight - menuHeight;
         menu.style.top = y + 'px';
         menu.style.left = x + 'px';
         // if (x > (winWidth - menuWidth)) {

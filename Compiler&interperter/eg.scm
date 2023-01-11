@@ -67,5 +67,11 @@
              10
              (lambda (g) (g))))
 
+(breakpoint-switch 'act-application)
+(meta '((lambda(a1 a2 a3 a4)
+  ((lambda (b)
+     ((lambda (c)
+        (+ b a4)) 99)) 88)) 77 66 55 44))
+
 
 

@@ -85,3 +85,6 @@
 # 关于environment extended显示位置的说明
       环境扩展的时间确实是在参数被计算完成的时候进行的
 
+
+
+* vm find-link动画中，第一回的显示有问题。当start为空的时候其实不是从stack.length-1的地方开始，而是没有箭头，只有当前frame。
